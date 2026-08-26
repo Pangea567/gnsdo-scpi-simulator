@@ -18,18 +18,6 @@ from gnsdo_simulator.device_state import DeviceState
 from gnsdo_simulator.scpi_parser import SCPIParser
 
 
-# HELP? komutu, kullanicinin/gelistiricinin hangi komutlarin
-# desteklendigini gorebilmesi icin var. Yeni bir komut eklediginde
-# bu listeye de eklemeyi unutma -- ileride bunu otomatik hale
-# getirebiliriz (parser'in kendi kayitli komut listesinden uretmek
-# gibi), ama simdilik MVP icin elle tutulan bir liste yeterli.
-SUPPORTED_COMMANDS = [
-    "*IDN?",
-    "HELP?",
-    "SYST:STAT?",
-]
-
-
 def make_idn_handler(state: DeviceState):
     """
     *IDN? komutunun cevabini uretecek fonksiyonu hazirlar.
@@ -54,18 +42,23 @@ def make_idn_handler(state: DeviceState):
     return idn_handler
 
 
-def help_handler() -> str:
+def make_help_handler(parser: SCPIParser):
     """
-    HELP? komutu: desteklenen komutlarin listesini virgulle
-    ayirip tek bir satir olarak dondurur.
+    HELP? komutunun cevabini uretecek fonksiyonu hazirlar.
 
-    Not: gercek cihazlarda HELP? formati degisebilir (bazen
-    her komut ayri satirda gelir). Simdilik basit tutuyoruz,
-    gercek cihazin kilavuzuna bakildiginda format farkli
-    cikarsa kolayca degistirebiliriz -- degisiklik sadece
-    bu fonksiyonun icinde kalacak.
+    Ayni closure mantigi: parser'i hatirlayan, parametre almayan
+    bir fonksiyon donuyoruz. Onemli detay: bu fonksiyon parser'in
+    listesini "register anindaki hali" ile degil, "her cagrildiginda
+    GUNCEL hali" ile okur -- cunku parser.list_commands() cagrisi
+    fonksiyonun ICINDE, yani HELP? her calistirildiginda tekrar
+    calisir. Bu sayede HELP?'i en once register etsek bile, daha
+    sonra eklenen GPS/PTIME/SYNC komutlari da listede gorunur.
     """
-    return ",".join(SUPPORTED_COMMANDS)
+
+    def help_handler() -> str:
+        return ",".join(parser.list_commands())
+
+    return help_handler
 
 
 def syst_stat_handler() -> str:
@@ -92,7 +85,6 @@ def register_system_commands(parser: SCPIParser, state: DeviceState) -> None:
     diyecek, detaylari bilmesine gerek yok.
     """
     parser.register("*IDN?", make_idn_handler(state))
-    parser.register("HELP?", help_handler)
+    parser.register("HELP?", make_help_handler(parser))
     parser.register("SYST:STAT?", syst_stat_handler)
-
     

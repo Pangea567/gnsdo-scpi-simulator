@@ -95,6 +95,17 @@ class SCPIParser:
 
         return handler()
 
+    def list_commands(self) -> list[str]:
+        """
+        Su ana kadar register edilmis tum komutlarin listesini,
+        alfabetik siralanmis olarak dondurur.
 
-
+        Bunu ozellikle HELP? komutu icin ekledik: HELP? cevabini
+        elle tutulan ayri bir listeden degil, buradan (yani parser'in
+        GERCEKTEN bildigi komutlardan) uretecegiz. Boylece yeni bir
+        komut grubu (GPS, PTIME, SYNC...) ekledigimizde HELP? otomatik
+        guncellenecek, ayri bir listeyi elle guncellemeyi unutma
+        riski kalmayacak.
+        """
+        return sorted(self._commands.keys())
     

@@ -43,4 +43,12 @@ class DeviceState:
 
     serial_number: str = "SIM000001"
     firmware_version: str = "SIM-1.0"
-    
+
+    # GPS/GNSS ile ilgili durum. Gercek cihazda bunlar surekli
+    # degisir (uydu gorunurlugu, sinyal kalitesi vb.), ama biz
+    # simdilik basit, sabit varsayilan degerlerle basliyoruz.
+    # "gnss-lost" gibi senaryolari ekledigimizde, bu degerleri
+    # senaryoya gore farkli baslatacagiz.
+    gnss_satellites_visible: int = 12
+    gnss_satellites_tracking: int = 8
+

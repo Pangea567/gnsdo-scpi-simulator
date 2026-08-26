@@ -15,6 +15,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from gnsdo_simulator.device_state import DeviceState
 from gnsdo_simulator.scpi_parser import SCPIParser
 from gnsdo_simulator.commands.system import register_system_commands
+from gnsdo_simulator.commands.gps import register_gps_commands
 
 
 def make_test_parser() -> SCPIParser:
@@ -22,10 +23,15 @@ def make_test_parser() -> SCPIParser:
     Her testte sifirdan, temiz bir parser + state kurmak icin
     kucuk bir yardimci fonksiyon. Boylece testler birbirini
     etkilemez (her biri kendi bagimsiz DeviceState'iyle calisir).
+
+    Artik hem sistem hem GPS komutlarini kaydediyoruz, boylece
+    HELP? testi ve genel komut testleri gercek, tam bir simulator'i
+    yansitiyor.
     """
     state = DeviceState()
     parser = SCPIParser()
     register_system_commands(parser, state)
+    register_gps_commands(parser, state)
     return parser
 
 
@@ -63,6 +69,33 @@ def test_help():
     assert response is not None
     assert "*IDN?" in response
     assert "SYST:STAT?" in response
+    # Artik GPS komutlari da kayitli, HELP? bunlari da gostermeli
+    # (elle guncellenen bir liste degil, parser'in gercek kayitlarindan
+    # otomatik uretiliyor -- bunu kanitliyoruz)
+    assert "GPS?" in response
+    assert "GPS:SAT:TRAC:COUN?" in response
+
+
+def test_gps():
+    parser = make_test_parser()
+
+    # Varsayilan DeviceState: 8 uydu takip ediliyor (>= 4), yani kilitli olmali
+    assert parser.dispatch("GPS?") == "LOCKED"
+    assert parser.dispatch("GPS:SAT:TRAC:COUN?") == "8"
+    assert parser.dispatch("GPS:SAT:VIS:COUN?") == "12"
+
+
+def test_gps_no_fix_when_few_satellites():
+    """
+    GPS? cevabinin gercekten DeviceState'e bagli oldugunu kanitlar:
+    takip edilen uydu sayisi esigin altina dusunce cevap degismeli.
+    """
+    state = DeviceState(gnss_satellites_tracking=2)
+    parser = SCPIParser()
+    register_system_commands(parser, state)
+    register_gps_commands(parser, state)
+
+    assert parser.dispatch("GPS?") == "NO FIX"
 
 
 def test_syst_stat():
@@ -82,5 +115,3 @@ def test_case_insensitive_command():
 def test_unknown_command():
     parser = make_test_parser()
     assert parser.dispatch("NOT:A:REAL:COMMAND?") is None
-
-    

@@ -21,6 +21,7 @@ Kullanim:
 import argparse
 import logging
 
+from gnsdo_simulator.commands.gps import register_gps_commands
 from gnsdo_simulator.commands.system import register_system_commands
 from gnsdo_simulator.device_state import DeviceState
 from gnsdo_simulator.scpi_parser import SCPIParser
@@ -62,6 +63,7 @@ def main() -> None:
     scpi_parser = SCPIParser()
 
     register_system_commands(scpi_parser, device_state)
+    register_gps_commands(scpi_parser, device_state)
 
     server = SerialServer(port=args.port, parser=scpi_parser, baudrate=args.baudrate)
     server.run_forever()
@@ -69,5 +71,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-    
