@@ -26,6 +26,8 @@ SU ANKI ASAMADA:
 """
 
 from dataclasses import dataclass
+from datetime import datetime
+from typing import Optional
 
 
 @dataclass
@@ -52,3 +54,32 @@ class DeviceState:
     gnss_satellites_visible: int = 12
     gnss_satellites_tracking: int = 8
 
+    # Senkronizasyon (SYNC) durumu.
+    #   sync_locked: osilator su an referansa (GPS'e) kilitli mi?
+    #   holdover: GPS kaybolunca cihaz "son bilinen dogru frekansi
+    #             hafizadan calarak" idare etmeye devam eder, buna
+    #             holdover denir. holdover=True iken sync_locked=False
+    #             olur (cunku artik canli GPS referansi yok).
+    #   sync_source_mode: hangi kaynagi kullaniyor ("GPS" gibi).
+    #   holdover_started_at: holdover ne zaman basladi (sure hesaplamak
+    #             icin). Holdover'da degilse None.
+    sync_locked: bool = True
+    holdover: bool = False
+    sync_source_mode: str = "GPS"
+    holdover_started_at: Optional[datetime] = None
+
+    # Olcum (measurement) degerleri -- MEAS:* komutlari icin.
+    # Gercekci bir sensor simulasyonu yazmiyoruz, sabit/makul
+    # varsayilan degerler kullaniyoruz (dokumandaki ornek degerlerle
+    # ayni): sicaklik (C), voltaj (V), akim (A).
+    temperature_celsius: float = 42.5
+    voltage: float = 12.1
+    current: float = 0.42
+
+    # CSAC (Chip Scale Atomic Clock) -- cihazin icindeki kucuk atomik
+    # saat modulu. Ayri bir seri numarasi ve kendi sicakligi olur
+    # (genelde ana govdeden daha sicak calisir, atomik gecisin
+    # gerceklesmesi icin). Sabit, makul varsayim degerleri.
+    csac_status: str = "RUNNING"
+    csac_temperature_celsius: float = 85.0
+    csac_serial_number: str = "CSAC-SIM-0001"

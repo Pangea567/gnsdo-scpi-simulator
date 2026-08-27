@@ -15,15 +15,28 @@ Nasil calisir (ozet):
   4. dispatch() metodu, gelen komutu bu deftere bakarak calistirir.
      Eger komut deftere kayitli degilse, program COKMEZ; bunun yerine
      None dondurur (yani "boyle bir komut bilmiyorum").
+
+IKI TUR KOMUT VAR:
+  - Query (sorgu) komutlari: "*IDN?", "GPS?" gibi, PARAMETRESIZ,
+    sadece bir cevap donerler. register() ile kaydedilirler.
+  - Setter (durum degistiren) komutlari: "SYNC:SOUR:MODE GPS" gibi,
+    komuttan sonra bir BOSLUK ve bir DEGER gelir. register_setter()
+    ile kaydedilirler, handler'lari o degeri parametre olarak alir.
+    Bazen (ornegin "SYNC:HOLD:INIT") deger yoktur, sadece komutun
+    kendisi bir "aksiyon" tetikler -- bu durumda da register_setter
+    kullanilir, handler'a bos string ("") gelir.
 """
 
 from typing import Callable, Optional
 
 
-# Bir komut handler'i su imzada olmali: () -> str
-# (Ileride parametre alan komutlar icin bunu genisletecegiz,
-#  simdilik MVP asamasinda sadece query (?) komutlarla basliyoruz.)
+# Query handler'i: parametre almaz, bir string doner.
 CommandHandler = Callable[[], str]
+
+# Setter handler'i: komuttan sonraki degeri (str olarak) parametre
+# alir, isteğe bagli bir cevap donebilir (cogu zaman None -- yani
+# "islemi yaptim ama soyleyecek bir sey yok").
+SetterHandler = Callable[[str], Optional[str]]
 
 
 def normalize_command(raw: bytes | str) -> str:
@@ -60,12 +73,14 @@ class SCPIParser:
     """
 
     def __init__(self) -> None:
-        # Ornek: {"*IDN?": idn_fonksiyonu, "SYNC:LOCKED?": sync_locked_fonksiyonu}
+        # Query komutlari: {"*IDN?": idn_fonksiyonu, ...}
         self._commands: dict[str, CommandHandler] = {}
+        # Setter komutlari: {"SYNC:SOUR:MODE": mode_degistir_fonksiyonu, ...}
+        self._setters: dict[str, SetterHandler] = {}
 
     def register(self, command: str, handler: CommandHandler) -> None:
         """
-        Bir komutu bir fonksiyona baglar.
+        Bir query komutunu bir fonksiyona baglar.
 
         command: SCPI komutu, ornegin "*IDN?" (biz otomatik buyuk harfe
                  cevirip kaydediyoruz, sen kucuk harfle de yazsan sorun olmaz)
@@ -74,12 +89,24 @@ class SCPIParser:
         key = command.strip().upper()
         self._commands[key] = handler
 
+    def register_setter(self, command_prefix: str, handler: SetterHandler) -> None:
+        """
+        Bir setter (durum degistiren) komutu baglar.
+
+        command_prefix: komutun basi, ornegin "SYNC:SOUR:MODE" (soru
+                 isareti YOK -- setter komutlari "?" ile bitmez)
+        handler: bir string parametre alan (deger, veya deger yoksa
+                 bos string ""), opsiyonel bir cevap donebilen fonksiyon
+        """
+        key = command_prefix.strip().upper()
+        self._setters[key] = handler
+
     def dispatch(self, raw_line: bytes | str) -> Optional[str]:
         """
-        Gelen ham satiri normalize eder, kayitli komutlar arasinda arar,
-        varsa calistirip cevabini dondurur.
+        Gelen ham satiri normalize eder, once query komutlarina, sonra
+        setter komutlarina bakar, varsa calistirip cevabini dondurur.
 
-        Komut bilinmiyorsa None doner (exception FIRLATMAZ -> cokme yok).
+        Komut hic bilinmiyorsa None doner (exception FIRLATMAZ -> cokme yok).
         """
         command = normalize_command(raw_line)
 
@@ -87,18 +114,41 @@ class SCPIParser:
             # Bos satir (sadece \r\n gibi) geldiyse cevap verecek bir sey yok
             return None
 
+        # 1) Once tam eslesen bir query komutu var mi diye bak
         handler = self._commands.get(command)
-        if handler is None:
-            # Bilinmeyen komut: sessizce None donuyoruz.
-            # (Ust katmanda bunu loglayacagiz, ama simulator asla crash olmayacak)
-            return None
+        if handler is not None:
+            return handler()
 
-        return handler()
+        # 2) Yoksa, bu bir "KOMUT DEGER" seklinde bir setter olabilir mi?
+        #    Ilk bosluga kadar olan kismi komut, gerisini deger say.
+        #    Ornek: "SYNC:SOUR:MODE GPS" -> prefix="SYNC:SOUR:MODE", value="GPS"
+        #    Deger yoksa (ornegin "SYNC:HOLD:INIT"), tum satir prefix olur,
+        #    value bos string olur.
+        if " " in command:
+            prefix, value = command.split(" ", 1)
+            value = value.strip()
+        else:
+            prefix, value = command, ""
+
+        setter = self._setters.get(prefix)
+        if setter is not None:
+            # ONEMLI: setter'in kendisi None donebilir ("soyleyecek bir
+            # sey yok" anlaminda), ama dispatch()'in None'u SADECE
+            # "boyle bir komut yok" icin kullanmasi lazim -- yoksa
+            # serial_server bunu yanlislikla "bilinmeyen komut" sanip
+            # oyle loglar. Bu yuzden setter'in None cevabini burada
+            # bos string'e ("") ceviriyoruz: "komut TANINDI, ama
+            # gonderilecek bir metin yok".
+            result = setter(value)
+            return result if result is not None else ""
+
+        # 3) Hicbirine uymadi -- bilinmeyen komut
+        return None
 
     def list_commands(self) -> list[str]:
         """
-        Su ana kadar register edilmis tum komutlarin listesini,
-        alfabetik siralanmis olarak dondurur.
+        Su ana kadar register edilmis tum komutlarin (hem query hem
+        setter) listesini, alfabetik siralanmis olarak dondurur.
 
         Bunu ozellikle HELP? komutu icin ekledik: HELP? cevabini
         elle tutulan ayri bir listeden degil, buradan (yani parser'in
@@ -107,5 +157,4 @@ class SCPIParser:
         guncellenecek, ayri bir listeyi elle guncellemeyi unutma
         riski kalmayacak.
         """
-        return sorted(self._commands.keys())
-    
+        return sorted(set(self._commands.keys()) | set(self._setters.keys()))
