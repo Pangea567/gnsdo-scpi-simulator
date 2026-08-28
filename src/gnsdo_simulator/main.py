@@ -21,7 +21,12 @@ Kullanim:
 import argparse
 import logging
 
+from gnsdo_simulator.commands.csac import register_csac_commands
+from gnsdo_simulator.commands.diagnostic import register_diagnostic_commands
 from gnsdo_simulator.commands.gps import register_gps_commands
+from gnsdo_simulator.commands.measure import register_measure_commands
+from gnsdo_simulator.commands.ptime import register_ptime_commands
+from gnsdo_simulator.commands.sync import register_sync_commands
 from gnsdo_simulator.commands.system import register_system_commands
 from gnsdo_simulator.device_state import DeviceState
 from gnsdo_simulator.scpi_parser import SCPIParser
@@ -64,6 +69,11 @@ def main() -> None:
 
     register_system_commands(scpi_parser, device_state)
     register_gps_commands(scpi_parser, device_state)
+    register_ptime_commands(scpi_parser)
+    register_sync_commands(scpi_parser, device_state)
+    register_diagnostic_commands(scpi_parser)
+    register_measure_commands(scpi_parser, device_state)
+    register_csac_commands(scpi_parser, device_state)
 
     server = SerialServer(port=args.port, parser=scpi_parser, baudrate=args.baudrate)
     server.run_forever()
