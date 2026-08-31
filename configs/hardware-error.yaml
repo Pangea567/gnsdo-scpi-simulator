@@ -1,0 +1,31 @@
+# hardware-error.yaml
+#
+# "Donanim arizasi" senaryosu: cihazda gercek bir ARIZA var.
+# DIAG?'in "Fault:" satiri artik "NONE" degil, gercek bir hata
+# mesaji donuyor. Ayrica bunun bir arizanin belirtisi olarak
+# anormal olcum degerleri (yuksek sicaklik, dusuk voltaj, yuksek
+# akim) verdik -- gercekci bir ariza teshis modeli degil, ama
+# "bir seyler kotu gidiyor" izlenimini test etmek icin makul
+# bir varsayim.
+
+device:
+  serial_number: SIM000001
+  firmware_version: SIM-1.0
+
+gps:
+  visible: 12
+  tracking: 8
+
+sync:
+  locked: false
+  holdover: false
+
+diag:
+  lifetime_hours: 871
+  fault: true
+  fault_message: "OSCILLATOR FAILURE"
+
+measure:
+  temperature: 95.0
+  voltage: 9.5
+  current: 1.2

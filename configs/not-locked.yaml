@@ -1,0 +1,32 @@
+# not-locked.yaml
+#
+# "Kilitli degil" senaryosu: "warming-up"tan FARKLI olarak, cihaz
+# UZUN SUREDIR calisiyor (lifetime_hours normal, 871) ve GPS sinyali
+# de gayet iyi (12 gorunen, 8 takip edilen uydu) -- ama yine de
+# kilitlenememis. Bu, gecici bir "henuz isinma" durumu degil,
+# KALICI/SORUNLU bir durumu temsil ediyor (ornegin osilator
+# devresinde bir sorun olabilir, ama bu DIAG?'ta FAULT olarak
+# gorunmuyor -- sadece kilitlenemiyor).
+#
+# SYST:STAT? bu durumda "NOT LOCKED" doner (lifetime > 0 oldugu
+# icin "WARMING UP" ile karismaz, bkz. commands/system.py).
+
+device:
+  serial_number: SIM000001
+  firmware_version: SIM-1.0
+
+gps:
+  visible: 12
+  tracking: 8
+
+sync:
+  locked: false
+  holdover: false
+
+diag:
+  lifetime_hours: 871
+
+measure:
+  temperature: 42.5
+  voltage: 12.1
+  current: 0.42

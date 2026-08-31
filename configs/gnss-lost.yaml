@@ -1,0 +1,24 @@
+# gnss-lost.yaml
+#
+# "GPS kayip" senaryosu: anten kopmus/sinyal yok gibi dusun.
+# Uydu sayilari sifir, senkronizasyon kilitli degil.
+# Bu senaryoyla baslatilan bir simulator uzerinde, izleme
+# yazilimini "GPS sinyali giderse dogru alarm veriyor mu"
+# diye test edebilirsin.
+
+device:
+  serial_number: SIM000001
+  firmware_version: SIM-1.0
+
+gps:
+  visible: 0
+  tracking: 0
+
+sync:
+  locked: false
+  holdover: false
+
+measure:
+  temperature: 42.5
+  voltage: 12.1
+  current: 0.42

@@ -1,0 +1,28 @@
+# holdover.yaml
+#
+# "Holdover" senaryosu: cihaz simulator ACILDIGI ANDA zaten
+# holdover modunda basliyor (yani "az once GPS'i kaybetmis"
+# gibi dusun). Bu, SYNC:HOLD:INIT komutunu elle gondermeden,
+# dogrudan holdover durumunu test etmek isteyenler icin pratik
+# bir baslangic noktasi.
+#
+# Not: holdover_started_at burada belirtilmiyor -- config_loader
+# bunu, holdover=true oldugunu gorunce otomatik olarak "simdi"
+# (programin baslama ani) olarak ayarlayacak.
+
+device:
+  serial_number: SIM000001
+  firmware_version: SIM-1.0
+
+gps:
+  visible: 3
+  tracking: 1
+
+sync:
+  locked: false
+  holdover: true
+
+measure:
+  temperature: 42.5
+  voltage: 12.1
+  current: 0.42

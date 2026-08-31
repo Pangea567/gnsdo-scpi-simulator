@@ -1,0 +1,30 @@
+# warming-up.yaml
+#
+# "Isiniyor" senaryosu: cihaz YENI ACILMIS, GPS sinyali var (uydular
+# gorunuyor/takip ediliyor) ama osilator henuz kilitlenmemis --
+# gercek Rubidium osilatorlerin kararli calismaya baslamasi icin
+# birkac dakika isinmasi gerekir.
+#
+# Bunu "not-locked" senaryosundan ayiran onemli fark: lifetime_hours
+# SIFIR -- yani cihaz "az once acilmis" gibi davraniyor. SYST:STAT?
+# bunu gorup "WARMING UP" doner (bkz. commands/system.py).
+
+device:
+  serial_number: SIM000001
+  firmware_version: SIM-1.0
+
+gps:
+  visible: 6
+  tracking: 3
+
+sync:
+  locked: false
+  holdover: false
+
+diag:
+  lifetime_hours: 0
+
+measure:
+  temperature: 25.0
+  voltage: 12.1
+  current: 0.42
