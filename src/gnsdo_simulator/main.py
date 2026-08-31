@@ -28,7 +28,7 @@ from gnsdo_simulator.commands.measure import register_measure_commands
 from gnsdo_simulator.commands.ptime import register_ptime_commands
 from gnsdo_simulator.commands.sync import register_sync_commands
 from gnsdo_simulator.commands.system import register_system_commands
-from gnsdo_simulator.device_state import DeviceState
+from gnsdo_simulator.config_loader import load_scenario
 from gnsdo_simulator.scpi_parser import SCPIParser
 from gnsdo_simulator.serial_server import SerialServer
 
@@ -44,7 +44,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--scenario",
         default="normal",
         help="Senaryo adi (normal, gnss-lost, holdover, ...). "
-        "Simdilik kullanilmiyor, ileride eklenecek.",
+        "configs/<isim>.yaml dosyasini yukler.",
     )
     parser.add_argument(
         "--baudrate",
@@ -64,14 +64,15 @@ def main() -> None:
 
     args = build_arg_parser().parse_args()
 
-    device_state = DeviceState()
+    logging.info("Senaryo yukleniyor: %s", args.scenario)
+    device_state = load_scenario(args.scenario)
     scpi_parser = SCPIParser()
 
     register_system_commands(scpi_parser, device_state)
     register_gps_commands(scpi_parser, device_state)
     register_ptime_commands(scpi_parser)
     register_sync_commands(scpi_parser, device_state)
-    register_diagnostic_commands(scpi_parser)
+    register_diagnostic_commands(scpi_parser, device_state)
     register_measure_commands(scpi_parser, device_state)
     register_csac_commands(scpi_parser, device_state)
 
@@ -81,3 +82,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+    
