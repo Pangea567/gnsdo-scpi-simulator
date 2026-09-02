@@ -2,12 +2,14 @@
 #
 # "Isiniyor" senaryosu: cihaz YENI ACILMIS, GPS sinyali var (uydular
 # gorunuyor/takip ediliyor) ama osilator henuz kilitlenmemis --
-# gercek Rubidium osilatorlerin kararli calismaya baslamasi icin
-# birkac dakika isinmasi gerekir.
+# gercek Rubidium/CSAC osilatorlerin kararli calismaya baslamasi icin
+# isinmasi gerekir.
 #
-# Bunu "not-locked" senaryosundan ayiran onemli fark: lifetime_hours
-# SIFIR -- yani cihaz "az once acilmis" gibi davraniyor. SYST:STAT?
-# bunu gorup "WARMING UP" doner (bkz. commands/system.py).
+# GERCEK CIHAZIN KILAVUZUNA GORE: bu isinma suresi "2 dakikadan az"
+# ("less than 2 minutes warmup time to atomic lock"). "warmup: active: true"
+# ile bu senaryo baslatilirsa, simulator KENDILIGINDEN, gercek sureye
+# uygun sekilde 2 dakika sonra otomatik olarak kilitlenecek -- bunun
+# icin ayrica bir komut gondermene GEREK YOK, sadece bekle.
 
 device:
   serial_number: SIM000001
@@ -20,6 +22,9 @@ gps:
 sync:
   locked: false
   holdover: false
+
+warmup:
+  active: true
 
 diag:
   lifetime_hours: 0

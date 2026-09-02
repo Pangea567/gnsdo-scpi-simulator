@@ -10,6 +10,7 @@ pytest calistirmak icin (repo kok dizininden):
 import sys
 import os
 import time
+from datetime import datetime
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
@@ -37,9 +38,9 @@ def make_test_parser() -> SCPIParser:
     parser = SCPIParser()
     register_system_commands(parser, state)
     register_gps_commands(parser, state)
-    register_ptime_commands(parser)
+    register_ptime_commands(parser, state)
     register_sync_commands(parser, state)
-    register_diagnostic_commands(parser)
+    register_diagnostic_commands(parser, state)
     register_measure_commands(parser, state)
     register_csac_commands(parser, state)
     return parser
@@ -89,8 +90,12 @@ def test_help():
 def test_gps():
     parser = make_test_parser()
 
-    # Varsayilan DeviceState: 8 uydu takip ediliyor (>= 4), yani kilitli olmali
-    assert parser.dispatch("GPS?") == "LOCKED"
+    # Varsayilan DeviceState: 8 uydu takip ediliyor (>= 4), yani "3D FIX" olmali
+    gps_response = parser.dispatch("GPS?")
+    assert gps_response is not None
+    assert "Fix: 3D FIX" in gps_response
+    assert "Satellites Tracking: 8" in gps_response
+
     assert parser.dispatch("GPS:SAT:TRAC:COUN?") == "8"
     assert parser.dispatch("GPS:SAT:VIS:COUN?") == "12"
 
@@ -105,7 +110,8 @@ def test_gps_no_fix_when_few_satellites():
     register_system_commands(parser, state)
     register_gps_commands(parser, state)
 
-    assert parser.dispatch("GPS?") == "NO FIX"
+    assert parser.dispatch("GPS?") is not None
+    assert "Fix: NO FIX" in parser.dispatch("GPS?")
 
 
 def test_syst_stat():
@@ -113,6 +119,41 @@ def test_syst_stat():
     response = parser.dispatch("SYST:STAT?")
 
     assert response == "OK"
+
+
+def test_syst_stat_reflects_state():
+    """
+    SYST:STAT?'in artik SABIT "OK" degil, state'e gore
+    DEGISTIGINI kanitlar -- her farkli durumda dogru metni
+    donmesi lazim.
+    """
+    from gnsdo_simulator.commands.system import register_system_commands
+
+    # 1) Donanim arizasi -- en yuksek oncelikli, digerlerini gecersiz kilar
+    state = DeviceState(hardware_fault=True)
+    parser = SCPIParser()
+    register_system_commands(parser, state)
+    assert parser.dispatch("SYST:STAT?") == "FAULT"
+
+    # 2) Holdover
+    state = DeviceState(holdover=True, sync_locked=False)
+    parser = SCPIParser()
+    register_system_commands(parser, state)
+    assert parser.dispatch("SYST:STAT?") == "HOLDOVER"
+
+    # 3) warming-up senaryosu aktif (warmup_started_at dolu), henuz
+    #    2 dakika gecmemis -> WARMING UP
+    state = DeviceState(sync_locked=False, warmup_started_at=datetime.now())
+    parser = SCPIParser()
+    register_system_commands(parser, state)
+    assert parser.dispatch("SYST:STAT?") == "WARMING UP"
+
+    # 4) Uzun suredir calisiyor ama kilitlenememis (warmup_started_at
+    #    YOK -- yani bu bir isinma degil, kalici bir sorun) -> NOT LOCKED
+    state = DeviceState(sync_locked=False)
+    parser = SCPIParser()
+    register_system_commands(parser, state)
+    assert parser.dispatch("SYST:STAT?") == "NOT LOCKED"
 
 
 def test_case_insensitive_command():
@@ -149,6 +190,16 @@ def test_ptime():
     assert date_response is not None
     assert len(date_response.split(",")) == 3  # yil, ay, gun
 
+    # PTIME? artik gercek cihaz gibi 5 alt sorgunun BILESIMI:
+    # DATE?, TIME?, TINT?, OUTPUT?, LEAP:ACC? -- her biri kendi
+    # satirinda olmali (5 satir).
+    ptime_response = parser.dispatch("PTIME?")
+    assert ptime_response is not None
+    lines = ptime_response.split("\r\n")
+    assert len(lines) == 5
+    assert lines[3] in ("ON", "OFF")  # PTIME:OUTPUT? kismi
+    assert lines[4] == "18"  # PTIME:LEAP:ACC? kismi (varsayilan)
+
 
 def test_sync():
     parser = make_test_parser()
@@ -156,7 +207,13 @@ def test_sync():
     # Varsayilan DeviceState: kilitli, holdover'da degil
     assert parser.dispatch("SYNC?") == "LOCKED"
     assert parser.dispatch("SYNC:LOCKED?") == "1"
-    assert parser.dispatch("SYNC:HEALTH?") == "GOOD"
+
+    # HEALTH? artik hex bit-mask -- "0x" ile baslamali, gecerli hex olmali
+    health = parser.dispatch("SYNC:HEALTH?")
+    assert health is not None
+    assert health.startswith("0x")
+    int(health, 16)  # gecerli bir hex sayi mi (hata firlatirsa test patlar)
+
     # TINT icin tam degeri degil, bir sayi oldugunu kontrol edelim
     tint = parser.dispatch("SYNC:TINT?")
     assert tint is not None
@@ -168,12 +225,16 @@ def test_holdover_transition():
     Dokumanin ozellikle istedigi test: SYNC:HOLD:INIT komutundan
     SONRA, SYNC:LOCKED?'in 0'a dusmesi ve SYNC:HOLD:DUR?'un artan
     bir sure dondurmesi gerekiyor.
+
+    NOT: SYNC:HOLD:DUR? gercek cihazda "sure,durum" seklinde IKI
+    sayi doner (bkz. commands/sync.py), o yuzden burada virgulden
+    once ve sonraki kismi ayri ayri kontrol ediyoruz.
     """
     parser = make_test_parser()
 
     # Once normal durumda kilitli olmali
     assert parser.dispatch("SYNC:LOCKED?") == "1"
-    assert parser.dispatch("SYNC:HOLD:DUR?") == "0"
+    assert parser.dispatch("SYNC:HOLD:DUR?") == "0,0"
 
     # Holdover'i baslat
     response = parser.dispatch("SYNC:HOLD:INIT")
@@ -185,14 +246,16 @@ def test_holdover_transition():
 
     # Bir sure gecmesini simule edip DUR?'un artip artmadigina bakalim
     time.sleep(0.2)
-    dur = parser.dispatch("SYNC:HOLD:DUR?")
-    assert dur is not None
-    assert float(dur) > 0
+    dur_response = parser.dispatch("SYNC:HOLD:DUR?")
+    assert dur_response is not None
+    duration_str, holdover_flag = dur_response.split(",")
+    assert float(duration_str) > 0
+    assert holdover_flag == "1"
 
     # Recovery baslatinca tekrar kilitli olmali
     parser.dispatch("SYNC:HOLD:REC:INIT")
     assert parser.dispatch("SYNC:LOCKED?") == "1"
-    assert parser.dispatch("SYNC:HOLD:DUR?") == "0"
+    assert parser.dispatch("SYNC:HOLD:DUR?") == "0,0"
 
 
 def test_sync_source_mode_setter():
@@ -203,7 +266,12 @@ def test_sync_source_mode_setter():
 
 def test_diag():
     parser = make_test_parser()
-    assert parser.dispatch("DIAG?") == "NO FAULT"
+    response = parser.dispatch("DIAG?")
+    assert response is not None
+    assert "Fault: NONE" in response
+    assert "EFControl Relative: 0.025000%" in response
+    assert "EFControl Absolute: 5" in response
+    assert "Lifetime : +871" in response
 
 
 def test_measure():
@@ -211,9 +279,32 @@ def test_measure():
     assert parser.dispatch("MEAS:TEMP?") == "42.5"
     assert parser.dispatch("MEAS:VOLT?") == "12.1"
     assert parser.dispatch("MEAS:CURR?") == "0.42"
+    assert parser.dispatch("MEAS:POW?") == "12.0"
+
+    # MEAS? artik gercek cihaz gibi 4 alt sorgunun BILESIMI
+    meas_response = parser.dispatch("MEAS?")
+    assert meas_response is not None
+    assert meas_response.split("\r\n") == ["42.5", "12.1", "0.42", "12.0"]
 
 
 def test_csac():
     parser = make_test_parser()
-    assert parser.dispatch("CSAC:STATUS?") == "RUNNING"
-    assert parser.dispatch("CSAC:SN?") == "CSAC-SIM-0001"
+    # Varsayilan DeviceState: sync_locked=True -> saglikli -> "0x0"
+    assert parser.dispatch("CSAC:STATUS?") == "0x0"
+    assert parser.dispatch("CSAC:SN?") == "2103CS04521"
+
+    csac_response = parser.dispatch("CSAC?")
+    assert csac_response is not None
+    lines = csac_response.split("\r\n")
+    assert lines[0] == "0x0"
+    assert lines[2] == "2103CS04521"
+
+
+def test_csac_status_reflects_lock_state():
+    """CSAC:STATUS?'in gercekten sync_locked'a bagli oldugunu kanitlar."""
+    from gnsdo_simulator.commands.csac import register_csac_commands
+
+    state = DeviceState(sync_locked=False)
+    parser = SCPIParser()
+    register_csac_commands(parser, state)
+    assert parser.dispatch("CSAC:STATUS?") == "0x1"

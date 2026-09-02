@@ -13,6 +13,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 import pytest
 
 from gnsdo_simulator.config_loader import load_scenario
+from gnsdo_simulator.device_state import is_locked, WARMUP_DURATION_SECONDS
 
 
 # Testler repo kok dizininden calistirilacagi icin (pytest tests/ -v),
@@ -59,17 +60,41 @@ def test_unknown_scenario_raises():
 
 
 def test_load_warming_up_scenario():
+    """
+    warming-up senaryosu artik warmup_started_at ile isaretleniyor.
+    Yeni yuklendiginde HENUZ kilitli olmamali (gercek cihazin 2
+    dakikalik isinma suresi henuz gecmedi), ama is_locked()
+    fonksiyonu bunu ZAMANLA otomatik degistirecek sekilde kurulu
+    olmali.
+    """
     state = load_scenario("warming-up", configs_dir=CONFIGS_DIR)
-    assert state.sync_locked is False
-    assert state.diag_lifetime_hours == 0
+    assert state.warmup_started_at is not None
+    assert is_locked(state) is False  # daha yeni yuklendi, 2 dk gecmedi
+    assert state.diag_lifetime_base_hours == 0
     assert state.gnss_satellites_tracking == 3
+
+
+def test_warming_up_locks_after_warmup_duration():
+    """
+    Gercek cihazin kilavuzuna gore ("less than 2 minutes warmup") --
+    WARMUP_DURATION_SECONDS kadar sure gectikten SONRA, is_locked()
+    OTOMATIK olarak True donmeli. Burada gercekten 120 saniye
+    beklemek yerine, warmup_started_at'i GECMISE cekerek (sanki
+    2 dakika once baslamis gibi) ayni sonucu test ediyoruz.
+    """
+    from datetime import datetime, timedelta
+
+    state = load_scenario("warming-up", configs_dir=CONFIGS_DIR)
+    state.warmup_started_at = datetime.now() - timedelta(seconds=WARMUP_DURATION_SECONDS + 1)
+    assert is_locked(state) is True
 
 
 def test_load_not_locked_scenario():
     state = load_scenario("not-locked", configs_dir=CONFIGS_DIR)
     assert state.sync_locked is False
+    assert state.warmup_started_at is None  # bu bir isinma degil, kalici sorun
     # not-locked'i warming-up'tan ayiran fark: lifetime SIFIR DEGIL
-    assert state.diag_lifetime_hours == 871
+    assert state.diag_lifetime_base_hours == 871
     # GPS sinyali gayet iyi, sorun kilitlenmede -- GPS'te degil
     assert state.gnss_satellites_tracking == 8
 

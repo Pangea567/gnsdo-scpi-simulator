@@ -14,7 +14,7 @@ toplu halde kaydeder. main.py sadece bu tek fonksiyonu cagiracak,
 gerek kalmayacak.
 """
 
-from gnsdo_simulator.device_state import DeviceState
+from gnsdo_simulator.device_state import DeviceState, is_locked
 from gnsdo_simulator.scpi_parser import SCPIParser
 
 
@@ -61,19 +61,36 @@ def make_help_handler(parser: SCPIParser):
     return help_handler
 
 
-def syst_stat_handler() -> str:
+def make_syst_stat_handler(state: DeviceState):
     """
     SYST:STAT? komutu: cihazin genel durumunu doner.
 
-    SU ANKI ASAMADA basitlestirilmis bir varsayim yapiyoruz: "OK"
-    donduruyoruz, cunku henuz GPS/SYNC state'ini eklemedik (o,
-    ilerideki adimlarda gelecek). Gercek cihazin kilavuzunda bu
-    komutun tam formati varsa (ornegin bir bit-mask ya da farkli
-    bir metin), onu gordugumuzde bu fonksiyonu guncelleyecegiz --
-    degisiklik yine sadece burada kalacak, baska hicbir yeri
-    etkilemeyecek.
+    Artik SABIT "OK" DEGIL -- state'e bakarak durumu turetiyoruz.
+    Oncelik sirasi onemli (yukaridan asagiya, ilk uyan kazanir):
+      1. Donanim arizasi varsa            -> "FAULT"
+      2. Holdover'daysa                   -> "HOLDOVER"
+      3. warming-up senaryosu, hala isiniyor -> "WARMING UP"
+         (bkz. device_state.is_locked() -- gercek cihaza gore 2
+         dakikalik isinma suresi henuz gecmemis)
+      4. Kilitli degil (baska sebep)      -> "NOT LOCKED"
+      5. Hicbiri degilse                  -> "OK"
+
+    Bu sayede farkli senaryolarla (--scenario) baslatilan simulator,
+    SYST:STAT?'a GERCEKTEN farkli cevaplar verir.
     """
-    return "OK"
+
+    def handler() -> str:
+        if state.hardware_fault:
+            return "FAULT"
+        if state.holdover:
+            return "HOLDOVER"
+        if not is_locked(state):
+            if state.warmup_started_at is not None:
+                return "WARMING UP"
+            return "NOT LOCKED"
+        return "OK"
+
+    return handler
 
 
 def register_system_commands(parser: SCPIParser, state: DeviceState) -> None:
@@ -86,5 +103,8 @@ def register_system_commands(parser: SCPIParser, state: DeviceState) -> None:
     """
     parser.register("*IDN?", make_idn_handler(state))
     parser.register("HELP?", make_help_handler(parser))
-    parser.register("SYST:STAT?", syst_stat_handler)
-    
+    parser.register("SYST:STAT?", make_syst_stat_handler(state))
+
+    # Kilavuz: "SYSTem:STATus?" -> mandatory SYST+STAT (bizimkiyle
+    # ayni), long alias:
+    parser.register_alias("SYSTEM:STATUS?", "SYST:STAT?")
