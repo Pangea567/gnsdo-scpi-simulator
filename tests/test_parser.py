@@ -61,4 +61,41 @@ def test_empty_line_returns_none():
     assert parser.dispatch(b"\r\n") is None
     assert parser.dispatch("") is None
 
-    
+
+def test_alias_resolves_to_canonical_query():
+    """
+    register_alias() ile kaydedilen bir "uzun form", GERCEKTEN
+    kayitli "kisa/asil" (canonical) komutla ayni cevabi vermeli --
+    kisa ve uzun SCPI komut bicimi destegini kanitlar.
+    """
+    parser = SCPIParser()
+    parser.register("SYNC:HEA?", lambda: "0x0")
+    parser.register_alias("SYNCHRONIZATION:HEALTH?", "SYNC:HEA?")
+
+    assert parser.dispatch("SYNC:HEA?") == "0x0"
+    assert parser.dispatch("SYNCHRONIZATION:HEALTH?") == "0x0"
+    # Case-insensitive de calismali
+    assert parser.dispatch("synchronization:health?") == "0x0"
+
+
+def test_alias_resolves_to_canonical_setter():
+    """Alias mekanizmasi setter (deger alan) komutlarda da calismali."""
+    received = {}
+
+    def setter(value):
+        received["value"] = value
+        return None
+
+    parser = SCPIParser()
+    parser.register_setter("SYNC:SOUR:MODE", setter)
+    parser.register_alias("SYNCHRONIZATION:SOURCE:MODE", "SYNC:SOUR:MODE")
+
+    parser.dispatch("SYNCHRONIZATION:SOURCE:MODE GPS")
+    assert received["value"] == "GPS"
+
+
+def test_unknown_alias_returns_none():
+    """Kayitli olmayan bir alias, bilinmeyen komut gibi None donmeli."""
+    parser = SCPIParser()
+    parser.register("*IDN?", lambda: "x")
+    assert parser.dispatch("BOYLE:BIR:UZUN:KOMUT:YOK?") is None

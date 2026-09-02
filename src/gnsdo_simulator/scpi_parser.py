@@ -25,6 +25,16 @@ IKI TUR KOMUT VAR:
     Bazen (ornegin "SYNC:HOLD:INIT") deger yoktur, sadece komutun
     kendisi bir "aksiyon" tetikler -- bu durumda da register_setter
     kullanilir, handler'a bos string ("") gelir.
+
+KISA VE UZUN KOMUT BICIMLERI:
+  Gercek SCPI cihazlarinin kilavuzlarinda komutlar boyle yazilir:
+  "SYNChronization:HEAlth?" -- BUYUK harfler ZORUNLU kisaltma,
+  kucuk harfler ISTEGE BAGLI uzun ek. Yani hem "SYNC:HEA?" (kisa)
+  hem "SYNCHRONIZATION:HEALTH?" (tam/uzun) GECERLI olmali, ikisi de
+  AYNI komutu ifade ediyor. register_alias() bunun icin var: bir
+  "takma ad"i (genelde uzun veya alternatif kisa yazim), zaten
+  kayitli olan "asil" (canonical) komuta baglar. dispatch() bir
+  komutu dogrudan bulamazsa, alias listesine de bakar.
 """
 
 from typing import Callable, Optional
@@ -77,6 +87,10 @@ class SCPIParser:
         self._commands: dict[str, CommandHandler] = {}
         # Setter komutlari: {"SYNC:SOUR:MODE": mode_degistir_fonksiyonu, ...}
         self._setters: dict[str, SetterHandler] = {}
+        # Alias'lar: {"SYNCHRONIZATION:HEALTH?": "SYNC:HEA?", ...}
+        # Deger, ZATEN _commands ya da _setters icinde kayitli olan
+        # "asil" (canonical) komutun adidir.
+        self._aliases: dict[str, str] = {}
 
     def register(self, command: str, handler: CommandHandler) -> None:
         """
@@ -101,10 +115,28 @@ class SCPIParser:
         key = command_prefix.strip().upper()
         self._setters[key] = handler
 
+    def register_alias(self, alias: str, canonical: str) -> None:
+        """
+        Bir komutun ALTERNATIF bir yazimini ("alias") kaydeder --
+        genelde gercek cihazin UZUN formu (ornegin
+        "SYNCHRONIZATION:HEALTH?"), bizim zaten register()/
+        register_setter() ile kaydettigimiz KISA/asil (canonical)
+        forma (ornegin "SYNC:HEA?") baglanir.
+
+        Onemli: canonical, register()/register_setter() ile ONCEDEN
+        kayitli olmasa BILE calisir -- cunku alias cozumlemesi
+        dispatch() aninda yapiliyor, kayit sirasi onemli degil.
+        Ama pratikte, okunabilirlik icin canonical'i once kaydedip
+        alias'i ondan sonra eklemek daha temiz.
+        """
+        self._aliases[alias.strip().upper()] = canonical.strip().upper()
+
     def dispatch(self, raw_line: bytes | str) -> Optional[str]:
         """
         Gelen ham satiri normalize eder, once query komutlarina, sonra
         setter komutlarina bakar, varsa calistirip cevabini dondurur.
+        Ikisinde de bulunamazsa, ALIAS listesine bakip asil komuta
+        yonlendirir.
 
         Komut hic bilinmiyorsa None doner (exception FIRLATMAZ -> cokme yok).
         """
@@ -119,6 +151,15 @@ class SCPIParser:
         if handler is not None:
             return handler()
 
+        # 1b) Dogrudan bulunamadi -- ACABA bu, kayitli bir komutun
+        #     ALIAS'i mi? (Ornegin "SYNCHRONIZATION:HEALTH?" gelmis,
+        #     ama biz "SYNC:HEA?" diye kaydetmisiz.)
+        canonical = self._aliases.get(command)
+        if canonical is not None:
+            handler = self._commands.get(canonical)
+            if handler is not None:
+                return handler()
+
         # 2) Yoksa, bu bir "KOMUT DEGER" seklinde bir setter olabilir mi?
         #    Ilk bosluga kadar olan kismi komut, gerisini deger say.
         #    Ornek: "SYNC:SOUR:MODE GPS" -> prefix="SYNC:SOUR:MODE", value="GPS"
@@ -131,6 +172,13 @@ class SCPIParser:
             prefix, value = command, ""
 
         setter = self._setters.get(prefix)
+        if setter is None:
+            # Setter'in de kendi ALIAS'i olabilir (ornegin
+            # "SYNCHRONIZATION:SOURCE:MODE GPS" -> "SYNC:SOUR:MODE")
+            canonical_prefix = self._aliases.get(prefix)
+            if canonical_prefix is not None:
+                setter = self._setters.get(canonical_prefix)
+
         if setter is not None:
             # ONEMLI: setter'in kendisi None donebilir ("soyleyecek bir
             # sey yok" anlaminda), ama dispatch()'in None'u SADECE
