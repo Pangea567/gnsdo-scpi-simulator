@@ -73,3 +73,12 @@ def register_gps_commands(parser: SCPIParser, state: DeviceState) -> None:
     parser.register("GPS?", make_gps_handler(state))
     parser.register("GPS:SAT:TRAC:COUN?", make_gps_sat_tracking_handler(state))
     parser.register("GPS:SAT:VIS:COUN?", make_gps_sat_visible_handler(state))
+
+    # --- KISA/UZUN FORM ALIAS'LARI (gercek kilavuzdan) ---
+    # Kilavuz: "GPS:SATellite:TRAcking:COUNt?" -> mandatory kisa form
+    # aslinda "GPS:SAT:TRA:COUN?" (bizim canonical'imiz gorev PDF'inin
+    # yazdigi "TRAC" ile birebir ayni degil) -- her ikisini de, ve
+    # tam uzun formu da alias olarak ekliyoruz.
+    parser.register_alias("GPS:SAT:TRA:COUN?", "GPS:SAT:TRAC:COUN?")
+    parser.register_alias("GPS:SATELLITE:TRACKING:COUNT?", "GPS:SAT:TRAC:COUN?")
+    parser.register_alias("GPS:SATELLITE:VISIBLE:COUNT?", "GPS:SAT:VIS:COUN?")
