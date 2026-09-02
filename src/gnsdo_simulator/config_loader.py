@@ -97,16 +97,25 @@ def apply_config_to_state(state: DeviceState, config: dict) -> None:
     if "current" in measure:
         state.current = measure["current"]
 
-    # Yeni: "diag" bolumu -- DIAG?/SYST:STAT? icin kullanilan alanlar.
-    # "warming-up" senaryosu icin lifetime_hours=0 (yeni acilmis),
+    # "diag" bolumu -- DIAG?/SYST:STAT? icin kullanilan alanlar.
+    # lifetime_hours artik BASLANGIC (baseline) degeri -- gercekte
+    # goruntulenen Lifetime, buna simulator'in calisma suresi
+    # EKLENEREK hesaplanir (bkz. commands/diagnostic.py).
     # "hardware-error" senaryosu icin fault=true kullanacagiz.
     diag = config.get("diag", {})
     if "lifetime_hours" in diag:
-        state.diag_lifetime_hours = diag["lifetime_hours"]
+        state.diag_lifetime_base_hours = diag["lifetime_hours"]
     if "fault" in diag:
         state.hardware_fault = diag["fault"]
     if "fault_message" in diag:
         state.fault_message = diag["fault_message"]
+
+    # "warmup" bolumu -- "warming-up" senaryosu icin. true ise,
+    # cihaz gercek cihazin kilavuzundaki gibi (2 dakika) bir sure
+    # sonra KENDILIGINDEN kilitlenecek (bkz. device_state.is_locked()).
+    warmup = config.get("warmup", {})
+    if warmup.get("active"):
+        state.warmup_started_at = datetime.now()
 
 
 def load_scenario(scenario_name: str, configs_dir: str | Path = "configs") -> DeviceState:
