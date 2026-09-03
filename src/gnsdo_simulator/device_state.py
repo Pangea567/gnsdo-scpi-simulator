@@ -81,6 +81,21 @@ class DeviceState:
     sync_source_mode: str = "GPS"
     holdover_started_at: Optional[datetime] = None
 
+    # SYNC? cevabinin geri kalan alanlari icin -- gercek cihaz
+    # ciktisindan alinan ek durum bilgileri. Bunlarin cogu "ayar"
+    # niteliginde, gercekte de nadiren degisir (kullanici elle
+    # degistirmedikce sabit kalirlar) -- o yuzden sabit tutmamiz
+    # burada daha az "basitlestirme", daha çok "dogru davranis".
+    sync_source_state: str = "GPS"  # "1PPS SOURCE STATE"
+    pps_reset_enabled: bool = False  # "1PPS on RESET"
+    pps_domain: str = "CSAC"  # "1PPS DOMAIN" -- <CSAC|FILTer>
+    phase_noise_filter_enabled: bool = True  # "PHASE NOISE FILTER"
+    tint_threshold_ns: int = 220  # "TIME INTERVAL THRESHOLD" (ns)
+    # FREQ ERROR ESTIMATE -- gercekte osilatorun anlik frekans sapma
+    # tahmini, surekli kucuk oynar. Biz sabit tutuyoruz (bilinçli
+    # basitlestirme, MEAS/DIAG alanlarindaki gibi).
+    freq_error_estimate: float = 1.31e-11
+
     # Olcum (measurement) degerleri -- MEAS:* komutlari icin.
     # GUNCELLEME: gercek cihaz ciktisindan ogrendik ki MEAS:VOLT?
     # aslinda TCXO ayar voltaji -- kucuk bir deger (~1.6-1.7V), bizim

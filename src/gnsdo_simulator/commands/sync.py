@@ -28,14 +28,52 @@ from gnsdo_simulator.scpi_parser import SCPIParser
 
 
 def make_sync_handler(state: DeviceState):
-    """SYNC? -- genel senkronizasyon durumu ozeti."""
+    """
+    SYNC? -- GERCEK cihaz ciktisina gore ETIKETLI 12 satir. Dikkat:
+    cogu satiri, ZATEN ASAGIDA tanimli olan diger fonksiyonlari
+    (make_sync_hold_dur_handler, make_sync_health_handler,
+    _tint_seconds) DOGRUDAN CAGIRARAK olusturuyoruz -- ayni mantigi
+    iki yerde tekrar yazmiyoruz. (Python'da bir fonksiyonun govdesi
+    icinde, dosyada DAHA ASAGIDA tanimlanmis baska bir fonksiyonu
+    cagirmak sorun degil -- cunku bu govde sadece dispatch anida,
+    yani dosyanin tamami yuklendikten COK SONRA, calisir.)
+
+    Ornek gercek cikti:
+        1PPS SOURCE MODE  : GPS
+        1PPS SOURCE STATE : GPS
+        1PPS on RESET : OFF
+        1PPS DOMAIN : CSAC
+        1PPS LOCK STATUS  : 1
+        HOLDOVER STATE: NONE
+        LAST HOLDOVER DURATION : 191,0
+        FREQ ERROR ESTIMATE : 1.31E-11
+        TIME INTERVAL DIFFERENCE : 1.133E-08
+        TIME INTERVAL THRESHOLD : 220
+        PHASE NOISE FILTER : ON
+        HEALTH STATUS : 0x0
+    """
 
     def handler() -> str:
-        if state.holdover:
-            return "HOLDOVER"
-        if is_locked(state):
-            return "LOCKED"
-        return "NOT LOCKED"
+        lock_status = "1" if is_locked(state) else "0"
+        holdover_state = "ACTIVE" if state.holdover else "NONE"
+        pps_reset = "ON" if state.pps_reset_enabled else "OFF"
+        phase_filter = "ON" if state.phase_noise_filter_enabled else "OFF"
+
+        lines = [
+            f"1PPS SOURCE MODE  : {state.sync_source_mode}",
+            f"1PPS SOURCE STATE : {state.sync_source_state}",
+            f"1PPS on RESET : {pps_reset}",
+            f"1PPS DOMAIN : {state.pps_domain}",
+            f"1PPS LOCK STATUS  : {lock_status}",
+            f"HOLDOVER STATE: {holdover_state}",
+            f"LAST HOLDOVER DURATION : {make_sync_hold_dur_handler(state)()}",
+            f"FREQ ERROR ESTIMATE : {state.freq_error_estimate:.2E}",
+            f"TIME INTERVAL DIFFERENCE : {_tint_seconds(state):.3E}",
+            f"TIME INTERVAL THRESHOLD : {state.tint_threshold_ns}",
+            f"PHASE NOISE FILTER : {phase_filter}",
+            f"HEALTH STATUS : {make_sync_health_handler(state)()}",
+        ]
+        return "\r\n".join(lines)
 
     return handler
 

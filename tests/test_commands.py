@@ -203,8 +203,15 @@ def test_ptime():
 def test_sync():
     parser = make_test_parser()
 
-    # Varsayilan DeviceState: kilitli, holdover'da degil
-    assert parser.dispatch("SYNC?") == "LOCKED"
+    # SYNC? artik gercek cihaz ciktisina gore ETIKETLI 12 satir
+    sync_response = parser.dispatch("SYNC?")
+    assert sync_response is not None
+    lines = sync_response.split("\r\n")
+    assert len(lines) == 12
+    assert "1PPS LOCK STATUS  : 1" in lines  # varsayilan DeviceState: kilitli
+    assert "HOLDOVER STATE: NONE" in lines
+    assert any(line.startswith("HEALTH STATUS : 0x") for line in lines)
+
     assert parser.dispatch("SYNC:LOCKED?") == "1"
 
     # HEALTH? artik hex bit-mask -- "0x" ile baslamali, gecerli hex olmali
@@ -241,7 +248,10 @@ def test_holdover_transition():
 
     # Artik kilitli OLMAMALI
     assert parser.dispatch("SYNC:LOCKED?") == "0"
-    assert parser.dispatch("SYNC?") == "HOLDOVER"
+    sync_response = parser.dispatch("SYNC?")
+    assert sync_response is not None
+    assert "1PPS LOCK STATUS  : 0" in sync_response
+    assert "HOLDOVER STATE: ACTIVE" in sync_response
 
     # Bir sure gecmesini simule edip DUR?'un artip artmadigina bakalim
     time.sleep(0.2)
