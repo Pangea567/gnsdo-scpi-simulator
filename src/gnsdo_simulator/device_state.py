@@ -116,6 +116,23 @@ class DeviceState:
     # gercekci bir ornek.
     csac_serial_number: str = "2209MX04906"
 
+    # CSAC?'in tam bilesimi icin -- gercek cihaz ciktisindan alinan
+    # ek alanlar (RS232, STEER, MODE, TEC CONTROL, DDS CENTER,
+    # DC SIGNAL LEVEL, HEAT PACKAGE, FIRMWARE REV). Bunlarin cogu
+    # "ayar/durum" niteliginde, biz sabit tutuyoruz.
+    csac_rs232_status: str = "OK"
+    csac_steer: float = -71.000
+    csac_mode: str = "0x0000"
+    csac_tec_control: float = 56.22
+    csac_dds_center: float = 0.00
+    csac_dc_signal_level: float = 1.00
+    csac_heat_package: float = 2730.00
+    csac_firmware_rev: str = "V1.0.23"
+    # CSAC:LIFEtime? -- DIAG?'in Lifetime'ina benzer sekilde, bu da
+    # BASLANGIC degeri + simulator'in gercek calisma suresi olarak
+    # hesaplanacak (bkz. device_state.elapsed_hours_since_start()).
+    csac_lifetime_base_hours: int = 11247
+
     # MEASure:POWersupply? -- guc kaynagi giris voltaji (TCXO'dan
     # AYRI, gercek cihaz ciktisinda ~11.7-11.74V araliginda).
     power_supply_voltage: float = 11.7
@@ -185,6 +202,16 @@ class DeviceState:
 # Gercek cihazin kilavuzuna gore: "less than 2 minutes warmup time to
 # atomic lock" -- bu yuzden 2 dakika (120 saniye) kullaniyoruz.
 WARMUP_DURATION_SECONDS = 120
+
+
+def elapsed_hours_since_start(state: DeviceState) -> float:
+    """
+    Simulator'in GERCEKTEN ne kadar suredir calistigini (saat
+    cinsinden) hesaplar. Hem DIAG?'in Lifetime'i hem de CSAC?'in
+    LIFETIME'i icin ayni mantigi kullanmak amaciyla buraya, ORTAK
+    bir yere koyduk -- iki yerde ayni hesaplamayi tekrar yazmiyoruz.
+    """
+    return (datetime.now() - state.process_started_at).total_seconds() / 3600.0
 
 
 def is_locked(state: DeviceState) -> bool:

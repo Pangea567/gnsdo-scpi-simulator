@@ -19,9 +19,7 @@ GUNCELLEME -- LIFETIME ARTIK GERCEKTEN ARTIYOR:
   cihazda oldugu gibi.
 """
 
-from datetime import datetime
-
-from gnsdo_simulator.device_state import DeviceState
+from gnsdo_simulator.device_state import DeviceState, elapsed_hours_since_start
 from gnsdo_simulator.scpi_parser import SCPIParser
 
 
@@ -31,8 +29,7 @@ def _current_lifetime_hours(state: DeviceState) -> int:
     baslangic degeri + simulator'in GERCEKTEN ne kadar suredir
     calistigi (saat cinsinden, tam sayiya yuvarlanmis).
     """
-    elapsed_hours = (datetime.now() - state.process_started_at).total_seconds() / 3600.0
-    return state.diag_lifetime_base_hours + int(elapsed_hours)
+    return state.diag_lifetime_base_hours + int(elapsed_hours_since_start(state))
 
 
 def make_diag_handler(state: DeviceState):

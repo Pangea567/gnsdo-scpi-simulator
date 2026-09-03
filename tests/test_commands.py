@@ -311,11 +311,18 @@ def test_csac():
     assert parser.dispatch("CSAC:STATUS?") == "0"
     assert parser.dispatch("CSAC:SN?") == "2209MX04906"
 
+    # CSAC? artik gercek cihaz ciktisina gore ETIKETLI 13 satir
     csac_response = parser.dispatch("CSAC?")
     assert csac_response is not None
     lines = csac_response.split("\r\n")
-    assert lines[0] == "0"
-    assert lines[2] == "2209MX04906"
+    assert len(lines) == 13
+    assert lines[0] == "RS232: OK"
+    assert lines[2] == "STATUS: 0"
+    assert lines[10] == "SN: 2209MX04906"
+    assert lines[12].startswith("LIFETIME: ")
+
+    # MAC? gercek cihazda CSAC? ile BIREBIR AYNI sonucu dondurmeli (alias)
+    assert parser.dispatch("MAC?") == csac_response
 
 
 def test_csac_status_reflects_lock_state():
