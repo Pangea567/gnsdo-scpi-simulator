@@ -37,7 +37,7 @@ def make_idn_handler(state: DeviceState):
     """
 
     def idn_handler() -> str:
-        return f"Jackson Labs,GNSDO,{state.serial_number},{state.firmware_version}"
+        return f"Jackson Labs, LN Rb GPSDO (PRE), Firmware Rev {state.firmware_version}"
 
     return idn_handler
 
