@@ -56,16 +56,39 @@ class DeviceState:
     gnss_satellites_visible: int = 12
     gnss_satellites_tracking: int = 8
 
-    # GPS? komutunun zengin cevabi icin ek alanlar. Gercek cihazin
-    # kilavuzunda "konum, hiz, yukseklik" gosterdigi yaziyordu ama
-    # tam ornek cikti bulunamadi -- bu yuzden makul, sabit varsayim
-    # degerleri kullaniyoruz (Ankara koordinatlari, sabit/duran bir
-    # referans cihaz oldugu icin hiz=0). Gercek format bulunursa
-    # sadece commands/gps.py'deki formatlama degisir.
-    gps_latitude: float = 39.925018
-    gps_longitude: float = 32.836956
-    gps_altitude_m: float = 850.0
-    gps_speed_kmh: float = 0.0
+    # GPS? komutunun zengin cevabi icin. GERCEK cihaz ciktisindan
+    # (kullanicinin test ettigi konum) alinan gercek enlem/boylam:
+    # "N,4047.2368" -> 40 derece + 47.2368 dakika = 40.78728 ondalik
+    # "E,2927.2267" -> 29 derece + 27.2267 dakika = 29.45378 ondalik
+    gps_latitude: float = 40.78728
+    gps_longitude: float = 29.45378
+    gps_altitude_m: float = 190.0
+    gps_speed_knots: float = 0.0  # gercek cihaz KNOT kullaniyor, km/h degil
+    gps_heading_degrees: float = 0.0
+
+    # GPS?'in geri kalan sabit alanlari -- gercek cihaz ciktisindan.
+    # Bunlarin cogu "ayar/donanim ozelligi" niteliginde, fix olsun ya
+    # da olmasin AYNI kalir (gercek iki farkli ornekte de ayniydi):
+    gnss_constellations: str = "GPS SBAS GAL"
+    gps_antenna_delay_seconds: float = 2.5e-08
+    gps_pulse_sawtooth: float = -6.0  # sadece fix VARKEN gecerli, yoksa 0.0
+    gps_dynamic_mode_label: str = "AUTOMATIC(8)"
+    gps_dynamic_state_label: str = "STATIONARY(1)"
+    gps_survey_min_duration: int = 3600
+    gps_survey_variance_limit: int = 150000
+    gps_survey_status: str = "ACTIVE"
+    gps_survey_duration_seconds: int = 2580  # sadece fix VARKEN, yoksa sabit kucuk deger
+    gps_ecef_x: int = 421116328
+    gps_ecef_y: int = 237806312
+    gps_ecef_z: int = 414469764
+    gps_3d_variance: int = 274822336
+    gps_timing_mode: str = "RSTSURV"
+    # Bu deger GERCEK ciktida fix olsun ya da olmasin AYNIYDI --
+    # cihazin bir kere ayarlanmis "hedef" pozisyonu, canli konumdan
+    # BAGIMSIZ.
+    gps_hold_position: str = "-267998828,-430158341,385929826"
+    gps_jamming_level: int = 5
+    gps_firmware_version: str = "3.01"
 
     # Senkronizasyon (SYNC) durumu.
     #   sync_locked: osilator su an referansa (GPS'e) kilitli mi?

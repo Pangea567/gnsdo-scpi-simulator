@@ -86,11 +86,16 @@ def test_help():
 def test_gps():
     parser = make_test_parser()
 
-    # Varsayilan DeviceState: 8 uydu takip ediliyor (>= 4), yani "3D FIX" olmali
+    # Varsayilan DeviceState: 8 uydu takip ediliyor (>= 4), yani "3D Fix" olmali
     gps_response = parser.dispatch("GPS?")
     assert gps_response is not None
-    assert "Fix: 3D FIX" in gps_response
-    assert "Satellites Tracking: 8" in gps_response
+    lines = gps_response.split("\r\n")
+    assert len(lines) == 22
+    assert "GPS Receiver Status: 3D Fix" in lines
+    assert "TRACKED SATS :8" in lines
+    assert "VISIBLE SATS :12" in lines
+    assert "N,4047.2368" in lines  # gercek konumdan donusturulmus enlem
+    assert "HOLD POSITION:-267998828,-430158341,385929826" in lines
 
     assert parser.dispatch("GPS:SAT:TRAC:COUN?") == "8"
     assert parser.dispatch("GPS:SAT:VIS:COUN?") == "12"
@@ -99,15 +104,27 @@ def test_gps():
 def test_gps_no_fix_when_few_satellites():
     """
     GPS? cevabinin gercekten DeviceState'e bagli oldugunu kanitlar:
-    takip edilen uydu sayisi esigin altina dusunce cevap degismeli.
+    takip edilen uydu sayisi esigin altina dusunce, konumla ilgili
+    TUM alanlar (enlem/boylam/yukseklik/ECEF/sure/varyans) gercek
+    cihazdaki gibi sifirlanmali/"gecersiz" degerlere donmeli.
     """
-    state = DeviceState(gnss_satellites_tracking=2)
+    state = DeviceState(gnss_satellites_tracking=2, gnss_satellites_visible=2)
     parser = SCPIParser()
     register_system_commands(parser, state)
     register_gps_commands(parser, state)
 
-    assert parser.dispatch("GPS?") is not None
-    assert "Fix: NO FIX" in parser.dispatch("GPS?")
+    gps_response = parser.dispatch("GPS?")
+    assert gps_response is not None
+    lines = gps_response.split("\r\n")
+    assert "GPS Receiver Status: No Fix" in lines
+    assert "N,   0.0000" in lines
+    assert "E,   0.0000" in lines
+    assert "0.00 m" in lines
+    # Uydu sayilari GERCEK degerleri gostermeye devam etmeli (zorla 0 yapilmiyor)
+    assert "TRACKED SATS :2" in lines
+    assert "VISIBLE SATS :2" in lines
+    # HOLD POSITION fix olsun olmasin AYNI kalmali (gercek cihazda oyleydi)
+    assert "HOLD POSITION:-267998828,-430158341,385929826" in lines
 
 
 def test_syst_stat():
