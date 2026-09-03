@@ -44,7 +44,9 @@ class DeviceState:
     """
 
     serial_number: str = "SIM000001"
-    firmware_version: str = "SIM-1.0"
+    # GERCEK cihaz ciktisindan alinan gercek firmware surumu
+    # ("Jackson Labs, LN Rb GPSDO (PRE), Firmware Rev 1.17")
+    firmware_version: str = "1.17"
 
     # GPS/GNSS ile ilgili durum. Gercek cihazda bunlar surekli
     # degisir (uydu gorunurlugu, sinyal kalitesi vb.), ama biz
@@ -80,27 +82,28 @@ class DeviceState:
     holdover_started_at: Optional[datetime] = None
 
     # Olcum (measurement) degerleri -- MEAS:* komutlari icin.
-    # Gercekci bir sensor simulasyonu yazmiyoruz, sabit/makul
-    # varsayilan degerler kullaniyoruz (dokumandaki ornek degerlerle
-    # ayni): sicaklik (C), voltaj (V), akim (A).
+    # GUNCELLEME: gercek cihaz ciktisindan ogrendik ki MEAS:VOLT?
+    # aslinda TCXO ayar voltaji -- kucuk bir deger (~1.6-1.7V), bizim
+    # eski varsayimimiz (12.1V) YANLIS OLCEKTEYDI (guc kaynagi
+    # voltajiyla karistirmisiz). Duzelttik.
     temperature_celsius: float = 42.5
-    voltage: float = 12.1
+    voltage: float = 1.66  # TCXO ayar voltaji (gercek ornek: 1.658-1.672 araligi)
     current: float = 0.42
 
     # CSAC (Chip Scale Atomic Clock) -- cihazin icindeki kucuk atomik
-    # saat modulu. Ayri bir seri numarasi ve kendi sicakligi olur
-    # (genelde ana govdeden daha sicak calisir, atomik gecisin
-    # gerceklesmesi icin). Sabit, makul varsayim degerleri.
+    # saat modulu. Ayri bir seri numarasi ve kendi sicakligi olur.
     csac_status: str = "RUNNING"
-    csac_temperature_celsius: float = 85.0
-    # Gercek cihazin kilavuzuna gore CSAC:SN? formati "YYMMCSNNNNN"
-    # (uretim yili+ayi + "CS" + o ayin seri sirasi). Sabit, makul bir
-    # ornek deger -- gercek bir uretim tarihi degil.
-    csac_serial_number: str = "2103CS04521"
+    # Gercek cihaz ciktisinda CSAC Temperature ~47-54 araliginda,
+    # PCB sicakligina yakin -- eski varsayimimiz (85.0) cok yuksekti.
+    csac_temperature_celsius: float = 54.0
+    # GERCEK cihazdan alinan ornek seri numara (kalip: YYMM + harf
+    # kodu + 5 haneli sira no). Gercek uretim tarihi degil, ama
+    # gercekci bir ornek.
+    csac_serial_number: str = "2209MX04906"
 
-    # MEASure:POWersupply? icin -- gercek cihazda MEAS:VOLT?'tan
-    # (TCXO ayar voltaji) FARKLI bir olcum: guc kaynagi giris voltaji.
-    power_supply_voltage: float = 12.0
+    # MEASure:POWersupply? -- guc kaynagi giris voltaji (TCXO'dan
+    # AYRI, gercek cihaz ciktisinda ~11.7-11.74V araliginda).
+    power_supply_voltage: float = 11.7
 
     # Simulator programinin GERCEKTEN ne zaman baslatildigi -- SYNC:HEALTH?
     # hesaplamasinda "calisma suresi < 200 saniye" kontrolu icin kullanilir.
@@ -109,16 +112,20 @@ class DeviceState:
     # yerine, cagrildigi anin zamanini yakalar).
     process_started_at: datetime = field(default_factory=datetime.now)
 
-    # DIAG? icin -- gercek cihazin kullanim kilavuzundan alinan
-    # gercek formata gore (kullanicinin bulup paylastigi ornek):
-    #   EFControl Relative: 0.025000%
-    #   EFControl Absolute: 5
-    #   Lifetime : +871
+    # DIAG? icin -- gercek cihazin GERCEK ciktisindan (kullanicinin
+    # elle test edip paylastigi ornekler):
+    #   EFControl Relative: -0.410000%
+    #   EFControl Absolute: -82.000000
+    #   Lifetime : +0
+    # ONEMLI DUZELTME: gercek ciktida "Fault:" diye bir satir YOK --
+    # bizim eski varsayimimiz (biz uydurmustuk) yanlismis, kaldirdik.
+    # Ayrica EFControl Absolute gercekte ONDALIKLI (float), bizim
+    # eski varsayimimiz (int) yanlisti.
     # EFControl = "Electronic Frequency Control", osilatorun ince
     # frekans ayari icin kullanilan kontrol sinyali. Lifetime =
     # cihaz ilk acildigindan beri gecen toplam saat.
-    diag_ef_control_relative_percent: float = 0.025000
-    diag_ef_control_absolute: int = 5
+    diag_ef_control_relative_percent: float = -0.410000
+    diag_ef_control_absolute: float = -82.000000
     # DEGISTI: bu artik sabit bir sayi degil, "baslangic degeri"
     # (config'ten okunan). Gercekten GORUNTULENEN Lifetime, buna
     # simulator'in ne kadar suredir calistigini (process_started_at'tan
@@ -128,7 +135,12 @@ class DeviceState:
     diag_lifetime_base_hours: int = 871
 
     # Donanim arizasi durumu -- "hardware-error" senaryosu icin.
-    # Normalde ariza yok (hardware_fault=False, fault_message="NONE").
+    # Normalde ariza yok (hardware_fault=False). NOT: fault_message
+    # su an hicbir komutun ciktisinda GORUNMUYOR (gercek cihazin
+    # DIAG? ciktisinda boyle bir alan olmadigini gorduk) -- sadece
+    # SYST:STAT?'in "FAULT" durumunu tetiklemek icin hardware_fault
+    # kullaniliyor. fault_message ileride bir yerde gosterilebilir
+    # diye saklaniyor.
     hardware_fault: bool = False
     fault_message: str = "NONE"
 

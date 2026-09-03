@@ -38,9 +38,8 @@ def _current_lifetime_hours(state: DeviceState) -> int:
 def make_diag_handler(state: DeviceState):
     def handler() -> str:
         lines = [
-            f"Fault: {state.fault_message}",
             f"EFControl Relative: {state.diag_ef_control_relative_percent:.6f}%",
-            f"EFControl Absolute: {state.diag_ef_control_absolute}",
+            f"EFControl Absolute: {state.diag_ef_control_absolute:.6f}",
             f"Lifetime : +{_current_lifetime_hours(state)}",
         ]
         return "\r\n".join(lines)
