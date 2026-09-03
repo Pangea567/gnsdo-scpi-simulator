@@ -21,13 +21,16 @@ from gnsdo_simulator.scpi_parser import SCPIParser
 
 def make_csac_status_handler(state: DeviceState):
     """
-    CSAC:STATUS? -- gercek kilavuza gore hex: 0x1 = kilitli degil,
-    0x0 = kilitli ve saglikli. is_locked()'a bagliyoruz (warming-up
-    senaryosunda gercek 2 dakikalik sure gecince otomatik "0x0" olur).
+    CSAC:STATUS? -- ONEMLI DUZELTME: gercek cihaz ciktisi CIPLAK bir
+    sayi donuyor ("0"), bizim eski varsayimimiz ("0x0" gibi hex)
+    YANLISTI -- kilavuzun anlattigi hex bit-mask ile GERCEK ciktinin
+    formati uyusmuyormus, biz GERCEK ciktiyi esas aliyoruz.
+    is_locked()'a bagliyoruz (warming-up senaryosunda gercek 2
+    dakikalik sure gecince otomatik "0" olur).
     """
 
     def handler() -> str:
-        return "0x0" if is_locked(state) else "0x1"
+        return "0" if is_locked(state) else "1"
 
     return handler
 
