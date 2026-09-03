@@ -13,7 +13,7 @@
 
 device:
   serial_number: SIM000001
-  firmware_version: SIM-1.0
+  firmware_version: "1.17"
 
 gps:
   visible: 6
@@ -31,5 +31,6 @@ diag:
 
 measure:
   temperature: 25.0
-  voltage: 12.1
+  voltage: 1.66
   current: 0.42
+  power_supply: 11.7

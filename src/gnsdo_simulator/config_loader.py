@@ -96,6 +96,8 @@ def apply_config_to_state(state: DeviceState, config: dict) -> None:
         state.voltage = measure["voltage"]
     if "current" in measure:
         state.current = measure["current"]
+    if "power_supply" in measure:
+        state.power_supply_voltage = measure["power_supply"]
 
     # "diag" bolumu -- DIAG?/SYST:STAT? icin kullanilan alanlar.
     # lifetime_hours artik BASLANGIC (baseline) degeri -- gercekte
