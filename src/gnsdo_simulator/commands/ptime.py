@@ -29,37 +29,50 @@ from typing import Optional
 
 
 def ptime_date_handler() -> str:
-    """PTIME:DATE? -- sadece tarih, "YIL,AY,GUN"."""
+    """
+    PTIME:DATE? -- sadece tarih, "YIL,AY,GUN".
+    ONEMLI: gercek cihaz ciktisinda BASTAKI SIFIRLAR YOK (ornek:
+    "2026,9,2", "09,02" DEGIL). Bu yuzden strftime'in zero-padding
+    yapan %m/%d yerine, sayilari int() ile alip dogrudan yaziyoruz.
+    """
     now = datetime.now()
-    return now.strftime("%Y,%m,%d")
+    return f"{now.year},{now.month},{now.day}"
 
 
 def ptime_time_handler() -> str:
     """
-    PTIME:TIME? -- sadece saat, "SAAT,DAKIKA,SANIYE".
+    PTIME:TIME? -- sadece saat, "SAAT,DAKIKA,SANIYE", basta sifir yok.
     Dokumandaki (gorev PDF'i) ornek: PTIME:TIME? -> 20,15,32
+    Gercek cihaz ornegi: 7,46,13 (saat tek haneliyse sifirsiz)
     """
     now = datetime.now()
-    return now.strftime("%H,%M,%S")
+    return f"{now.hour},{now.minute},{now.second}"
 
 
 def ptime_time_string_handler() -> str:
     """
-    PTIME:TIME:STRING? -- okunabilir saat, "SAAT:DAKIKA:SANIYE".
-    Dokumandaki ornek: PTIME:TIME:STRING? -> 20:15:32
+    PTIME:TIME:STRING? -- okunabilir saat, "SAAT:DAKIKA:SANIYE",
+    basta sifir yok. Gercek cihaz ornegi: 7:46:33
     """
     now = datetime.now()
-    return now.strftime("%H:%M:%S")
+    return f"{now.hour}:{now.minute}:{now.second}"
 
 
 def make_ptime_output_query_handler(state: DeviceState):
     """
     PTIME:OUTPUT? -- iki cihazi seri kabloyla baglayip zaman
-    bilgisi paylasma ozelligi acik mi ("ON"/"OFF").
+    bilgisi paylasma ozelligi acik mi.
+
+    FORMAT DUZELTMESI: gercek cihaz ciktisinda (PTIME?'in icinde)
+    "OUTput :0" seklinde CIPLAK bir 0/1 goruluyor, bizim eski
+    "ON"/"OFF" varsayimimiz YANLISTI. Sorgu (query) artik "1"/"0"
+    donuyor -- ama setter hala "ON"/"OFF" DEGERINI KABUL EDIYOR
+    (kilavuzda setter syntax'i "<ON|OFF>" olarak yaziliyor, bu
+    ayri bir sey; sadece SORGUNUN CEVAP formatini duzelttik).
     """
 
     def handler() -> str:
-        return "ON" if state.ptime_output_enabled else "OFF"
+        return "1" if state.ptime_output_enabled else "0"
 
     return handler
 
@@ -85,23 +98,29 @@ def make_ptime_leap_accumulated_handler(state: DeviceState):
 
 def make_ptime_handler(state: DeviceState, parser: SCPIParser):
     """
-    PTIME? -- gercek cihazin kilavuzuna gore, asagidaki 5 sorgunun
-    cevaplarini SIRAYLA birlestirir. Biz bunu, parser'da ZATEN
-    kayitli olan handler'lari DOGRUDAN CAGIRARAK yapiyoruz -- boylece
-    tek bir yerde (ornegin PTIME:TIME? formatinda) yapilacak bir
-    degisiklik otomatik olarak PTIME?'e de yansir, iki yerde ayni
-    mantigi tekrar yazmiyoruz.
+    PTIME? -- gercek cihaz ciktisina gore ETIKETLI 5 satir:
+
+        DATE :2026,9,2
+        TIME :7:15:14
+        TINTerval :9.063E-09
+        OUTput :0
+        LEAPSECOND :18
+
+    ONEMLI: standalone PTIME:DATE?/TIME?/TIME:STRING? sorgulari
+    CIPLAK deger doner (etiketsiz) -- SADECE PTIME? bilesimi
+    etiketli. Bu yuzden burada parser.dispatch() ile alinan ham
+    (etiketsiz) cevaplarin BASINA kendi etiketimizi ekliyoruz.
     """
 
     def handler() -> str:
         lines = [
-            parser.dispatch("PTIME:DATE?"),
-            parser.dispatch("PTIME:TIME?"),
-            parser.dispatch("PTIME:TINT?"),
-            parser.dispatch("PTIME:OUTPUT?"),
-            parser.dispatch("PTIME:LEAP:ACC?"),
+            f"DATE :{parser.dispatch('PTIME:DATE?')}",
+            f"TIME :{parser.dispatch('PTIME:TIME?')}",
+            f"TINTerval :{parser.dispatch('PTIME:TINT?')}",
+            f"OUTput :{parser.dispatch('PTIME:OUTPUT?')}",
+            f"LEAPSECOND :{parser.dispatch('PTIME:LEAP:ACC?')}",
         ]
-        return "\r\n".join(line for line in lines if line is not None)
+        return "\r\n".join(lines)
 
     return handler
 

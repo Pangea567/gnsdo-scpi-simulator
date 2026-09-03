@@ -64,14 +64,18 @@ def _tint_seconds(state: DeviceState) -> float:
 def make_sync_tint_handler(state: DeviceState):
     """
     SYNC:TINT? -- "time interval error", yani referansla aradaki
-    zaman farkinin olcumu (saniye cinsinden). Gercek cihazlarda
-    bu, gercek bir olcum devresinden gelir. Biz karmasik bir
-    yakinsama/olcum modeli KURMUYORUZ (proje kararimiz geregi):
-    sabit degerler kullaniyoruz (bkz. _tint_seconds).
+    zaman farkinin olcumu (saniye cinsinden).
+
+    FORMAT DUZELTMESI: gercek cihaz ciktisi BILIMSEL GOSTERIM
+    kullaniyor (ornek: "6.763E-08", "9.063E-09") -- bizim eski
+    ondalikli formatimiz ("0.000000012") YANLISTI. Duzelttik.
+    Karmasik bir olcum modeli KURMUYORUZ (proje kararimiz geregi):
+    sabit degerler kullaniyoruz (bkz. _tint_seconds), sadece
+    GORUNUM formatini gercege uydurduk.
     """
 
     def handler() -> str:
-        return f"{_tint_seconds(state):.9f}"
+        return f"{_tint_seconds(state):.3E}"
 
     return handler
 

@@ -51,13 +51,9 @@ def test_idn():
     response = parser.dispatch("*IDN?")
 
     assert response is not None
-    # Cevap virgulle ayrilmis 4 alan icermeli: Uretici, Model, SeriNo, Firmware
-    parts = response.split(",")
-    assert len(parts) == 4
-    assert parts[0] == "Jackson Labs"
-    assert parts[1] == "GNSDO"
-    assert parts[2] == "SIM000001"
-    assert parts[3] == "SIM-1.0"
+    # GERCEK cihaz formati: "Jackson Labs, LN Rb GPSDO (PRE), Firmware Rev X.XX"
+    # (seri numarasi burada YOK -- eski 4 alanli varsayimimiz yanlisti)
+    assert response == "Jackson Labs, LN Rb GPSDO (PRE), Firmware Rev 1.17"
 
 
 def test_idn_uses_device_state():
@@ -65,12 +61,12 @@ def test_idn_uses_device_state():
     *IDN? cevabinin gercekten DeviceState'ten okundugunu kanitlar --
     state'i degistirince cevabin da degismesi lazim.
     """
-    state = DeviceState(serial_number="XYZ123", firmware_version="2.0")
+    state = DeviceState(firmware_version="2.0")
     parser = SCPIParser()
     register_system_commands(parser, state)
 
     response = parser.dispatch("*IDN?")
-    assert response == "Jackson Labs,GNSDO,XYZ123,2.0"
+    assert response == "Jackson Labs, LN Rb GPSDO (PRE), Firmware Rev 2.0"
 
 
 def test_help():
@@ -190,15 +186,18 @@ def test_ptime():
     assert date_response is not None
     assert len(date_response.split(",")) == 3  # yil, ay, gun
 
-    # PTIME? artik gercek cihaz gibi 5 alt sorgunun BILESIMI:
-    # DATE?, TIME?, TINT?, OUTPUT?, LEAP:ACC? -- her biri kendi
-    # satirinda olmali (5 satir).
+    # PTIME? artik gercek cihaz ciktisina gore ETIKETLI 5 satir:
+    # "DATE :...", "TIME :...", "TINTerval :...", "OUTput :...",
+    # "LEAPSECOND :..."
     ptime_response = parser.dispatch("PTIME?")
     assert ptime_response is not None
     lines = ptime_response.split("\r\n")
     assert len(lines) == 5
-    assert lines[3] in ("ON", "OFF")  # PTIME:OUTPUT? kismi
-    assert lines[4] == "18"  # PTIME:LEAP:ACC? kismi (varsayilan)
+    assert lines[0].startswith("DATE :")
+    assert lines[1].startswith("TIME :")
+    assert lines[2].startswith("TINTerval :")
+    assert lines[3] in ("OUTput :0", "OUTput :1")
+    assert lines[4] == "LEAPSECOND :18"
 
 
 def test_sync():
@@ -268,43 +267,52 @@ def test_diag():
     parser = make_test_parser()
     response = parser.dispatch("DIAG?")
     assert response is not None
-    assert "Fault: NONE" in response
-    assert "EFControl Relative: 0.025000%" in response
-    assert "EFControl Absolute: 5" in response
+    # ONEMLI: gercek cihaz ciktisinda "Fault:" satiri YOK -- artik
+    # bu satiri beklemiyoruz.
+    assert "Fault:" not in response
+    assert "EFControl Relative: -0.410000%" in response
+    assert "EFControl Absolute: -82.000000" in response
     assert "Lifetime : +871" in response
 
 
 def test_measure():
     parser = make_test_parser()
     assert parser.dispatch("MEAS:TEMP?") == "42.5"
-    assert parser.dispatch("MEAS:VOLT?") == "12.1"
+    assert parser.dispatch("MEAS:VOLT?") == "1.66"
     assert parser.dispatch("MEAS:CURR?") == "0.42"
-    assert parser.dispatch("MEAS:POW?") == "12.0"
+    assert parser.dispatch("MEAS:POW?") == "11.7"
 
-    # MEAS? artik gercek cihaz gibi 4 alt sorgunun BILESIMI
+    # MEAS? artik gercek cihaz ciktisina gore ETIKETLI 4 satir,
+    # CSAC Temperature dahil.
     meas_response = parser.dispatch("MEAS?")
     assert meas_response is not None
-    assert meas_response.split("\r\n") == ["42.5", "12.1", "0.42", "12.0"]
+    assert meas_response.split("\r\n") == [
+        "PCB Temperature: 42.5",
+        "CSAC Temperature: 54.0",
+        "TCXO Voltage: 1.66",
+        "Power Supply Voltage: 11.7",
+    ]
 
 
 def test_csac():
     parser = make_test_parser()
-    # Varsayilan DeviceState: sync_locked=True -> saglikli -> "0x0"
-    assert parser.dispatch("CSAC:STATUS?") == "0x0"
-    assert parser.dispatch("CSAC:SN?") == "2103CS04521"
+    # Varsayilan DeviceState: sync_locked=True -> saglikli -> "0"
+    # (GERCEK cihaz ciktisi ciplak sayi doner, hex degil)
+    assert parser.dispatch("CSAC:STATUS?") == "0"
+    assert parser.dispatch("CSAC:SN?") == "2209MX04906"
 
     csac_response = parser.dispatch("CSAC?")
     assert csac_response is not None
     lines = csac_response.split("\r\n")
-    assert lines[0] == "0x0"
-    assert lines[2] == "2103CS04521"
+    assert lines[0] == "0"
+    assert lines[2] == "2209MX04906"
 
 
 def test_csac_status_reflects_lock_state():
-    """CSAC:STATUS?'in gercekten sync_locked'a bagli oldugunu kanitlar."""
+    """CSAC:STATUS?'in gercekten kilit durumuna bagli oldugunu kanitlar."""
     from gnsdo_simulator.commands.csac import register_csac_commands
 
     state = DeviceState(sync_locked=False)
     parser = SCPIParser()
     register_csac_commands(parser, state)
-    assert parser.dispatch("CSAC:STATUS?") == "0x1"
+    assert parser.dispatch("CSAC:STATUS?") == "1"
