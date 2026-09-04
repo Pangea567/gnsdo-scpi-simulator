@@ -1,23 +1,29 @@
 # warming-up.yaml
 #
-# "Isiniyor" senaryosu: cihaz YENI ACILMIS, GPS sinyali var (uydular
-# gorunuyor/takip ediliyor) ama osilator henuz kilitlenmemis --
-# gercek Rubidium/CSAC osilatorlerin kararli calismaya baslamasi icin
-# isinmasi gerekir.
+# "Isiniyor" senaryosu: cihaz YENI ACILMIS. ONEMLI AYRIM: GPS sinyali
+# GERCEKTEN IYI olmali (uydular takip ediliyor, fix var) -- cunku
+# "isinma", GPS ALICISIYLA degil, ICERIDEKI OSILATORLE ilgili bir
+# sey. GPS zaten fix bulmus olabilir, ama Rubidium/CSAC osilatoru
+# kararli calismaya baslamak icin hala isinmaktadir.
 #
-# GERCEK CIHAZIN KILAVUZUNA GORE: bu isinma suresi "2 dakikadan az"
+# (Bu dosya daha once "tracking: 3" -- yani fix YOKMUS gibi -- ayarli
+# idi, bu TUTARSIZDI: is_locked() artik "fix yoksa kilitlenemez"
+# kuralini da uyguluyor, yani fix olmadan zaten hicbir zaman
+# kilitlenemezdi, warmup sayaci hic islemezdi. Duzelttik.)
+#
+# GERCEK CIHAZIN KILAVUZUNA GORE: isinma suresi "2 dakikadan az"
 # ("less than 2 minutes warmup time to atomic lock"). "warmup: active: true"
 # ile bu senaryo baslatilirsa, simulator KENDILIGINDEN, gercek sureye
 # uygun sekilde 2 dakika sonra otomatik olarak kilitlenecek -- bunun
 # icin ayrica bir komut gondermene GEREK YOK, sadece bekle.
 
 device:
-  serial_number: SIM000001
+  serial_number: "122301668"
   firmware_version: "1.17"
 
 gps:
-  visible: 6
-  tracking: 3
+  visible: 12
+  tracking: 8
 
 sync:
   locked: false

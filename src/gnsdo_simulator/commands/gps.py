@@ -12,15 +12,14 @@ GUNCELLEME (gercek cihazin GERCEK ciktisina gore):
   (survey limitleri, hold position, timing mode...) DEGISMIYOR.
 """
 
-from gnsdo_simulator.device_state import DeviceState
+from gnsdo_simulator.device_state import DeviceState, MIN_SATELLITES_FOR_LOCK
 from gnsdo_simulator.scpi_parser import SCPIParser
 
 
-# Gercek GPS alicilarinin konum hesaplayabilmesi icin genelde en az
-# 4 uyduyu ES ZAMANLI takip etmesi (tracking) gerekir. Karmasik bir
-# GPS/yakinsama algoritmasi yazmiyoruz -- sadece bu bilinen, basit
-# esik degerini kullanarak "fix var mi yok mu" karari veriyoruz.
-MIN_SATELLITES_FOR_LOCK = 4
+# NOT: MIN_SATELLITES_FOR_LOCK artik device_state.py'de tanimli --
+# cunku hem GPS?'in "fix var mi" hesabi hem de is_locked()'in "fix
+# olmadan kilitlenemez" kontrolu AYNI esik degerini paylasmali.
+# Burada tekrar tanimlamak yerine oradan iceri aktariyoruz (import).
 
 # Fix yokken gercek cihaz ciktisinda gorulen sabit degerler (kullanicinin
 # "anten sokulmus" ornek ciktisindan alindi).
@@ -37,6 +36,75 @@ def _to_ddmm(value: float) -> str:
     degrees = int(abs(value))
     minutes = (abs(value) - degrees) * 60
     return f"{degrees}{minutes:07.4f}"
+
+
+def to_dms(value: float) -> str:
+    """
+    Ondalik dereceyi "DERECE:DAKIKA:SANIYE.ss" metnine cevirir
+    (SYST:STAT?'ta kullanilan format, GPS?'teki DDMM.MMMM'den FARKLI).
+    Ornek: 40.78728 -> "40:47:14.208"
+    """
+    degrees = int(abs(value))
+    remainder_minutes = (abs(value) - degrees) * 60
+    minutes = int(remainder_minutes)
+    seconds = (remainder_minutes - minutes) * 60
+    return f"{degrees}:{minutes:02d}:{seconds:06.3f}"
+
+
+# Uydu tablosu icin SABIT bir PRN (uydu numarasi) havuzu -- gercek
+# kullanicinin paylastigi iki ornek ciktidaki PRN'lerden derlendi.
+# Gercek bir GPS almanak/yorunge hesabi YAPMIYORUZ -- sadece bu
+# havuzdan sirayla secip, El/Az/SS (yukseklik acisi/yon acisi/sinyal
+# gucu) icin basit, tekrarlanabilir bir formulle SAYI uyduruyoruz.
+# Amac: gercekci GORUNEN ama fiziksel olarak anlamsiz bir tablo.
+_PRN_POOL = [1, 2, 3, 4, 8, 9, 17, 19, 28, 31, 32, 40, 41, 307, 308, 312, 313, 319, 326, 329, 333]
+
+
+def _synthetic_el_az_ss(index: int) -> tuple[int, int, int]:
+    """
+    Bir uydu satiri icin El (yukseklik acisi 0-89), Az (yon acisi
+    0-359), SS (sinyal gucu, kaba bir araligin icinde) uretir.
+    Gercek gok mekanigi degil, SADECE indexe bagli, tekrarlanabilir
+    bir formul -- her cagrida ayni index icin ayni sayi cikar.
+    """
+    el = 10 + (index * 7) % 80
+    az = (index * 53) % 360
+    ss = 15 + (index * 11) % 35
+    return el, az, ss
+
+
+def generate_satellite_table_rows(tracked_count: int, not_tracked_count: int) -> list[str]:
+    """
+    SYST:STAT?'taki iki sutunlu uydu tablosunun satirlarini uretir:
+    sol sutun TAKIP EDILEN uydular (PRN El Az SS), sag sutun sadece
+    GORUNEN (takip edilmeyen) uydular (PRN El Az, SS yok).
+    Satir sayisi, iki sutundan HANGISI daha uzunsa ona gore belirlenir;
+    kisa olan sutun bos birakilir (gercek ciktida da boyleydi).
+    """
+    tracked_prns = [_PRN_POOL[i % len(_PRN_POOL)] for i in range(tracked_count)]
+    not_tracked_prns = [
+        _PRN_POOL[(tracked_count + i) % len(_PRN_POOL)] for i in range(not_tracked_count)
+    ]
+
+    row_count = max(len(tracked_prns), len(not_tracked_prns))
+    rows = []
+    for i in range(row_count):
+        if i < len(tracked_prns):
+            prn = tracked_prns[i]
+            el, az, ss = _synthetic_el_az_ss(i)
+            left = f"{prn:>3} {el:>3} {az:>3}   {ss:>2}"
+        else:
+            left = " " * 16
+
+        if i < len(not_tracked_prns):
+            prn2 = not_tracked_prns[i]
+            el2, az2, _ = _synthetic_el_az_ss(i + 1000)
+            right = f"   {prn2:>3} {el2:>3} {az2:>3}"
+        else:
+            right = ""
+
+        rows.append(left + right)
+    return rows
 
 
 def make_gps_handler(state: DeviceState):

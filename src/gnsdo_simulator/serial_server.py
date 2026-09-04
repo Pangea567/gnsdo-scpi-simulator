@@ -23,6 +23,7 @@ eklemek icin bu dosyayi hic degistirmemize gerek kalmayacak.
 """
 
 import logging
+import threading
 import time
 
 import serial
@@ -55,6 +56,16 @@ class SerialServer:
         self.baudrate = baudrate
         self.timeout = timeout
         self._serial: serial.Serial | None = None
+        # Normal calisirken (main.py'den) program zaten Ctrl+C ile
+        # durduruluyor. Ama TESTLERDE, run_forever()'i bir thread
+        # icinde calistirip disaridan "artik dur" diyebilmemiz lazim
+        # -- threading.Event tam bunun icin var: bir "bayrak" gibi
+        # dusun, set() edilince dongu bir sonraki kontrolde durur.
+        self._stop_event = threading.Event()
+
+    def stop(self) -> None:
+        """Disaridan run_forever() dongusunu nazikce durdurmak icin."""
+        self._stop_event.set()
 
     def open(self) -> None:
         """Seri portu acar. Gercek cihazda oldugu gibi 8N1, flow control yok."""
@@ -87,8 +98,9 @@ class SerialServer:
 
     def run_forever(self) -> None:
         """
-        Ana dongu. Ctrl+C (KeyboardInterrupt) gelene kadar surekli
-        porttan okur, parser'a verir, cevabi yazar.
+        Ana dongu. Ctrl+C (KeyboardInterrupt) GELENE KADAR, ya da
+        disaridan stop() cagrilana kadar, surekli porttan okur,
+        parser'a verir, cevabi yazar.
         """
         if self._serial is None:
             self.open()
@@ -96,7 +108,7 @@ class SerialServer:
         logger.info("Simulator dinlemede, komut bekleniyor... (durdurmak icin Ctrl+C)")
 
         try:
-            while True:
+            while not self._stop_event.is_set():
                 raw_line = self._read_line()
                 if raw_line is None:
                     continue  # timeout, veri gelmedi, tekrar dene
@@ -116,4 +128,3 @@ class SerialServer:
             logger.info("Durduruluyor (Ctrl+C)...")
         finally:
             self.close()
-            

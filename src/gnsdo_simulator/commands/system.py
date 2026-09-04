@@ -14,7 +14,10 @@ toplu halde kaydeder. main.py sadece bu tek fonksiyonu cagiracak,
 gerek kalmayacak.
 """
 
-from gnsdo_simulator.device_state import DeviceState, is_locked
+from datetime import datetime
+
+from gnsdo_simulator.commands.gps import generate_satellite_table_rows, to_dms
+from gnsdo_simulator.device_state import DeviceState, MIN_SATELLITES_FOR_LOCK, is_locked
 from gnsdo_simulator.scpi_parser import SCPIParser
 
 
@@ -63,32 +66,63 @@ def make_help_handler(parser: SCPIParser):
 
 def make_syst_stat_handler(state: DeviceState):
     """
-    SYST:STAT? komutu: cihazin genel durumunu doner.
+    SYST:STAT? -- GERCEK cihaz ciktisina gore, cok satirlik bir
+    "dashboard" raporu: baslik + uydu tablosu + konum/UTC + saglik
+    ozeti. Eskiden bu komut tek kelimelik bir durum donuyordu
+    ("OK", "FAULT" gibi) -- artik o durum bilgisi, raporun icindeki
+    "GPSDO Status" alanina tasindi.
 
-    Artik SABIT "OK" DEGIL -- state'e bakarak durumu turetiyoruz.
-    Oncelik sirasi onemli (yukaridan asagiya, ilk uyan kazanir):
-      1. Donanim arizasi varsa            -> "FAULT"
-      2. Holdover'daysa                   -> "HOLDOVER"
-      3. warming-up senaryosu, hala isiniyor -> "WARMING UP"
-         (bkz. device_state.is_locked() -- gercek cihaza gore 2
-         dakikalik isinma suresi henuz gecmemis)
-      4. Kilitli degil (baska sebep)      -> "NOT LOCKED"
-      5. Hicbiri degilse                  -> "OK"
-
-    Bu sayede farkli senaryolarla (--scenario) baslatilan simulator,
-    SYST:STAT?'a GERCEKTEN farkli cevaplar verir.
+    NOT: Uydu tablosunun (PRN/El/Az/SS) satir araligi/bosluklari
+    GERCEK cihazla BIREBIR AYNI OLMAYABILIR -- kullanicinin
+    paylastigi ornek metin bir Word belgesinden kopyalanirken hiza
+    bozulmus olabilir. Etiketler/alanlar/siralama dogru, ama tam
+    piksel hizasi "en iyi caba" (best-effort) seviyesinde.
     """
 
     def handler() -> str:
+        tracking = state.gnss_satellites_tracking
+        visible = state.gnss_satellites_visible
+        not_tracking = max(0, visible - tracking)
+        has_fix = tracking >= MIN_SATELLITES_FOR_LOCK
+
+        now = datetime.now()
+        utc_time = f"{now.hour}:{now.minute:02d}:{now.second:02d}"
+        utc_date = f"{now.day} {now.strftime('%b')} {now.year}"
+
         if state.hardware_fault:
-            return "FAULT"
-        if state.holdover:
-            return "HOLDOVER"
-        if not is_locked(state):
-            if state.warmup_started_at is not None:
-                return "WARMING UP"
-            return "NOT LOCKED"
-        return "OK"
+            gpsdo_status = "Fault"
+        elif state.holdover:
+            gpsdo_status = "Holdover"
+        elif not is_locked(state):
+            gpsdo_status = "Warming Up" if state.warmup_started_at is not None else "Not Locked"
+        else:
+            gpsdo_status = "Locked"
+
+        fix_status = "3D Fix" if has_fix else "No Fix"
+
+        lines = [
+            f"LN Rb GPSDO (PRE)  Serial Number : {state.serial_number}    Hw version : {state.hw_version}",
+            "",
+            "AQUISITION ................................................",
+            f"Tracking:{tracking}        Not Tracking: {not_tracking}",
+            "PRN  El  Az   SS   PRN  El  Az",
+        ]
+        lines.extend(generate_satellite_table_rows(tracking, not_tracking))
+        lines.append("")
+        lines.append(
+            f"LAT   N {to_dms(state.gps_latitude)}             LON   E {to_dms(state.gps_longitude)}"
+        )
+        lines.append(
+            f"HGT   {state.gps_altitude_m:.2f} m (MSL)             UTC    {utc_time}   {utc_date}"
+        )
+        lines.append("")
+        lines.append("HEALTH MONITOR................................................")
+        lines.append(f"GPS Receiver Status: {fix_status}             GPSDO Status : {gpsdo_status}")
+        lines.append(
+            f"1PPS SOURCE MODE  : {state.sync_source_mode}                 "
+            f"1PPS SOURCE STATE  : {state.sync_source_state}"
+        )
+        return "\r\n".join(lines)
 
     return handler
 

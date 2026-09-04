@@ -111,7 +111,7 @@ def main() -> None:
 
     register_system_commands(scpi_parser, device_state)
     register_gps_commands(scpi_parser, device_state)
-    register_ptime_commands(scpi_parser)
+    register_ptime_commands(scpi_parser, device_state)
     register_sync_commands(scpi_parser, device_state)
     register_diagnostic_commands(scpi_parser, device_state)
     register_measure_commands(scpi_parser, device_state)

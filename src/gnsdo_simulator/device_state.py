@@ -43,10 +43,11 @@ class DeviceState:
         print(state.serial_number)                 # degere erismek
     """
 
-    serial_number: str = "SIM000001"
+    serial_number: str = "122301668"  # gercek cihaz ciktisindan alinan ornek
     # GERCEK cihaz ciktisindan alinan gercek firmware surumu
     # ("Jackson Labs, LN Rb GPSDO (PRE), Firmware Rev 1.17")
     firmware_version: str = "1.17"
+    hw_version: str = "1.01.00"  # gercek cihaz ciktisindan (SYST:STAT? basligi icin)
 
     # GPS/GNSS ile ilgili durum. Gercek cihazda bunlar surekli
     # degisir (uydu gorunurlugu, sinyal kalitesi vb.), ama biz
@@ -226,6 +227,14 @@ class DeviceState:
 # atomic lock" -- bu yuzden 2 dakika (120 saniye) kullaniyoruz.
 WARMUP_DURATION_SECONDS = 120
 
+# Gercek GPS alicilarinin konum hesaplayabilmesi (yani "fix" sahibi
+# olabilmesi) icin genelde en az 4 uyduyu ES ZAMANLI takip etmesi
+# gerekir. BURADA tutulmasinin sebebi: hem GPS?'in "fix var mi"
+# hesabi hem de is_locked()'in "GPS fix'i olmadan osilator kilitlenemez"
+# kontrolu AYNI esik degerini kullansin -- iki yerde farkli sayilar
+# olursa (biri 4 biri 5 gibi) tutarsizlik cikar, TEK kaynaktan okuyoruz.
+MIN_SATELLITES_FOR_LOCK = 4
+
 
 def elapsed_hours_since_start(state: DeviceState) -> float:
     """
@@ -243,16 +252,24 @@ def is_locked(state: DeviceState) -> bool:
     (SYNC:LOCKED?, SYNC?, SYST:STAT?, CSAC:STATUS?) AYNI mantigi
     kullansin diye bunu TEK bir yerde topluyoruz.
 
-    - Holdover'daysa kesinlikle kilitli DEGILDIR.
-    - "warming-up" senaryosuyla baslatildiysa (warmup_started_at
-      doluysa), gercek 2 dakikalik isinma suresi GECENE KADAR kilitli
-      degildir; sure gecince OTOMATIK olarak kilitli sayilir -- bunun
-      icin state.sync_locked'i elle degistirmemize bile gerek yok,
-      her sorguda YENIDEN hesaplaniyor.
-    - Diger durumlarda (warmup_started_at yoksa), dogrudan
-      state.sync_locked degerine bakilir (config'ten geldigi gibi).
+    Oncelik sirasi (ilk uyan kazanir):
+      1. Holdover'daysa kesinlikle kilitli DEGILDIR.
+      2. GPS FIX YOKSA (yeterli uydu takip edilmiyorsa) kesinlikle
+         kilitli OLAMAZ -- gercek dunyada osilator, GPS'in verdigi
+         zaman referansi olmadan kendini ayarlayamaz. (Bu kontrol
+         SONRADAN EKLENDI: eskiden is_locked() tracking sayisina
+         hic bakmiyordu, bu da "No Fix ama Locked" gibi GERCEKTE
+         imkansiz bir kombinasyona izin veriyordu.)
+      3. "warming-up" senaryosuyla baslatildiysa (warmup_started_at
+         doluysa), gercek 2 dakikalik isinma suresi GECENE KADAR
+         kilitli degildir; sure gecince OTOMATIK olarak kilitli
+         sayilir.
+      4. Diger durumlarda, dogrudan state.sync_locked degerine bakilir.
     """
     if state.holdover:
+        return False
+
+    if state.gnss_satellites_tracking < MIN_SATELLITES_FOR_LOCK:
         return False
 
     if state.warmup_started_at is not None:

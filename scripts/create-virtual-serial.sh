@@ -40,5 +40,3 @@ echo ""
 socat -d -d \
   pty,raw,echo=0,link="$CLIENT_LINK" \
   pty,raw,echo=0,link="$SIMULATOR_LINK"
-
-    

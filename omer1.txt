@@ -1,0 +1,37 @@
+SYNC komutları tek tek ne işe yarıyor?
+SYNC? → "Genel olarak durumun ne?" diye soruyor. Cevap: LOCKED (GPS'e göre ayarlanmış, sağlıklı), 
+HOLDOVER (GPS yok, eski ayarla idare ediyor), NOT LOCKED (henüz hiç ayarlanamamış). 
+Bir izleme yazılımı bu tek komutla cihazın genel sağlığına hızlıca bakabiliyor.
+
+SYNC:LOCKED? → Daha kesin/ikili bir soru: "Şu an GPS'e kilitli misin, evet mi hayır mı?" Cevap sadece 1 ya da 0. 
+Otomasyon yazılımları genelde böyle net evet/hayır cevaplarını tercih eder (metin ayrıştırmak yerine).
+
+SYNC:TINT? ("Time INTerval error") → "GPS referansıyla aranda şu an kaç saniyelik fark var?" 
+Gerçek cihazda bu, gerçek bir ölçüm devresinden gelen çok küçük bir sayı (nanosaniye mertebesinde). 
+Bu, cihazın ne kadar hassas çalıştığının doğrudan göstergesi — sayı ne kadar küçükse cihaz o kadar iyi ayarlanmış demek.
+
+SYNC:HEALTH? → Daha genel bir "sağlık notu" — GOOD / DEGRADED gibi. SYNC?'e benzer ama daha çok "bu değerlere güvenebilir miyim" sorusuna cevap verir.
+SYNC:HOLD:INIT → Bu bir komut, soru değil (sonunda ? yok, hatırlarsan bu bizim "setter" dediğimiz tür). 
+Cihaza "şimdi holdover'a geç" diyor. Neden böyle bir komuta ihtiyaç var? Çünkü test/geliştirme yaparken, 
+GPS anteninin kablosunu fiziksel olarak çıkarıp gerçekten sinyali kesmek yerine, 
+ihaza (ya da bizim simülatörümüze) "GPS kaybolmuş gibi davran" diye söylemek çok daha pratik. Yani bu, test amaçlı bir tetikleyici.
+
+SYNC:HOLD:REC:INIT ("Holdover RECovery INIT") → Tam tersi: "tamam, GPS geri geldi, normale dön" komutu.
+SYNC:HOLD:DUR? ("Holdover DURation") → "Ne zamandır holdover'dasın?" GPS ne kadar uzun süre kayıpsa,
+ cihazın biriktirdiği hata da o kadar büyür — bu yüzden izleme yazılımları bu süreyi takip eder, çok uzun sürerse alarm verirler.
+SYNC:SOUR:MODE <değer> ("SOURce MODE") → Cihaza "referans kaynağını değiştir" diyor. 
+Gerçek cihazlarda genelde birden fazla referans seçeneği olur: GPS (normal), belki EXTERNAL (dışarıdan başka bir referans saat bağlanmışsa), 
+belki INTERNAL (sadece kendi osilatörüne güven, hiçbir dış referans kullanma). Bu bir ayar komutu, cihazın çalışma modunu değiştiriyor.
+
+DIAG? ne işe yarıyor?
+
+
+DIAG? = "Diagnostic" yani kendi kendini test etme / genel arıza sorgusu. 
+Neredeyse her profesyonel test/ölçüm cihazında böyle bir komut bulunur: "Sende bilinen bir donanım arızası var mı?"
+ Cevap genelde ya NO FAULT (her şey yolunda) ya da bir hata kodu/mesajı olur (örneğin "sıcaklık sensörü arızalı", "referans osilatör bozuk" gibi). 
+ Bir izleme sistemi, cihazın her şeyinin tek tek doğru çalıştığından emin olmak yerine, 
+ tek bir DIAG? sorgusuyla hızlıca "genel olarak sağlıklı mısın" diye kontrol edebiliyor.
+
+Bizim şu anki halimizde bu komut hep NO FAULT döndürüyor çünkü henüz "arıza" kavramını simüle etmedik — 
+doküman planındaki hardware-error senaryosuna geldiğimizde, bu cevabı senaryoya göre değiştireceğiz 
+(örneğin o senaryoda çalıştırılırsa DIAG? bir hata kodu dönecek).

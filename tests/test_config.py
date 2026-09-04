@@ -71,7 +71,10 @@ def test_load_warming_up_scenario():
     assert state.warmup_started_at is not None
     assert is_locked(state) is False  # daha yeni yuklendi, 2 dk gecmedi
     assert state.diag_lifetime_base_hours == 0
-    assert state.gnss_satellites_tracking == 3
+    # ONEMLI: tracking artik esigin (4) USTUNDE -- GPS fix'i VAR,
+    # sadece osilator henuz isiniyor. (Once tracking=3 idi, bu
+    # is_locked()'in "fix yoksa kilitlenemez" kuraliyla CELISIYORDU.)
+    assert state.gnss_satellites_tracking == 8
 
 
 def test_warming_up_locks_after_warmup_duration():

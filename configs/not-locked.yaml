@@ -1,18 +1,18 @@
-# not-locked.yaml
+# hardware-error.yaml
 #
-# "Kilitli degil" senaryosu: "warming-up"tan FARKLI olarak, cihaz
-# UZUN SUREDIR calisiyor (lifetime_hours normal, 871) ve GPS sinyali
-# de gayet iyi (12 gorunen, 8 takip edilen uydu) -- ama yine de
-# kilitlenememis. Bu, gecici bir "henuz isinma" durumu degil,
-# KALICI/SORUNLU bir durumu temsil ediyor (ornegin osilator
-# devresinde bir sorun olabilir, ama bu DIAG?'ta FAULT olarak
-# gorunmuyor -- sadece kilitlenemiyor).
+# "Donanim arizasi" senaryosu: cihazda gercek bir ARIZA var.
+# SYST:STAT? artik "FAULT" doner. Ayrica bunun bir arizanin
+# belirtisi olarak anormal olcum degerleri (yuksek sicaklik, dusuk
+# GUC KAYNAGI voltaji, yuksek "akim") verdik -- gercekci bir ariza
+# teshis modeli degil, ama "bir seyler kotu gidiyor" izlenimini
+# test etmek icin makul bir varsayim.
 #
-# SYST:STAT? bu durumda "NOT LOCKED" doner (lifetime > 0 oldugu
-# icin "WARMING UP" ile karismaz, bkz. commands/system.py).
+# NOT: "voltage" (TCXO) alanini NORMAL birakiyoruz -- gercek cihaz
+# ciktisina gore TCXO ayari ile guc kaynagi ayri seyler, ariza
+# senaryosunda anormalligi GUC KAYNAGINDA (power_supply) gosteriyoruz.
 
 device:
-  serial_number: SIM000001
+  serial_number: "122301668"
   firmware_version: "1.17"
 
 gps:
@@ -25,9 +25,11 @@ sync:
 
 diag:
   lifetime_hours: 871
+  fault: true
+  fault_message: "OSCILLATOR FAILURE"
 
 measure:
-  temperature: 42.5
+  temperature: 95.0
   voltage: 1.66
-  current: 0.42
-  power_supply: 11.7
+  current: 1.2
+  power_supply: 9.5

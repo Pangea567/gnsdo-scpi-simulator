@@ -7,7 +7,7 @@
 # diye test edebilirsin.
 
 device:
-  serial_number: SIM000001
+  serial_number: "122301668"
   firmware_version: "1.17"
 
 gps:

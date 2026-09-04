@@ -14,7 +14,7 @@ from datetime import datetime
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from gnsdo_simulator.device_state import DeviceState
+from gnsdo_simulator.device_state import DeviceState, is_locked
 from gnsdo_simulator.scpi_parser import SCPIParser
 from gnsdo_simulator.commands.system import register_system_commands
 from gnsdo_simulator.commands.gps import register_gps_commands
@@ -131,14 +131,20 @@ def test_syst_stat():
     parser = make_test_parser()
     response = parser.dispatch("SYST:STAT?")
 
-    assert response == "OK"
+    assert response is not None
+    lines = response.split("\r\n")
+    assert lines[0].startswith("LN Rb GPSDO (PRE)")
+    assert "Serial Number : 122301668" in lines[0]
+    assert "Tracking:8        Not Tracking: 4" in lines
+    assert "GPS Receiver Status: 3D Fix             GPSDO Status : Locked" in lines
 
 
 def test_syst_stat_reflects_state():
     """
-    SYST:STAT?'in artik SABIT "OK" degil, state'e gore
+    SYST:STAT?'in "GPSDO Status" alaninin, state'e gore
     DEGISTIGINI kanitlar -- her farkli durumda dogru metni
-    donmesi lazim.
+    icermesi lazim (artik tek kelimelik cevap degil, tam bir
+    rapor icinde bir alan).
     """
     from gnsdo_simulator.commands.system import register_system_commands
 
@@ -146,27 +152,43 @@ def test_syst_stat_reflects_state():
     state = DeviceState(hardware_fault=True)
     parser = SCPIParser()
     register_system_commands(parser, state)
-    assert parser.dispatch("SYST:STAT?") == "FAULT"
+    assert "GPSDO Status : Fault" in parser.dispatch("SYST:STAT?")
 
     # 2) Holdover
     state = DeviceState(holdover=True, sync_locked=False)
     parser = SCPIParser()
     register_system_commands(parser, state)
-    assert parser.dispatch("SYST:STAT?") == "HOLDOVER"
+    assert "GPSDO Status : Holdover" in parser.dispatch("SYST:STAT?")
 
     # 3) warming-up senaryosu aktif (warmup_started_at dolu), henuz
-    #    2 dakika gecmemis -> WARMING UP
+    #    2 dakika gecmemis -> Warming Up
     state = DeviceState(sync_locked=False, warmup_started_at=datetime.now())
     parser = SCPIParser()
     register_system_commands(parser, state)
-    assert parser.dispatch("SYST:STAT?") == "WARMING UP"
+    assert "GPSDO Status : Warming Up" in parser.dispatch("SYST:STAT?")
 
     # 4) Uzun suredir calisiyor ama kilitlenememis (warmup_started_at
-    #    YOK -- yani bu bir isinma degil, kalici bir sorun) -> NOT LOCKED
+    #    YOK -- yani bu bir isinma degil, kalici bir sorun) -> Not Locked
     state = DeviceState(sync_locked=False)
     parser = SCPIParser()
     register_system_commands(parser, state)
-    assert parser.dispatch("SYST:STAT?") == "NOT LOCKED"
+    assert "GPSDO Status : Not Locked" in parser.dispatch("SYST:STAT?")
+
+
+def test_locked_requires_fix():
+    """
+    YENI KURAL: GPS fix'i yoksa (yeterli uydu takip edilmiyorsa),
+    is_locked() sync_locked ne olursa olsun False donmeli -- gercek
+    dunyada osilator, GPS referansi olmadan kilitlenemez. Bu, daha
+    once EKSIK olan bir tutarlilik kontrolu.
+    """
+    # sync_locked=True olsa BILE, fix yoksa (tracking < 4) kilitli SAYILMAMALI
+    state = DeviceState(sync_locked=True, gnss_satellites_tracking=2)
+    assert is_locked(state) is False
+
+    # Yeterli uydu VARSA ve sync_locked=True ise, gercekten kilitli olmali
+    state = DeviceState(sync_locked=True, gnss_satellites_tracking=8)
+    assert is_locked(state) is True
 
 
 def test_case_insensitive_command():
