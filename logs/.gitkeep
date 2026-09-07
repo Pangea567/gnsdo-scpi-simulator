@@ -1,0 +1,3 @@
+# Bu klasor, simulator calisirken simulator.log dosyasini buraya yazar.
+# Log dosyalari .gitignore ile haric tutulur; bu .gitkeep sadece bos
+# klasorun repoda var olmasini saglar.
