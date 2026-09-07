@@ -1,4 +1,23 @@
-logs/
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# Test / arac onbellekleri
 .pytest_cache/
+.coverage
+htmlcov/
+
+# Loglar (calisma aninda uretilir, repoya girmez)
+logs/
+*.log
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
