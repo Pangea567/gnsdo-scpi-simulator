@@ -100,6 +100,27 @@ def test_load_not_locked_scenario():
     assert state.diag_lifetime_base_hours == 871
     # GPS sinyali gayet iyi, sorun kilitlenmede -- GPS'te degil
     assert state.gnss_satellites_tracking == 8
+    # ONEMLI: not-locked bir DONANIM ARIZASI DEGIL. (Onceden bu config
+    # yanlislikla hardware-error.yaml'in kopyasiydi, fault=true iceriyordu
+    # ve SYST:STAT? "Fault" donuyordu. Bu assert o hatanin geri gelmesini
+    # engeller.)
+    assert state.hardware_fault is False
+    assert state.temperature_celsius == 42.5   # normal deger, ariza degeri (95.0) DEGIL
+
+
+def test_not_locked_scenario_reports_not_locked_status():
+    """
+    not-locked senaryosu SYST:STAT?'ta "Not Locked" durumunu gostermeli --
+    "Fault" DEGIL. (Config'in hardware-error kopyasi olmasi hatasina karsi
+    ucdan uca / end-to-end kontrol.)
+    """
+    from gnsdo_simulator.scpi_parser import SCPIParser
+    from gnsdo_simulator.commands.system import register_system_commands
+
+    state = load_scenario("not-locked", configs_dir=CONFIGS_DIR)
+    parser = SCPIParser()
+    register_system_commands(parser, state)
+    assert "GPSDO Status : Not Locked" in parser.dispatch("SYST:STAT?")
 
 
 def test_load_hardware_error_scenario():
