@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gnsdo-scpi-simulator"
+version = "1.0.0"
+description = "Low Noise Rubidium GNSDO cihazinin seri port / SCPI davranisini taklit eden Linux tabanli simulator"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "Ömer Faruk Karagöz", email = "ofkaragoz05@gmail.com" }]
+keywords = ["scpi", "gnsdo", "gpsdo", "serial", "simulator", "rubidium", "timing"]
+dependencies = [
+    "pyserial",
+    "pyyaml",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.scripts]
+gnsdo-sim = "gnsdo_simulator.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
