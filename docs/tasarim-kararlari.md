@@ -303,7 +303,7 @@ Modeli kurarken fark edilen, mevcut kodda GERCEK CIHAZLA CELISEN noktalar:
 
 | Faz | Icerik | Durum |
 |---|---|---|
-| 1 | Holdover hata birikimi (bu belge) | devam ediyor |
+| 1 | Holdover hata birikimi (bu belge) | **TAMAMLANDI** |
 | 2 | Olcumlere deterministik gurultu (sicaklik, voltaj, TINT jitter) | planli |
 | 3 | Isinma rampasi + SERVo:STATe durum makinesi (0->2->6, ve 5) | planli |
 | 4 | Bildiri | planli |
