@@ -34,6 +34,14 @@ from gnsdo_simulator.models.holdover import (
     holdover_tint_seconds,
 )
 from gnsdo_simulator.models.noise import smooth_noise
+from gnsdo_simulator.models.warmup import (
+    AMBIENT_TEMPERATURE_C,
+    GNSS_LOCK_SECONDS,
+    SERVO_STATE_LOCKED,
+    THERMAL_TIME_CONSTANT_SECONDS,
+    servo_state,
+    thermal_ramp,
+)
 
 
 @dataclass
@@ -279,9 +287,21 @@ class DeviceState:
     noise_enabled: bool = True
     noise_scale: float = 1.0
 
+    # --- ISINMA (bkz. models/warmup.py) ---
+    # Bu parametreler yalnizca warmup_started_at DOLU iken devreye
+    # girer. Yani "normal" senaryo zaten isinmis bir cihazi temsil
+    # etmeye devam eder; soguk baslangic "warming-up" senaryosunun isi.
+    ambient_temperature_c: float = AMBIENT_TEMPERATURE_C
+    thermal_time_constant_s: float = THERMAL_TIME_CONSTANT_SECONDS
 
-# Gercek cihazin kilavuzuna gore: "less than 2 minutes warmup time to
-# atomic lock" -- bu yuzden 2 dakika (120 saniye) kullaniyoruz.
+
+# Kilavuz §1.1: "less than 2 minutes warmup time to atomic lock".
+#
+# ARTIK KILIT KARARI ICIN KULLANILMIYOR. Bu sure ATOMIK kilide aittir;
+# SYNC:LOCKED? ise GNSS'e kilitlenmeyi bildirir (§3.6.11) ve o ~20
+# dakika surer. Kilit karari models/warmup.py'deki durum makinesinden
+# geliyor; bu sabit geriye donuk uyumluluk icin duruyor ve durum
+# makinesindeki ATOMIC_LOCK_SECONDS ile ayni degeri tasir.
 WARMUP_DURATION_SECONDS = 120
 
 # Gercek GPS alicilarinin konum hesaplayabilmesi (yani "fix" sahibi
@@ -330,8 +350,17 @@ def is_locked(state: DeviceState) -> bool:
         return False
 
     if state.warmup_started_at is not None:
-        elapsed = (datetime.now() - state.warmup_started_at).total_seconds()
-        return elapsed >= WARMUP_DURATION_SECONDS
+        # DEGISTI: eskiden 120 saniye sonra kilitli sayiyorduk. O sure
+        # kilavuz §1.1'deki ATOMIK kilit suresi ("less than 2 minutes
+        # warmup time to atomic lock") -- ama SYNC:LOCKED? atomik kilidi
+        # degil, kilavuz §3.6.11'e gore "Rubidyum osilatoru kontrol eden
+        # PLL"in, yani GNSS'e kilitlenmenin durumunu bildirir. O ise
+        # §2.5'e gore tipik olarak 20 dakika surer.
+        #
+        # Artik dogrudan servo durum makinesine soruyoruz: sadece
+        # durum 6 ("Locked, and GNSS active") gercek kilittir.
+        # Arada gecilen durum 2 ("kilitleniyor") kilit DEGILDIR.
+        return current_servo_state(state) == SERVO_STATE_LOCKED
 
     return state.sync_locked
 
@@ -502,7 +531,8 @@ def measured_temperature(state: DeviceState, now: Optional[datetime] = None) -> 
     ondalik kullaniyor ("54.10") -- ayni cihazda farkli biçimler,
     ama gercek davranis bu.
     """
-    return round(apply_noise(state, state.temperature_celsius, "temperature", now), 4)
+    taban = current_pcb_temperature_base(state, now)
+    return round(apply_noise(state, taban, "temperature", now), 4)
 
 
 def measured_csac_temperature(state: DeviceState, now: Optional[datetime] = None) -> float:
@@ -527,7 +557,7 @@ def measured_csac_temperature(state: DeviceState, now: Optional[datetime] = None
     Uzerine kucuk bir bagimsiz jitter ekliyoruz -- ayri sensorler
     oldugu icin fark tipatip sabit degil (1.261 ile 1.388 arasi).
     """
-    pcb = apply_noise(state, state.temperature_celsius, "temperature", now)
+    pcb = apply_noise(state, current_pcb_temperature_base(state, now), "temperature", now)
     csac = pcb + CSAC_PCB_TEMP_OFFSET
     return round(apply_noise(state, csac, "csac_temperature", now), 2)
 
@@ -549,7 +579,7 @@ def measured_rubidium_temperature(state: DeviceState, now: Optional[datetime] = 
     dondurdugu sey degismistir.
     """
     return round(
-        apply_noise(state, state.temperature_celsius, "current", now)
+        apply_noise(state, current_pcb_temperature_base(state, now), "current", now)
         + CSAC_PCB_TEMP_OFFSET,
         4,
     )
@@ -612,3 +642,68 @@ def measured_ef_control_relative(state: DeviceState, now: Optional[datetime] = N
     celisen degerler uretebilirlerdi.
     """
     return measured_ef_control_absolute(state, now) / EFC_ABSOLUTE_PER_PERCENT
+
+
+def warmup_elapsed_seconds(
+    state: DeviceState, now: Optional[datetime] = None
+) -> Optional[float]:
+    """
+    Isinmanin basindan beri gecen sure; cihaz zaten isinmis kabul
+    ediliyorsa None.
+
+    NICIN None: "normal" senaryo, coktan isinmis ve kilitlenmis bir
+    cihazi temsil eder -- her simulator acilisinda 20 dakika beklemek
+    anlamsiz olurdu. Soguk baslangic ayri bir senaryodur
+    ("warming-up"), ve orada warmup_started_at dolu gelir.
+    """
+    if state.warmup_started_at is None:
+        return None
+    now = now or datetime.now()
+    return (now - state.warmup_started_at).total_seconds()
+
+
+def current_servo_state(state: DeviceState, now: Optional[datetime] = None) -> int:
+    """
+    SERVo:STATe? degeri (kilavuz §3.10.3).
+
+    TEK KAYNAK: hem SERVo:STATe? hem SYNC:LOCKED? hem de SYST:STAT?
+    buradan okur, boylece uc cikti birbiriyle celismez.
+    """
+    now = now or datetime.now()
+
+    holdover_elapsed = 0.0
+    if state.holdover and state.holdover_started_at is not None:
+        holdover_elapsed = (now - state.holdover_started_at).total_seconds()
+
+    elapsed = warmup_elapsed_seconds(state, now)
+    if elapsed is None:
+        # Coktan isinmis: durum makinesine "sure fazlasiyla doldu" de
+        elapsed = GNSS_LOCK_SECONDS * 10
+
+    return servo_state(
+        elapsed_seconds=elapsed,
+        holdover=state.holdover,
+        holdover_elapsed_seconds=holdover_elapsed,
+        gnss_locked=state.gnss_satellites_tracking >= MIN_SATELLITES_FOR_LOCK,
+    )
+
+
+def current_pcb_temperature_base(
+    state: DeviceState, now: Optional[datetime] = None
+) -> float:
+    """
+    PCB sicakliginin GURULTUSUZ taban degeri.
+
+    Isinma sirasinda ustel rampa uzerinde ilerler; isinma bittiginde
+    (ya da hic baslamadiysa) kararli calisma sicakligidir.
+    """
+    elapsed = warmup_elapsed_seconds(state, now)
+    if elapsed is None:
+        return state.temperature_celsius
+
+    return thermal_ramp(
+        elapsed_seconds=elapsed,
+        final_temperature=state.temperature_celsius,
+        start_temperature=state.ambient_temperature_c,
+        time_constant=state.thermal_time_constant_s,
+    )

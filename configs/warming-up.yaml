@@ -32,11 +32,34 @@ sync:
 warmup:
   active: true
 
+  # --- ISIL RAMPA (bkz. models/warmup.py) ---
+  #     T(t) = T_son - (T_son - T_bas) * e^(-t/tau)
+  #
+  # ambient_temperature (T_bas): cihazin acilis anindaki sicakligi.
+  #   VARSAYIM: kilavuz ortam sicakligi vermiyor, gercek cihaz
+  #   kayitlari da acilis anini icermiyor. Ic mekan kullanimi icin
+  #   makul bir deger (kilavuz §1.3.4 cihazin ic mekan icin
+  #   tasarlandigini soyler).
+  #
+  # time_constant (tau): isil zaman sabiti, saniye. Aradaki farkin
+  #   %63'unun kapandigi sure. 600 s ile 30 dakikada farkin %95'i
+  #   kapanir -- kilavuzun 20 dakikalik kilit suresiyle (§2.5) uyumlu.
+  #
+  # DOGRULAMA: bu degerlerle model 15. dakikada 46.60 C uretiyor;
+  # gercek cihaz kayitlarindaki en dusuk PCB okumasi 46.5688 idi.
+  ambient_temperature: 25.0
+  time_constant: 600.0
+
 diag:
   lifetime_hours: 0
 
 measure:
-  temperature: 25.0
+  # DIKKAT: bu deger artik "su an gosterilecek sicaklik" DEGIL,
+  # isinma bitince ulasilacak KARARLI sicakliktir. Rampa
+  # warmup.ambient_temperature'dan baslayip buraya yaklasir.
+  # (Eskiden model statik oldugu icin burasi 25.0 idi -- yani cihaz
+  # sonsuza kadar soguk kaliyordu.)
+  temperature: 52.8
   voltage: 1.66
   current: 0.42
   power_supply: 11.7

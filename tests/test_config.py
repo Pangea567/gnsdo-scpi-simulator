@@ -77,19 +77,84 @@ def test_load_warming_up_scenario():
     assert state.gnss_satellites_tracking == 8
 
 
-def test_warming_up_locks_after_warmup_duration():
+def test_warming_up_progresses_through_servo_states():
     """
-    Gercek cihazin kilavuzuna gore ("less than 2 minutes warmup") --
-    WARMUP_DURATION_SECONDS kadar sure gectikten SONRA, is_locked()
-    OTOMATIK olarak True donmeli. Burada gercekten 120 saniye
-    beklemek yerine, warmup_started_at'i GECMISE cekerek (sanki
-    2 dakika once baslamis gibi) ayni sonucu test ediyoruz.
+    Isinma TEK ADIMDA degil, KADEMELI olur.
+
+    DEGISTI: Bu test eskiden "120 saniye sonra kilitli" diyordu. O sure
+    kilavuz §1.1'deki ATOMIK kilit suresidir ("less than 2 minutes
+    warmup time to atomic lock") -- ama SYNC:LOCKED?, §3.6.11'e gore
+    ATOMIK kilidi degil, Rubidyum osilatoru kontrol eden PLL'in yani
+    GNSS'e KILITLENMENIN durumunu bildirir. O ise §2.5'e gore tipik
+    olarak 20 dakika surer.
+
+    Yani eski test yanlis bir esik kullaniyordu: cihaz 2 dakikada
+    "atomik kilit" saglar ama heniz GNSS'e kilitli DEGILDIR -- arada
+    "kilitleniyor" (durum 2) diye gercek bir asama vardir.
     """
     from datetime import datetime, timedelta
 
+    from gnsdo_simulator.device_state import current_servo_state
+    from gnsdo_simulator.models.warmup import (
+        ATOMIC_LOCK_SECONDS,
+        GNSS_LOCK_SECONDS,
+        SERVO_STATE_LOCKED,
+        SERVO_STATE_LOCKING,
+        SERVO_STATE_WARMUP,
+    )
+
     state = load_scenario("warming-up", configs_dir=CONFIGS_DIR)
-    state.warmup_started_at = datetime.now() - timedelta(seconds=WARMUP_DURATION_SECONDS + 1)
+
+    def zamani_ayarla(saniye):
+        state.warmup_started_at = datetime.now() - timedelta(seconds=saniye)
+
+    # 1) Ilk 2 dakika: isinma, kilit yok
+    zamani_ayarla(10)
+    assert current_servo_state(state) == SERVO_STATE_WARMUP
+    assert is_locked(state) is False
+
+    # 2) Atomik kilit sonrasi: kilitleniyor, ama HENIZ kilitli degil
+    zamani_ayarla(ATOMIC_LOCK_SECONDS + 1)
+    assert current_servo_state(state) == SERVO_STATE_LOCKING
+    assert is_locked(state) is False
+
+    zamani_ayarla(GNSS_LOCK_SECONDS - 10)
+    assert current_servo_state(state) == SERVO_STATE_LOCKING
+    assert is_locked(state) is False
+
+    # 3) ~20 dakika sonra: gercek GNSS kilidi
+    zamani_ayarla(GNSS_LOCK_SECONDS + 1)
+    assert current_servo_state(state) == SERVO_STATE_LOCKED
     assert is_locked(state) is True
+
+
+def test_warming_up_temperature_climbs():
+    """
+    Isinma sirasinda sicaklik ORTAM SICAKLIGINDAN baslayip kararli
+    calisma sicakligina tirmanmali -- ve bu tirmanis ustel olmali.
+    """
+    from datetime import datetime, timedelta
+
+    from gnsdo_simulator.device_state import measured_temperature
+
+    state = load_scenario("warming-up", configs_dir=CONFIGS_DIR)
+    state.noise_scale = 0.0
+
+    okumalar = []
+    for dakika in [0, 5, 10, 20, 40]:
+        state.warmup_started_at = datetime.now() - timedelta(minutes=dakika)
+        okumalar.append(measured_temperature(state))
+
+    # Baslangicta ortam sicakliginda
+    assert okumalar[0] == pytest.approx(state.ambient_temperature_c, abs=0.1)
+    # Monoton artmali
+    assert okumalar == sorted(okumalar)
+    # Kararli degeri ASMAMALI
+    assert okumalar[-1] < state.temperature_celsius
+    # USTEL: ilk 5 dakikadaki artis, son 20 dakikadakinden BUYUK olmali
+    ilk_artis = okumalar[1] - okumalar[0]
+    son_artis = okumalar[4] - okumalar[3]
+    assert ilk_artis > son_artis
 
 
 def test_load_not_locked_scenario():

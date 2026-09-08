@@ -182,6 +182,12 @@ def apply_config_to_state(state: DeviceState, config: dict) -> None:
     warmup = config.get("warmup", {})
     if warmup.get("active"):
         state.warmup_started_at = datetime.now()
+    # Isil rampa parametreleri (bkz. models/warmup.py). Bunlar yalnizca
+    # warmup aktifken devreye girer.
+    if "ambient_temperature" in warmup:
+        state.ambient_temperature_c = float(warmup["ambient_temperature"])
+    if "time_constant" in warmup:
+        state.thermal_time_constant_s = float(warmup["time_constant"])
 
 
 def load_scenario(scenario_name: str, configs_dir: str | Path = "configs") -> DeviceState:
