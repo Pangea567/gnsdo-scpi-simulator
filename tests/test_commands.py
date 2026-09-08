@@ -921,3 +921,76 @@ def test_system_id_queries():
     parser = make_test_parser()
     assert parser.dispatch("SYST:ID:SN?") == "122301668"
     assert parser.dispatch("SYST:ID:HWREV?") == "1.01.00"
+
+
+def test_filter_tint_does_not_accumulate_in_holdover():
+    """
+    IKI FARKLI TINT OLCUMU var ve karistirilmamali:
+
+        SYNC:TINT:CSAC?    Rubidyum 1PPS  <-> GNSS 1PPS
+        SYNC:TINT:FILTer?  Filtre OCXO 1PPS <-> Rubidyum 1PPS
+
+    GNSS kaybolunca BIRINCISI birikir (referans gitti), IKINCISI
+    birikmez -- cunku filtre dongusu GNSS'e degil RUBIDYUM'a
+    kilitlidir ve o calismaya devam eder (kilavuz §2.5).
+
+    Bu ayrim modelin dogru kurulup kurulmadiginin iyi bir testidir:
+    ikisini ayni sanip tek bir degere baglasaydik, filtre TINT'i de
+    saatlerce birikir ve gercek cihazda olmayan bir davranis
+    uretirdik.
+    """
+    from datetime import timedelta
+
+    parser, state = make_test_parser_with_state()
+    parser.dispatch("SYNC:HOLD:INIT")
+    state.holdover_started_at = datetime.now() - timedelta(hours=5)
+
+    ana = abs(float(parser.dispatch("SYNC:TINT:CSAC?")))
+    filtre = abs(float(parser.dispatch("SYNC:TINT:FILTER?")))
+
+    assert ana > 200e-9  # 5 saatte birikti
+    assert filtre < 1e-9  # birikmedi, sadece jitter
+
+
+def test_sync_fee_query_matches_summary():
+    """
+    SYNC:FEE? ile SYNC? ozetindeki FREQ ERROR ESTIMATE ayni ani
+    ayni sekilde raporlamali -- ikisi de ayni kaynaktan okuyor.
+    """
+    import re
+
+    parser = make_test_parser()
+
+    tekil = parser.dispatch("SYNC:FEE?")
+    ozet = parser.dispatch("SYNC?")
+    assert tekil is not None and ozet is not None
+
+    ozetteki = re.search(r"FREQ ERROR ESTIMATE : (\S+)", ozet).group(1)
+    assert tekil == ozetteki
+
+
+def test_diag_efc_queries_match_summary():
+    """DIAG:ROSC:EFC:* sorgulari DIAG? ozetiyle tutarli olmali."""
+    parser, state = make_test_parser_with_state()
+    state.noise_scale = 0.0
+
+    ozet = parser.dispatch("DIAG?")
+    assert ozet is not None
+    assert f"EFControl Relative: {parser.dispatch('DIAG:ROSC:EFC:REL?')}" in ozet
+    assert f"EFControl Absolute: {parser.dispatch('DIAG:ROSC:EFC:ABS?')}" in ozet
+
+
+def test_new_sync_queries_answer():
+    """Yeni SYNC sorgularinin hepsi cevap vermeli (None donmemeli)."""
+    parser = make_test_parser()
+    for komut in [
+        "SYNC:HOLD:STATE?",
+        "SYNC:SOUR:STATE?",
+        "SYNC:TINT:CSAC?",
+        "SYNC:TINT:FILTER?",
+        "SYNC:TINT:THRESHOLD?",
+        "SYNC:OUT:FILTER?",
+        "SYNC:OUT:1PPS:RESET?",
+        "SYNC:OUT:1PPS:DOMAIN?",
+    ]:
+        assert parser.dispatch(komut) is not None, komut

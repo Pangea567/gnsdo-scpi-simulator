@@ -66,8 +66,64 @@ def make_diag_lifetime_handler(state: DeviceState):
 def register_diagnostic_commands(parser: SCPIParser, state: DeviceState) -> None:
     parser.register("DIAG?", make_diag_handler(state))
     parser.register("DIAG:LIFE:COUN?", make_diag_lifetime_handler(state))
+    register_diag_efc_queries(parser, state)
 
     # --- KISA/UZUN FORM ALIAS'LARI (gercek kilavuzdan) ---
     parser.register_alias("DIAGNOSTIC?", "DIAG?")
     parser.register_alias("DIAGNOSTIC:LIFETIME:COUNT?", "DIAG:LIFE:COUN?")
     parser.register_alias("DIAG:LIF:COUN?", "DIAG:LIFE:COUN?")
+
+def make_diag_efc_relative_handler(state: DeviceState):
+    """
+    DIAGnostic:ROSCillator:EFControl:RELative? (§3.7.1)
+
+    Elektronik frekans kontrolunun (EFC) yuzde cinsinden degeri,
+    -100% ile +100% arasinda. DIAG? ozetinde de ayni deger var;
+    bu, tek basina sormanin yolu.
+    """
+
+    def handler() -> str:
+        return f"{measured_ef_control_relative(state):.6f}%"
+
+    return handler
+
+
+def make_diag_efc_absolute_handler(state: DeviceState):
+    """
+    DIAGnostic:ROSCillator:EFControl:ABSolute? (§3.7.2)
+
+    Ayni buyuklugun parts-per-trillion (1E-12) cinsinden ifadesi.
+    Relative bundan turetilir (Absolute = Relative x 200) -- bkz.
+    device_state.EFC_ABSOLUTE_PER_PERCENT.
+    """
+
+    def handler() -> str:
+        return f"{measured_ef_control_absolute(state):.6f}"
+
+    return handler
+
+
+def register_diag_efc_queries(parser, state: DeviceState) -> None:
+    """
+    DIAG alt sisteminin EFC sorgularini kaydeder.
+
+    :ABSolute:CSAC? ve :ABSolute:FILTer? (kilavuz §3.7.3, §3.7.4)
+    secili servo dongusune gore ayrisir. Simulatorde tek bir Rubidyum
+    dongusu modelledigimiz icin CSAC varyantini ana degere
+    baglıyoruz; FILTer varyanti ise kilavuz §3.7.4'e gore VOLT
+    cinsindendir, parts-per-trillion degil -- o yuzden ayri bir alan
+    kullaniyor.
+    """
+    parser.register("DIAG:ROSC:EFC:REL?", make_diag_efc_relative_handler(state))
+    parser.register("DIAG:ROSC:EFC:ABS?", make_diag_efc_absolute_handler(state))
+    parser.register("DIAG:ROSC:EFC:ABS:CSAC?", make_diag_efc_absolute_handler(state))
+
+    parser.register_alias(
+        "DIAGNOSTIC:ROSCILLATOR:EFCONTROL:RELATIVE?", "DIAG:ROSC:EFC:REL?"
+    )
+    parser.register_alias(
+        "DIAGNOSTIC:ROSCILLATOR:EFCONTROL:ABSOLUTE?", "DIAG:ROSC:EFC:ABS?"
+    )
+    parser.register_alias(
+        "DIAGNOSTIC:ROSCILLATOR:EFCONTROL:ABSOLUTE:CSAC?", "DIAG:ROSC:EFC:ABS:CSAC?"
+    )

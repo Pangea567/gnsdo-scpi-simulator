@@ -27,6 +27,7 @@ from gnsdo_simulator.device_state import (
     MIN_SATELLITES_FOR_LOCK,
     DeviceState,
     current_tint_seconds,
+    filter_tint_seconds,
     is_filter_loop_locked,
     measured_freq_error_estimate,
     short_term_drift_seconds,
@@ -297,6 +298,15 @@ def register_sync_commands(parser: SCPIParser, state: DeviceState) -> None:
     parser.register("SYNC:TINT?", make_sync_tint_handler(state))
     parser.register("SYNC:HEALTH?", make_sync_health_handler(state))
     parser.register("SYNC:HOLD:DUR?", make_sync_hold_dur_handler(state))
+    parser.register("SYNC:HOLD:STATE?", make_sync_hold_state_handler(state))
+    parser.register("SYNC:FEE?", make_sync_fee_handler(state))
+    parser.register("SYNC:SOUR:STATE?", make_sync_source_state_handler(state))
+    parser.register("SYNC:TINT:CSAC?", make_sync_tint_csac_handler(state))
+    parser.register("SYNC:TINT:FILTER?", make_sync_tint_filter_handler(state))
+    parser.register("SYNC:TINT:THRESHOLD?", make_sync_tint_threshold_handler(state))
+    parser.register("SYNC:OUT:FILTER?", make_sync_out_filter_handler(state))
+    parser.register("SYNC:OUT:1PPS:RESET?", make_sync_out_1pps_reset_handler(state))
+    parser.register("SYNC:OUT:1PPS:DOMAIN?", make_sync_out_1pps_domain_handler(state))
 
     parser.register_setter("SYNC:HOLD:INIT", make_sync_hold_init_setter(state))
     parser.register_setter("SYNC:HOLD:REC:INIT", make_sync_hold_rec_init_setter(state))
@@ -313,6 +323,22 @@ def register_sync_commands(parser: SCPIParser, state: DeviceState) -> None:
     parser.register_alias("SYNCHRONIZATION:SOURCE:MODE", "SYNC:SOUR:MODE")
     parser.register_alias("SYNCHRONIZATION:TINTERVAL?", "SYNC:TINT?")
     parser.register_alias("SYNCHRONIZATION?", "SYNC?")
+    parser.register_alias("SYNCHRONIZATION:HOLDOVER:STATE?", "SYNC:HOLD:STATE?")
+    parser.register_alias("SYNCHRONIZATION:FEESTIMATE?", "SYNC:FEE?")
+    parser.register_alias("SYNC:FEEST?", "SYNC:FEE?")
+    parser.register_alias("SYNCHRONIZATION:SOURCE:STATE?", "SYNC:SOUR:STATE?")
+    parser.register_alias("SYNCHRONIZATION:TINTERVAL:CSAC?", "SYNC:TINT:CSAC?")
+    parser.register_alias("SYNCHRONIZATION:TINTERVAL:FILTER?", "SYNC:TINT:FILTER?")
+    parser.register_alias(
+        "SYNCHRONIZATION:TINTERVAL:THRESHOLD?", "SYNC:TINT:THRESHOLD?"
+    )
+    parser.register_alias("SYNCHRONIZATION:OUTPUT:FILTER?", "SYNC:OUT:FILTER?")
+    parser.register_alias(
+        "SYNCHRONIZATION:OUTPUT:1PPS:RESET?", "SYNC:OUT:1PPS:RESET?"
+    )
+    parser.register_alias(
+        "SYNCHRONIZATION:OUTPUT:1PPS:DOMAIN?", "SYNC:OUT:1PPS:DOMAIN?"
+    )
 
     # Bunlarda canonical'imiz zaten UZUN yazim (gorev PDF'i oyle
     # istemisti: "LOCKED", "HEALTH"), o yuzden kilavuzun KISA formunu
@@ -321,3 +347,127 @@ def register_sync_commands(parser: SCPIParser, state: DeviceState) -> None:
     parser.register_alias("SYNCHRONIZATION:LOCKED?", "SYNC:LOCKED?")
     parser.register_alias("SYNC:HEA?", "SYNC:HEALTH?")
     parser.register_alias("SYNCHRONIZATION:HEALTH?", "SYNC:HEALTH?")
+
+def make_sync_fee_handler(state: DeviceState):
+    """
+    SYNChronization:FEEstimate? -- frekans hata tahmini (§3.6.10).
+
+    Kilavuz: "similar to the Allan Variance using a 1000s measurement
+    interval". Dolayisiyla SABIT DEGILDIR -- gercek cihazin uc ardisik
+    sorgusu 1.31E-11, 2.49E-11 ve 1.59E-11 vermisti.
+
+    Bu deger ayni zamanda holdover hata birikiminin HIZINI belirler
+    (models/holdover.py'deki y0). Yani kullanici bunu okuyup, GPS
+    kaybolursa hatanin ne hizla buyuyecegini kendisi hesaplayabilir.
+    """
+
+    def handler() -> str:
+        return f"{measured_freq_error_estimate(state):.2E}"
+
+    return handler
+
+
+def make_sync_hold_state_handler(state: DeviceState):
+    """
+    SYNChronization:HOLDover:STATe? -- holdover'da miyiz? (1/0)
+
+    SYNC:HOLD:DUR? de ayni bilgiyi ikinci alaninda veriyor; bu, onu
+    tek basina sormanin yolu.
+    """
+
+    def handler() -> str:
+        return "1" if state.holdover else "0"
+
+    return handler
+
+
+def make_sync_source_state_handler(state: DeviceState):
+    """SYNChronization:SOURce:STATE? -- aktif 1PPS kaynagi (§3.6.5)."""
+
+    def handler() -> str:
+        return state.sync_source_state
+
+    return handler
+
+
+def make_sync_tint_csac_handler(state: DeviceState):
+    """
+    SYNChronization:TINTerval:CSAC? -- Rubidyum 1PPS ile GNSS/harici
+    1PPS arasindaki zaman farki (§3.6.7).
+
+    Bu, bizim ana TINT modelimizin ta kendisi: holdover'da biriken
+    hatayi gosteren deger budur. Kilavuz §3.6.2 bu komutu ozellikle
+    "GPS'e kilitli degilken Rubidyum osilatorun kaymasini gormek"
+    icin isaret ediyor.
+    """
+
+    def handler() -> str:
+        return f"{_tint_seconds(state):.3E}"
+
+    return handler
+
+
+def make_sync_tint_filter_handler(state: DeviceState):
+    """
+    SYNChronization:TINTerval:FILTer? -- FILTRE osilator 1PPS'i ile
+    RUBIDYUM 1PPS'i arasindaki fark (§3.6.8).
+
+    DIKKAT -- BU FARKLI BIR OLCUM: ana TINT, Rubidyum'u GNSS'e
+    kiyaslar; bu ise filtre OCXO'sunu Rubidyum'a kiyaslar. Ikisi ayri
+    dongulerdir.
+
+    Bu yuzden HOLDOVER'DA BIRIKMEZ: GNSS kaybolsa da filtre dongusu
+    Rubidyum'a kilitli kalir (kilavuz §2.5). Genligi de daha kucuktur
+    -- §1.1'e gore filtre osilatorunun faz dogrulugu 0.3 ns
+    mertebesinde, Rubidyum'un GNSS'e gore 0.2 ns'i ile ayni mertebede
+    ama ayri bir olcum.
+    """
+
+    def handler() -> str:
+        return f"{filter_tint_seconds(state):.3E}"
+
+    return handler
+
+
+def make_sync_tint_threshold_handler(state: DeviceState):
+    """
+    SYNChronization:TINTerval:THReshold? -- jam-sync esigi, ns (§3.6.19).
+
+    Faz farki bu esigi asarsa cihaz "jam-sync" yapip fazi zorla
+    hizalar. Gecerli aralik [50, 2000], varsayilan 220.
+    """
+
+    def handler() -> str:
+        return str(state.tint_threshold_ns)
+
+    return handler
+
+
+def make_sync_out_filter_handler(state: DeviceState):
+    """SYNChronization:OUTput:FILTer? -- faz gurultu filtresi (§3.6.17)."""
+
+    def handler() -> str:
+        return "ON" if state.phase_noise_filter_enabled else "OFF"
+
+    return handler
+
+
+def make_sync_out_1pps_reset_handler(state: DeviceState):
+    """SYNChronization:OUTput:1PPs:RESET? -- reset'te 1PPS (§3.6.13)."""
+
+    def handler() -> str:
+        return "ON" if state.pps_reset_enabled else "OFF"
+
+    return handler
+
+
+def make_sync_out_1pps_domain_handler(state: DeviceState):
+    """
+    SYNChronization:OUTput:1PPS:DOMAIN? -- 1PPS cikisi hangi
+    osilatordan aliniyor: CSAC (Rubidyum) mu, FILTer (OCXO) mu (§3.6.15).
+    """
+
+    def handler() -> str:
+        return state.pps_domain
+
+    return handler

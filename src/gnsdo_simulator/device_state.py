@@ -567,6 +567,10 @@ NOISE_PROFILES = {
     # Kilavuzdaki "0.2ns average" bu bandin ORTALAMASIDIR, genligi
     # degil -- ilk modelde bu karistirilmisti.
     "tint": (12e-9, 5.0),
+    # Filtre osilator dongusunun TINT'i AYRI bir olcumdur: OCXO'yu
+    # Rubidyum'a kiyaslar (ana TINT ise Rubidyum'u GNSS'e). Kilavuz
+    # §1.1: filtre osilatorunun faz dogrulugu 0.3 ns mertebesinde.
+    "tint_filter": (0.3e-9, 4.0),
 }
 
 
@@ -868,3 +872,30 @@ def measured_gload(state: DeviceState, now: Optional[datetime] = None) -> tuple:
         apply_noise(state, state.gyro_gload_y, "gload_y", now),
         apply_noise(state, state.gyro_gload_z, "gload_z", now),
     )
+
+
+def filter_tint_seconds(state: DeviceState, now: Optional[datetime] = None) -> float:
+    """
+    SYNC:TINT:FILTer? -- filtre osilator 1PPS'i ile Rubidyum 1PPS'i
+    arasindaki fark (kilavuz §3.6.8).
+
+    ANA TINT'TEN FARKLI BIR OLCUMDUR:
+        ana TINT      : Rubidyum 1PPS  <-> GNSS 1PPS
+        filtre TINT   : Filtre OCXO 1PPS <-> Rubidyum 1PPS
+
+    Bu ayrim onemli: GNSS kaybolsa bile filtre dongusu Rubidyum'a
+    kilitli kalir (kilavuz §2.5), dolayisiyla bu deger HOLDOVER'DA
+    BIRIKMEZ -- sadece jitter yapar. Ana TINT ise birikir.
+
+    Isinma sirasinda ise henuz kilitlenmemistir; kilavuz §2.3 bu
+    donemde iki osilator arasinda "several 100 nanoseconds" faz farki
+    olabilecegini soyluyor.
+    """
+    now = now or datetime.now()
+
+    if not is_filter_loop_locked(state, now):
+        # Kilitlenmeden once faz farki cok daha buyuk olabilir
+        # (kilavuz §2.3: "up to several 100 nanoseconds during warmup")
+        return apply_noise(state, 0.0, "tint_filter", now) * 500.0
+
+    return apply_noise(state, 0.0, "tint_filter", now)
