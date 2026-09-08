@@ -10,6 +10,8 @@ pytest calistirmak icin (repo kok dizininden):
 import sys
 import os
 import time
+
+import pytest
 from datetime import datetime
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
@@ -347,7 +349,10 @@ def test_sync_source_mode_setter():
 
 
 def test_diag():
-    parser = make_test_parser()
+    """DIAG? taban degerleri (gurultu kapali)."""
+    parser, state = make_test_parser_with_state()
+    state.noise_scale = 0.0
+
     response = parser.dispatch("DIAG?")
     assert response is not None
     # ONEMLI: gercek cihaz ciktisinda "Fault:" satiri YOK -- artik
@@ -356,6 +361,37 @@ def test_diag():
     assert "EFControl Relative: -0.410000%" in response
     assert "EFControl Absolute: -82.000000" in response
     assert "Lifetime : +871" in response
+
+
+def test_diag_efc_absolute_derived_from_relative():
+    """
+    GERCEK CIHAZDA KESFEDILEN BAGINTI: EFControl Absolute her zaman
+    Relative'in 200 katidir. Dort ardisik kayitta da tutuyor:
+
+        -0.410000%  ->  -82        -0.440000%  ->  -88
+        -0.640000%  ->  -128       -0.105000%  ->  -21
+
+    Ikisi ayni fiziksel buyuklugun farkli birimlerdeki ifadesi
+    (Relative yuzde, Absolute parts-per-trillion). Bagimsiz alanlar
+    olarak tutulsalardi birbiriyle CELISEN degerler uretebilirlerdi.
+
+    Bu testi zamanla degisen degerlerle yapiyoruz -- bagintinin
+    sadece taban degerde degil, HER AN gecerli oldugunu dogrulamak icin.
+    """
+    import re
+    from datetime import timedelta
+
+    parser, state = make_test_parser_with_state()
+
+    for saniye in range(0, 120, 13):
+        state.process_started_at = datetime.now() - timedelta(seconds=saniye)
+        response = parser.dispatch("DIAG?")
+        assert response is not None
+
+        relative = float(re.search(r"Relative: (-?[\d.]+)%", response).group(1))
+        absolute = float(re.search(r"Absolute: (-?[\d.]+)", response).group(1))
+
+        assert absolute == pytest.approx(relative * 200.0, rel=1e-6)
 
 
 def test_measure():

@@ -19,7 +19,12 @@ GUNCELLEME -- LIFETIME ARTIK GERCEKTEN ARTIYOR:
   cihazda oldugu gibi.
 """
 
-from gnsdo_simulator.device_state import DeviceState, elapsed_hours_since_start
+from gnsdo_simulator.device_state import (
+    DeviceState,
+    elapsed_hours_since_start,
+    measured_ef_control_absolute,
+    measured_ef_control_relative,
+)
 from gnsdo_simulator.scpi_parser import SCPIParser
 
 
@@ -35,8 +40,8 @@ def _current_lifetime_hours(state: DeviceState) -> int:
 def make_diag_handler(state: DeviceState):
     def handler() -> str:
         lines = [
-            f"EFControl Relative: {state.diag_ef_control_relative_percent:.6f}%",
-            f"EFControl Absolute: {state.diag_ef_control_absolute:.6f}",
+            f"EFControl Relative: {measured_ef_control_relative(state):.6f}%",
+            f"EFControl Absolute: {measured_ef_control_absolute(state):.6f}",
             f"Lifetime : +{_current_lifetime_hours(state)}",
         ]
         return "\r\n".join(lines)

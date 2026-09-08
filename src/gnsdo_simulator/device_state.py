@@ -445,6 +445,11 @@ NOISE_PROFILES = {
     "voltage": (0.007, 8.0),
     "current": (0.005, 6.0),
     "power_supply": (0.02, 12.0),
+    # EFC (Electronic Frequency Control) surekli oynar -- servo dongu
+    # osilatoru ayarladikca degisir. Genlik PPT cinsinden: gercek
+    # cihaz kayitlarinda dort ardisik DIAG? sorgusu -82, -88, -128,
+    # -21 verdi, yani ~50 ppt'lik bir bant.
+    "ef_control_absolute": (50.0, 45.0),
     # TINT jitter'i. Genlik GERCEK CIHAZ KAYITLARINDAN: kilitliyken
     # okumalar +/-12 ns bandinda, sifirin iki yaninda geziniyor
     # (1.133E-08, -7.873E-09, -1.179E-08, 9.063E-09, 2.672E-09).
@@ -560,3 +565,50 @@ def measured_power_supply(state: DeviceState, now: Optional[datetime] = None) ->
     return round(
         apply_noise(state, state.power_supply_voltage, "power_supply", now), 2
     )
+
+
+# EFC Absolute ile Relative arasindaki donusum carpani.
+#
+# GERCEK cihaz kayitlarindaki DORT ornegin TAMAMINDA tutuyor:
+#     -0.410000%  ->  -82        -0.440000%  ->  -88
+#     -0.640000%  ->  -128       -0.105000%  ->  -21
+#
+# Yani Absolute = Relative_yuzde * 200. Kilavuz §3.7.1/§3.7.2 ile de
+# tutarli: Relative -100%..+100% araliginda, Absolute ise
+# parts-per-trillion cinsinden -- tam olcek +/-20000 ppt demek.
+#
+# Bu ikisini BAGIMSIZ sabitler olarak tutmak yanlisti: birbiriyle
+# celisen degerler uretebilirlerdi.
+EFC_ABSOLUTE_PER_PERCENT = 200.0
+
+
+def measured_ef_control_absolute(state: DeviceState, now: Optional[datetime] = None) -> int:
+    """
+    DIAG? -- EFControl Absolute (parts-per-trillion).
+
+    BU ASIL DEGERDIR ve TAM SAYIDIR. Gercek cihaz kayitlarinda hep
+    tam sayi cikiyor: -82, -88, -128, -21. Bunun sebebi muhtemelen
+    degerin bir DAC/sayac adimindan gelmesi -- ara deger uretemez.
+    """
+    base = state.diag_ef_control_relative_percent * EFC_ABSOLUTE_PER_PERCENT
+    return int(round(apply_noise(state, base, "ef_control_absolute", now)))
+
+
+def measured_ef_control_relative(state: DeviceState, now: Optional[datetime] = None) -> float:
+    """
+    DIAG? -- EFControl Relative (%).
+
+    ABSOLUTE'TAN TURETILIYOR -- tersi degil. Bunu gercek cihaz
+    kayitlarindaki degerlerin kendisi soyluyor:
+
+        -82 / 200 = -0.410000       -88 / 200 = -0.440000
+       -128 / 200 = -0.640000       -21 / 200 = -0.105000
+
+    Relative degerleri 6 ondalikta TAM cikiyor. Rastgele bir yuzde
+    olsaydi bu mumkun olmazdi; demek ki asil deger tam sayi olan
+    Absolute ve yuzde ondan hesaplaniyor.
+
+    Ikisini bagimsiz alanlar olarak tutmak yanlisti: birbiriyle
+    celisen degerler uretebilirlerdi.
+    """
+    return measured_ef_control_absolute(state, now) / EFC_ABSOLUTE_PER_PERCENT
