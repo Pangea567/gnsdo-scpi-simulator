@@ -33,6 +33,7 @@ from gnsdo_simulator.models.holdover import (
     RB_DRIFT_PER_DAY,
     holdover_tint_seconds,
 )
+from gnsdo_simulator.models.noise import smooth_noise
 
 
 @dataclass
@@ -254,6 +255,17 @@ class DeviceState:
     # "kilitli" sayar -- gercek cihazin davranisini taklit eder.
     warmup_started_at: Optional[datetime] = None
 
+    # --- OLCUM GURULTUSU (bkz. models/noise.py) ---
+    # Gercek bir cihazda MEAS:TEMP? her sorguda tipatip ayni sayiyi
+    # dondurmez; sensor okumasi son hanede surekli oynar. Gurultu
+    # VARSAYILAN OLARAK ACIK -- cunku gercek cihaz davranisi budur.
+    #
+    # noise_scale: tum genlikleri toptan olceklendirir. 0.0 vermek
+    #   gurultuyu tamamen kapatir (kesin deger bekleyen testler ve
+    #   gercek cihazla birebir karsilastirma icin pratik).
+    noise_enabled: bool = True
+    noise_scale: float = 1.0
+
 
 # Gercek cihazin kilavuzuna gore: "less than 2 minutes warmup time to
 # atomic lock" -- bu yuzden 2 dakika (120 saniye) kullaniyoruz.
@@ -366,14 +378,113 @@ def current_tint_seconds(state: DeviceState, now: Optional[datetime] = None) -> 
     Bu fonksiyon TEK kaynaktir: SYNC:TINT?, SYNC? ve SYNC:HEALTH?
     hepsi buradan okur, boylece uc cikti birbiriyle tutarli olur.
     """
+    now = now or datetime.now()
+
     if state.holdover and state.holdover_started_at is not None:
-        now = now or datetime.now()
         elapsed_seconds = (now - state.holdover_started_at).total_seconds()
-        return holdover_tint_seconds(
+        base = holdover_tint_seconds(
             elapsed_seconds=elapsed_seconds,
             entry_tint_seconds=state.holdover_entry_tint_seconds,
             freq_error_estimate=state.freq_error_estimate,
             drift_per_day=state.rb_drift_per_day,
         )
+    else:
+        base = state.locked_tint_seconds
 
-    return state.locked_tint_seconds
+    # Olcum jitter'i TREND'in USTUNE binir: birikim yavas ve yonlu,
+    # jitter ise hizli ve yonsuz. Gercek cihazda da zaman-aralik
+    # sayaci her okumada biraz oynar (GNSS 1PPS jitter'i).
+    return apply_noise(state, base, "tint", now)
+
+
+# --- OLCUM GURULTUSU PROFILLERI ---
+# Her alan icin (genlik, periyot_saniye).
+#
+# GENLIKLER UYDURMA DEGIL -- gercek cihaz ciktisinda GOZLENEN
+# araliklardan turetildi (ilgili alanlarin yanindaki yorumlara bakiniz):
+#     MEAS:VOLT? (TCXO ayar V) : 1.658 - 1.672  -> +/- 0.007
+#     MEAS:POW?  (besleme V)   : 11.70 - 11.74  -> +/- 0.02
+#     CSAC:TEMP?               : ~54 civarinda  -> +/- 0.25
+#     MEAS:TEMP? (PCB)         : ~42.5 civarinda -> +/- 0.3
+#
+# PERIYOTLAR FIZIKSEL: hepsi ayni hizda oynasaydi yapay gorunurdu.
+#     Sicaklik yavas gezinir (dakikalar) -- isil kutle ani degismez.
+#     Voltaj/akim hizli titresir (saniyeler) -- elektriksel gurultu.
+#     TINT jitter'i cok hizlidir -- GNSS 1PPS jitter'i.
+#
+# NOT: CSAC sicakligindaki 47 -> 54 TIRMANISI burada YOK. O, kisa
+# vadeli gurultu degil ISINMA davranisidir (cihaz 54 civarina cikip
+# orada kalir) ve FAZ 3'te isinma rampasi olarak modellenecektir.
+NOISE_PROFILES = {
+    "temperature": (0.3, 300.0),
+    "csac_temperature": (0.25, 240.0),
+    "voltage": (0.007, 8.0),
+    "current": (0.005, 6.0),
+    "power_supply": (0.02, 12.0),
+    # Kilavuz §1.1: kilitliyken faz dogrulugu "better than 0.2ns
+    # average" -- jitter genligini oradan aliyoruz.
+    "tint": (0.2e-9, 3.0),
+}
+
+
+def elapsed_seconds_since_start(state: DeviceState, now: Optional[datetime] = None) -> float:
+    """
+    Program baslangicindan beri gecen sure (saniye).
+
+    Gurultu neden DUVAR SAATINI degil bunu kullaniyor: duvar saati
+    kullansaydik ayni senaryo iki farkli gunde farkli degerler
+    uretirdi ve tekrarlanabilirlik giderdi.
+    """
+    now = now or datetime.now()
+    return (now - state.process_started_at).total_seconds()
+
+
+def apply_noise(
+    state: DeviceState,
+    base: float,
+    field: str,
+    now: Optional[datetime] = None,
+) -> float:
+    """
+    Bir taban degere, o alana ait deterministik gurultuyu ekler.
+
+    TEK KAYNAK: hem MEAS:TEMP? hem de MEAS?'in ozet satiri buradan
+    okur, boylece ayni anda sorulunca AYNI degeri gorurler. Iki yerde
+    ayri hesap yapsaydik ozet ile tekil sorgu birbirini tutmazdi.
+    """
+    if not state.noise_enabled or state.noise_scale == 0.0:
+        return base
+
+    amplitude, period = NOISE_PROFILES[field]
+    elapsed = elapsed_seconds_since_start(state, now)
+
+    return base + amplitude * state.noise_scale * smooth_noise(elapsed, field, period)
+
+
+def measured_temperature(state: DeviceState, now: Optional[datetime] = None) -> float:
+    """MEAS:TEMP? -- PCB sicakligi (gurultulu)."""
+    return round(apply_noise(state, state.temperature_celsius, "temperature", now), 2)
+
+
+def measured_csac_temperature(state: DeviceState, now: Optional[datetime] = None) -> float:
+    """CSAC:TEMP? -- CSAC modulu sicakligi (gurultulu)."""
+    return round(
+        apply_noise(state, state.csac_temperature_celsius, "csac_temperature", now), 2
+    )
+
+
+def measured_voltage(state: DeviceState, now: Optional[datetime] = None) -> float:
+    """MEAS:VOLT? -- TCXO ayar voltaji (gurultulu)."""
+    return round(apply_noise(state, state.voltage, "voltage", now), 3)
+
+
+def measured_current(state: DeviceState, now: Optional[datetime] = None) -> float:
+    """MEAS:CURR? -- akim (gurultulu)."""
+    return round(apply_noise(state, state.current, "current", now), 3)
+
+
+def measured_power_supply(state: DeviceState, now: Optional[datetime] = None) -> float:
+    """MEASure:POWersupply? -- besleme voltaji (gurultulu)."""
+    return round(
+        apply_noise(state, state.power_supply_voltage, "power_supply", now), 2
+    )

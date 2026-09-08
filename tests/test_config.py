@@ -173,6 +173,10 @@ def test_holdover_scenario_tint_accumulates_over_time():
 
     state = load_scenario("holdover")
 
+    # Bu testin konusu BIRIKIM; olcum jitter'i sayilari bulandirmasin
+    # diye gurultuyu kapatiyoruz (jitter ayri testlerde dogrulaniyor).
+    state.noise_scale = 0.0
+
     # Holdover henuz yeni basladi: TINT giris degerine cok yakin olmali
     baslangic = current_tint_seconds(state)
     assert baslangic == pytest.approx(state.locked_tint_seconds, rel=1e-3)

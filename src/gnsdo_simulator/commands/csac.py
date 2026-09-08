@@ -15,7 +15,7 @@ GUNCELLEME (gercek cihazin GERCEK ciktisina gore):
   ("0"), bizim eski varsayimimiz (hex "0x0") YANLISTI -- duzelttik.
 """
 
-from gnsdo_simulator.device_state import DeviceState, elapsed_hours_since_start, is_locked
+from gnsdo_simulator.device_state import DeviceState, measured_csac_temperature, elapsed_hours_since_start, is_locked
 from gnsdo_simulator.scpi_parser import SCPIParser
 
 
@@ -37,7 +37,7 @@ def make_csac_status_handler(state: DeviceState):
 
 def make_csac_temp_handler(state: DeviceState):
     def handler() -> str:
-        return str(state.csac_temperature_celsius)
+        return str(measured_csac_temperature(state))
 
     return handler
 
@@ -99,7 +99,7 @@ def make_csac_handler(state: DeviceState):
             f"TCXO VOLTAGE: {state.voltage:.3f}",
             f"DC SIGNAL LEVEL: {state.csac_dc_signal_level:.2f}",
             f"HEAT PACKAGE: {state.csac_heat_package:.2f}",
-            f"TEMPERATURE: {state.csac_temperature_celsius}",
+            f"TEMPERATURE: {measured_csac_temperature(state)}",
             f"SN: {state.csac_serial_number}",
             f"FIRMWARE REV: {state.csac_firmware_rev}",
             f"LIFETIME: {lifetime}",

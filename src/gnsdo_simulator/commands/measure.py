@@ -24,7 +24,14 @@ GUNCELLEME (gercek cihazin GERCEK ciktisina gore):
     degisse de format/davranis etkilenmiyor).
 """
 
-from gnsdo_simulator.device_state import DeviceState
+from gnsdo_simulator.device_state import (
+    DeviceState,
+    measured_csac_temperature,
+    measured_current,
+    measured_power_supply,
+    measured_temperature,
+    measured_voltage,
+)
 from gnsdo_simulator.scpi_parser import SCPIParser
 
 
@@ -32,7 +39,7 @@ def make_meas_temp_handler(state: DeviceState):
     """MEAS:TEMP? -- PCB sicakligi. Ciplak sayi doner (etiketsiz)."""
 
     def handler() -> str:
-        return str(state.temperature_celsius)
+        return str(measured_temperature(state))
 
     return handler
 
@@ -41,7 +48,7 @@ def make_meas_volt_handler(state: DeviceState):
     """MEAS:VOLT? -- TCXO ayar voltaji. Ciplak sayi doner (etiketsiz)."""
 
     def handler() -> str:
-        return str(state.voltage)
+        return str(measured_voltage(state))
 
     return handler
 
@@ -50,7 +57,7 @@ def make_meas_curr_handler(state: DeviceState):
     """MEAS:CURR? -- legacy olcum (gercekte akim degil). Ciplak sayi doner."""
 
     def handler() -> str:
-        return str(state.current)
+        return str(measured_current(state))
 
     return handler
 
@@ -59,7 +66,7 @@ def make_meas_powersupply_handler(state: DeviceState):
     """MEAS:POW? -- guc kaynagi giris voltaji. Ciplak sayi doner."""
 
     def handler() -> str:
-        return str(state.power_supply_voltage)
+        return str(measured_power_supply(state))
 
     return handler
 
@@ -75,10 +82,10 @@ def make_meas_handler(state: DeviceState):
 
     def handler() -> str:
         lines = [
-            f"PCB Temperature: {state.temperature_celsius}",
-            f"CSAC Temperature: {state.csac_temperature_celsius}",
-            f"TCXO Voltage: {state.voltage}",
-            f"Power Supply Voltage: {state.power_supply_voltage}",
+            f"PCB Temperature: {measured_temperature(state)}",
+            f"CSAC Temperature: {measured_csac_temperature(state)}",
+            f"TCXO Voltage: {measured_voltage(state)}",
+            f"Power Supply Voltage: {measured_power_supply(state)}",
         ]
         return "\r\n".join(lines)
 

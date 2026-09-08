@@ -359,7 +359,16 @@ def test_diag():
 
 
 def test_measure():
-    parser = make_test_parser()
+    """
+    Olcum komutlarinin TABAN degerleri.
+
+    Gurultuyu kapatiyoruz (noise_scale = 0): burada test edilen sey
+    "hangi alan hangi komuta bagli" ve bicimlendirme -- gurultunun
+    kendisi degil. Gurultu davranisi ayri testlerde dogrulaniyor.
+    """
+    parser, state = make_test_parser_with_state()
+    state.noise_scale = 0.0
+
     assert parser.dispatch("MEAS:TEMP?") == "42.5"
     assert parser.dispatch("MEAS:VOLT?") == "1.66"
     assert parser.dispatch("MEAS:CURR?") == "0.42"
@@ -466,20 +475,82 @@ def test_holdover_health_matches_manual_worked_example():
     assert parser.dispatch("SYNC:HEALTH?") == "0x14"
 
 
-def test_locked_tint_stays_constant():
+def test_locked_tint_has_no_trend():
     """
-    Kilitliyken TINT SABIT kalmali -- buyumemeli.
+    Kilitliyken TINT'in TRENDI olmamali -- yani birikmemeli.
 
-    Bu, modelin en kolay yanlis anlasilan tarafi: "dinamik" demek
-    "her sey degissin" demek DEGIL. Kilitliyken kapali kontrol dongusu
-    TINT'i sifira ceker (§1.1), dolayisiyla oraya bir trend eklemek
-    fiziksel olarak YANLIS olurdu -- dongunun calismadigi anlamina
-    gelirdi.
+    ONEMLI AYRIM (FAZ 2'de netlesti): "trend yok" demek "hic
+    degismiyor" demek DEGIL. Gercek cihazda kilitliyken bile okuma
+    jitter yapar (GNSS 1PPS jitter'i, §1.1'e gore 0.2 ns mertebesinde).
+    Yasak olan sey TEK YONLU BIRIKIMDIR -- cunku kapali kontrol
+    dongusu TINT'i surekli sifira ceker; oraya bir trend eklemek
+    dongunun calismadigi anlamina gelirdi.
+
+    Bu yuzden test, degerin SABIT oldugunu degil, dar bir bant
+    icinde KALDIGINI dogrular.
     """
-    parser = make_test_parser()
+    from datetime import timedelta
 
-    ilk = parser.dispatch("SYNC:TINT?")
-    time.sleep(0.2)
-    ikinci = parser.dispatch("SYNC:TINT?")
+    parser, state = make_test_parser_with_state()
 
+    # Gurultuyu kapatinca deger tamamen sabit olmali (trend yok)
+    state.noise_scale = 0.0
+    assert parser.dispatch("SYNC:TINT?") == parser.dispatch("SYNC:TINT?")
+
+    # Gurultu acikken: uzun sure boyunca dar bir bant icinde kalmali,
+    # yani jitter yapar ama BIRIKMEZ. Saatleri ileri sararak kontrol
+    # ediyoruz -- holdover olsaydi bu araligi coktan asardi.
+    state.noise_scale = 1.0
+    okumalar = []
+    for saat in range(0, 6):
+        state.process_started_at = datetime.now() - timedelta(hours=saat)
+        cevap = parser.dispatch("SYNC:TINT?")
+        assert cevap is not None
+        okumalar.append(float(cevap))
+
+    taban = state.locked_tint_seconds
+    for deger in okumalar:
+        # jitter genligi 0.2 ns -- bant disina cikmamali
+        assert abs(deger - taban) < 0.3e-9
+
+
+def test_measurements_vary_over_time():
+    """
+    Gurultunun GERCEKTEN calistigini dogrular: ayni olcum, farkli
+    zamanlarda farkli degerler vermeli.
+
+    Bu test olmasa gurultu sessizce devre disi kalabilir (ornegin
+    bir alan yanlislikla taban degeri dondurmeye devam ederse) ve
+    kimse fark etmezdi.
+    """
+    from datetime import timedelta
+
+    parser, state = make_test_parser_with_state()
+
+    okumalar = set()
+    for saniye in range(0, 300, 30):
+        state.process_started_at = datetime.now() - timedelta(seconds=saniye)
+        okumalar.add(parser.dispatch("MEAS:TEMP?"))
+
+    # 10 farkli anda en az birkac farkli deger gorulmeli
+    assert len(okumalar) > 3
+
+
+def test_same_instant_gives_same_reading():
+    """
+    FIZIKSEL GEREKLILIK: cihazin sicakligi belli bir ANDA belli bir
+    degerdir; art arda iki kez sormak sonucu degistirmemeli.
+
+    Bu test, "her sorguda rastgele sayi uret" yaklasimini elerdi.
+    Zamani sabitleyerek ayni ani iki kez sorguluyoruz.
+    """
+    parser, state = make_test_parser_with_state()
+
+    sabit_an = state.process_started_at
+    state.process_started_at = sabit_an
+
+    ilk = parser.dispatch("MEAS?")
+    ikinci = parser.dispatch("MEAS?")
+
+    # Ayni an (mikrosaniye farkiyla) -- degerler pratikte ayni olmali
     assert ilk == ikinci
