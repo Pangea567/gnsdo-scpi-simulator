@@ -30,7 +30,10 @@ diag:
   lifetime_hours: 871
 
 measure:
-  temperature: 42.5
+  # PCB sicakligi. GERCEK cihaz kayitlarinda kararli durumda
+  # ~52.8 C (gozlenen aralik 46.57-52.87; dusuk okumalar isinma
+  # sirasinda alinmis). CSAC sicakligi buradan turetilir (+1.32 C).
+  temperature: 52.8
   voltage: 1.66
   current: 0.42
   power_supply: 11.7

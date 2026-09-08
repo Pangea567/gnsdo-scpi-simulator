@@ -170,7 +170,9 @@ def test_load_not_locked_scenario():
     # ve SYST:STAT? "Fault" donuyordu. Bu assert o hatanin geri gelmesini
     # engeller.)
     assert state.hardware_fault is False
-    assert state.temperature_celsius == 42.5   # normal deger, ariza degeri (95.0) DEGIL
+    # Normal kararli sicaklik (gercek cihaz kayitlarindan),
+    # ariza degeri (95.0) DEGIL
+    assert state.temperature_celsius == 52.8
 
 
 def test_not_locked_scenario_reports_not_locked_status():
