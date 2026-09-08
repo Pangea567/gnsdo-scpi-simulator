@@ -298,7 +298,7 @@ Modeli kurarken fark edilen, mevcut kodda GERCEK CIHAZLA CELISEN noktalar:
 - **Duzeltme**: `abs()` kullanilacak.
 
 ---
-
+  
 ## 6. Yol Haritasi
 
 | Faz | Icerik | Durum |

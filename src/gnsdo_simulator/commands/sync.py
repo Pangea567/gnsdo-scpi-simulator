@@ -23,7 +23,13 @@ GUNCELLEME -- is_locked() KULLANIMI:
 from datetime import datetime
 from typing import Optional
 
-from gnsdo_simulator.device_state import DeviceState, is_locked
+from gnsdo_simulator.device_state import (
+    DeviceState,
+    current_tint_seconds,
+    enter_holdover,
+    exit_holdover,
+    is_locked,
+)
 from gnsdo_simulator.scpi_parser import SCPIParser
 
 
@@ -89,14 +95,17 @@ def make_sync_locked_handler(state: DeviceState):
 
 def _tint_seconds(state: DeviceState) -> float:
     """
-    TINT (time interval error) degerini SANIYE cinsinden sayisal
-    olarak hesaplar -- hem SYNC:TINT? cevabini metne cevirmek hem de
-    SYNC:HEALTH?'in "faz farki > 210ns mi" kontrolu icin kullanilir.
-    Boylece iki yerde ayni sabitleri tekrar yazmiyoruz.
+    TINT degerini SANIYE cinsinden hesaplar -- hem SYNC:TINT? cevabini
+    hem SYNC?'in ilgili satirini hem de SYNC:HEALTH?'in faz kontrolunu
+    besler, boylece uc cikti birbiriyle tutarli olur.
+
+    DEGISTI: eskiden holdover'da SABIT 850 ns donduruyordu -- sanki
+    hata BIRIKMIYORMUS gibi. Bu fiziksel olarak yanlisti: holdover'da
+    kontrol dongusu ACIKTIR, duzeltme gelmez ve hata zamanla buyur.
+    Artik hesap device_state.current_tint_seconds() uzerinden
+    models/holdover.py'deki birikim modeline yapiliyor.
     """
-    if state.holdover:
-        return 0.000000850  # holdover'da hata payi biraz daha buyuk (sabit varsayim)
-    return 0.000000012  # normal calismada kucuk, sabit bir deger (varsayim)
+    return current_tint_seconds(state)
 
 
 def make_sync_tint_handler(state: DeviceState):
@@ -140,7 +149,12 @@ def make_sync_health_handler(state: DeviceState):
     def handler() -> str:
         health = 0
 
-        if _tint_seconds(state) > 210e-9:
+        # DIKKAT -- abs(): kilavuz §3.6.18 "if the phase offset to
+        # reference is >210ns" diyor; offset bir BUYUKLUKTUR, isaretten
+        # bagimsizdir. Eskiden isaretli karsilastirma yapiyorduk, bu da
+        # osilator referansin GERISINE dustugunde (TINT negatif) 210
+        # ns'yi asan hatalari KACIRIYORDU.
+        if abs(_tint_seconds(state)) > 210e-9:
             health |= 0x4
 
         runtime_seconds = (datetime.now() - state.process_started_at).total_seconds()
@@ -168,15 +182,25 @@ def make_sync_hold_dur_handler(state: DeviceState):
          degilse EN SON holdover'in suresi.
       2. Holdover durumu: 1 = su an holdoverda, 0 = degil.
 
-    Biz "en son holdover'in suresini" ayrica saklamiyoruz (MVP
-    basitlestirmesi) -- holdover'da degilken "0,0" donuyoruz.
+    DEGISTI: eskiden holdover disinda her zaman "0,0" donuyorduk.
+    Kilavuz §3.6.1 bunun aksini soyluyor: "If the Receiver is not in
+    holdover, the response quantifies the PREVIOUS holdover." Artik
+    biten holdover'in suresi state.last_holdover_duration_seconds
+    icinde saklaniyor (bkz. device_state.exit_holdover) ve burada
+    donduruluyor. Hic holdover yasanmamissa "0,0" dogru cevaptir.
     """
 
     def handler() -> str:
-        if not state.holdover or state.holdover_started_at is None:
+        if state.holdover and state.holdover_started_at is not None:
+            elapsed_seconds = (
+                datetime.now() - state.holdover_started_at
+            ).total_seconds()
+            return f"{elapsed_seconds:.1f},1"
+
+        if state.last_holdover_duration_seconds is None:
             return "0,0"
-        elapsed_seconds = (datetime.now() - state.holdover_started_at).total_seconds()
-        return f"{elapsed_seconds:.1f},1"
+
+        return f"{state.last_holdover_duration_seconds:.1f},0"
 
     return handler
 
@@ -189,9 +213,10 @@ def make_sync_hold_init_setter(state: DeviceState):
     """
 
     def setter(_value: str) -> Optional[str]:
-        state.holdover = True
-        state.sync_locked = False
-        state.holdover_started_at = datetime.now()
+        # Hazirligi device_state.enter_holdover() yapiyor: hem
+        # config_loader hem bu komut AYNI fonksiyonu cagirsin diye.
+        # Giriste TINT donduruluyor (modeldeki x0).
+        enter_holdover(state)
         return None
 
     return setter
@@ -205,9 +230,10 @@ def make_sync_hold_rec_init_setter(state: DeviceState):
     """
 
     def setter(_value: str) -> Optional[str]:
-        state.holdover = False
-        state.sync_locked = True
-        state.holdover_started_at = None
+        # exit_holdover() ayrica biten holdover'in SURESINI saklar,
+        # boylece SYNC:HOLD:DUR? sonrasinda "onceki holdover"i
+        # dondurebilir (kilavuz §3.6.1).
+        exit_holdover(state)
         return None
 
     return setter

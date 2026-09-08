@@ -21,3 +21,6 @@ logs/
 .vscode/
 .idea/
 .DS_Store
+
+# MCP sunucu yapilandirmasi (yerel arac ayari, repoya girmez)
+.mcp.json

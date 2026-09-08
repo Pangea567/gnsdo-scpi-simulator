@@ -303,7 +303,17 @@ def test_holdover_transition():
     # Recovery baslatinca tekrar kilitli olmali
     parser.dispatch("SYNC:HOLD:REC:INIT")
     assert parser.dispatch("SYNC:LOCKED?") == "1"
-    assert parser.dispatch("SYNC:HOLD:DUR?") == "0,0"
+
+    # DEGISTI: eskiden burada "0,0" bekliyorduk, ama bu kilavuza
+    # AYKIRIYDI. §3.6.1: "If the Receiver is not in holdover, the
+    # response quantifies the PREVIOUS holdover." Yani holdover
+    # bittikten sonra sorgu, BITEN holdover'in suresini ve durum
+    # bayragi olarak 0 dondurmelidir.
+    dur_after = parser.dispatch("SYNC:HOLD:DUR?")
+    assert dur_after is not None
+    previous_duration, holdover_flag = dur_after.split(",")
+    assert float(previous_duration) > 0  # yukarida ~0.2 sn holdover yasandi
+    assert holdover_flag == "0"  # artik holdover'da DEGILIZ
 
 
 def test_sync_source_mode_setter():

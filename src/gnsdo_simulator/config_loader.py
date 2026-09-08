@@ -35,7 +35,7 @@ from pathlib import Path
 
 import yaml
 
-from gnsdo_simulator.device_state import DeviceState
+from gnsdo_simulator.device_state import DeviceState, enter_holdover
 
 
 def load_scenario_config(path: str | Path) -> dict:
@@ -78,15 +78,20 @@ def apply_config_to_state(state: DeviceState, config: dict) -> None:
     if "locked" in sync:
         state.sync_locked = sync["locked"]
     if "holdover" in sync:
-        state.holdover = sync["holdover"]
-        # Config'ten "holdover: true" ile basliyorsak, holdover'in
-        # NE ZAMAN basladigini bilmemiz lazim (SYNC:HOLD:DUR? icin).
-        # Config dosyasinda bir zaman belirtilmedigi icin, en
-        # mantikli varsayim: "simdi baslamis gibi say" (program
-        # baslama ani).
+        # Holdover'a girisi ARTIK dogrudan burada kurmuyoruz --
+        # device_state.enter_holdover() cagiriyoruz. Nicin? Cunku
+        # holdover'a girmek artik sadece iki bayrak degistirmek
+        # degil: giristeki TINT'in de dondurulmasi gerekiyor (modelin
+        # x0'i). Ayni hazirligi hem burada hem SYNC:HOLD:INIT'te
+        # tekrar yazsaydik, biri gunun birinde unutulur ve senaryolar
+        # birbirinden ayrisirdi.
+        #
+        # Holdover'in NE ZAMAN basladigi config'te belirtilmedigi
+        # icin varsayimimiz ayni kaliyor: "simdi baslamis say".
         if sync["holdover"]:
-            state.holdover_started_at = datetime.now()
+            enter_holdover(state)
         else:
+            state.holdover = False
             state.holdover_started_at = None
 
     measure = config.get("measure", {})

@@ -29,6 +29,11 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional
 
+from gnsdo_simulator.models.holdover import (
+    RB_DRIFT_PER_DAY,
+    holdover_tint_seconds,
+)
+
 
 @dataclass
 class DeviceState:
@@ -104,6 +109,33 @@ class DeviceState:
     holdover: bool = False
     sync_source_mode: str = "GPS"
     holdover_started_at: Optional[datetime] = None
+
+    # --- HOLDOVER HATA BIRIKIMI MODELI ICIN ALANLAR ---
+    # (bkz. models/holdover.py ve docs/tasarim-kararlari.md)
+    #
+    # locked_tint_seconds: cihaz GPS'e KILITLIYKEN TINT'in aldigi
+    #   deger. Kapali kontrol dongusu TINT'i sifira cektigi icin bu
+    #   kucuk ve sabittir -- kilitliyken TINT'e trend eklemek fiziksel
+    #   olarak yanlis olurdu (dongunun calismadigi anlamina gelirdi).
+    #   Deger GERCEK cihaz ciktisindan: "TIME INTERVAL DIFFERENCE :
+    #   1.133E-08" yani ~11.3 ns.
+    #
+    # holdover_entry_tint_seconds: holdover'a GIRILDIGI ANDAKI TINT
+    #   (modeldeki x0). Faz sureklidir -- GPS kesildiginde faz farki
+    #   sifira atlamaz, o an neyse o kalir ve buyumeye ORADAN baslar.
+    #   Bu yuzden giris aninda dondurup sakliyoruz.
+    #
+    # rb_drift_per_day: Rubidyum osilatorun yaslanma/drift hizi
+    #   (modeldeki D). Kilavuz §2.9: kilitliyken ADEV 8E-14/gun'e
+    #   yaklasiyor.
+    #
+    # last_holdover_duration_seconds: BITMIS en son holdover'in
+    #   suresi. Kilavuz §3.6.1 SYNC:HOLD:DUR?'un holdover disindayken
+    #   "onceki holdover"i dondurmesini istiyor.
+    locked_tint_seconds: float = 12e-9
+    holdover_entry_tint_seconds: float = 12e-9
+    rb_drift_per_day: float = RB_DRIFT_PER_DAY
+    last_holdover_duration_seconds: Optional[float] = None
 
     # SYNC? cevabinin geri kalan alanlari icin -- gercek cihaz
     # ciktisindan alinan ek durum bilgileri. Bunlarin cogu "ayar"
@@ -277,3 +309,71 @@ def is_locked(state: DeviceState) -> bool:
         return elapsed >= WARMUP_DURATION_SECONDS
 
     return state.sync_locked
+
+def enter_holdover(state: DeviceState, now: Optional[datetime] = None) -> None:
+    """
+    Cihazi holdover durumuna sokar.
+
+    Nicin ortak bir fonksiyon? Holdover'a IKI ayri yerden giriliyor:
+      1. SYNC:HOLD:INIT komutuyla (calisirken)
+      2. config_loader ile ("holdover: true" senaryosuyla baslarken)
+    Ayni hazirligi iki yerde tekrar yazarsak biri unutulur ve
+    senaryolar birbirinden ayrisir. Tek kaynak ilkesi.
+
+    Giriste TINT'i DONDURUYORUZ (x0): faz sureklidir, GPS kesildiginde
+    faz farki sifira atlamaz -- o an neyse o kalir ve hata birikimi
+    ORADAN baslar.
+    """
+    now = now or datetime.now()
+    state.holdover = True
+    state.sync_locked = False
+    state.holdover_started_at = now
+    state.holdover_entry_tint_seconds = state.locked_tint_seconds
+
+
+def exit_holdover(state: DeviceState, now: Optional[datetime] = None) -> None:
+    """
+    Cihazi holdover'dan cikarir (recovery).
+
+    Cikarken SUREYI SAKLIYORUZ: kilavuz §3.6.1'e gore SYNC:HOLD:DUR?,
+    holdover'da DEGILKEN bir onceki holdover'in suresini dondurmelidir.
+    Sureyi burada kaydetmezsek o bilgi kaybolur.
+    """
+    now = now or datetime.now()
+    if state.holdover and state.holdover_started_at is not None:
+        state.last_holdover_duration_seconds = (
+            now - state.holdover_started_at
+        ).total_seconds()
+
+    state.holdover = False
+    state.sync_locked = True
+    state.holdover_started_at = None
+
+
+def current_tint_seconds(state: DeviceState, now: Optional[datetime] = None) -> float:
+    """
+    Cihazin SU ANKI TINT degerini (saniye, isaretli) hesaplar.
+
+    Iki farkli rejim vardir ve aralarindaki fark FIZIKSELDIR:
+
+      KILITLI (kapali dongu): servo dongu TINT'i surekli sifira ceker,
+        bu yuzden deger kucuk ve sabittir (§1.1).
+
+      HOLDOVER (acik dongu): duzeltme yoktur, osilatorun frekans hatasi
+        zamanla ZAMAN hatasina donusur ve BIRIKIR. Birikim modeli
+        models/holdover.py icinde (§3.6.1, §3.6.2).
+
+    Bu fonksiyon TEK kaynaktir: SYNC:TINT?, SYNC? ve SYNC:HEALTH?
+    hepsi buradan okur, boylece uc cikti birbiriyle tutarli olur.
+    """
+    if state.holdover and state.holdover_started_at is not None:
+        now = now or datetime.now()
+        elapsed_seconds = (now - state.holdover_started_at).total_seconds()
+        return holdover_tint_seconds(
+            elapsed_seconds=elapsed_seconds,
+            entry_tint_seconds=state.holdover_entry_tint_seconds,
+            freq_error_estimate=state.freq_error_estimate,
+            drift_per_day=state.rb_drift_per_day,
+        )
+
+    return state.locked_tint_seconds
