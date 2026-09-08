@@ -276,6 +276,58 @@ Ozellikle durum 5 (gecis durumu) gercekci bir ayrinti.
 - **Neden**: Fiziksel olarak faz sureklidir — GNSS kesildigi anda faz
   farki sifira atlamaz, neyse o kalir ve oradan itibaren buyumeye baslar.
 
+### K-6: Gurultu ZAMANIN FONKSIYONU, rastgele sayi akisi degil
+- **Durum**: Olcumlere gurultu eklerken akla ilk gelen "her sorguda
+  random.gauss() cagir" yaklasimi.
+- **Karar**: Reddedildi. Gurultu `deger(t) = taban + genlik*f(t)`
+  seklinde, PROGRAM BASLANGICINDAN beri gecen surenin fonksiyonu.
+- **Neden**: Iki ayri sebep:
+  1. **Fiziksel**: Cihazin sicakligi BELLI BIR ANDA belli bir
+     degerdir. Ayni saniye icinde iki kez sorarsan ayni cevabi
+     almalisin. Rastgele akista deger, KAC KEZ SORDUGUNA bagli olur
+     -- sanki sen sordukca cihazin sicakligi degisiyormus gibi.
+  2. **Pratik**: Tekrarlanabilirlik. Bir hata gordugunde ayni kosulu
+     yeniden uretemezsen hata ayiklayamazsin.
+- **Nasil**: Oranlari altin oranla IRRASYONEL yapilmis birkac sinusun
+  toplami. Tam sayi oranlari kullansaydik desen kisa surede tekrarlar
+  ve gozle fark edilen yapay bir periyodiklik olusurdu.
+- **Alt karar -- duvar saati degil, gecen sure**: Duvar saati
+  kullansaydik ayni senaryo iki farkli gunde farkli degerler uretirdi.
+
+### K-7: Tohumdan faz uretirken Python'un hash() fonksiyonu KULLANILMIYOR
+- **Durum**: Her olcum alani farkli bir desen kullanmali (yoksa
+  sicaklik, voltaj ve akim ayni anda ayni yone gider, yapay gorunur).
+  Bunun icin alan adindan bir faz kaymasi uretiyoruz.
+- **Karar**: `hash("temperature")` yerine kendi sabit hesabimiz.
+- **Neden**: Python, METINLER icin hash()'i her calistirmada RASTGELE
+  tohumlar (guvenlik onlemi). hash() kullansaydik determinizm
+  SESSIZCE kaybolurdu -- kod dogru gorunur, testler tek calistirmada
+  gecer, ama iki farkli calistirma farkli sonuc verirdi.
+- **Dogrulama**: Testler farkli `PYTHONHASHSEED` degerleriyle
+  calistirilarak dogrulandi.
+
+### K-8: Gurultu VARSAYILAN OLARAK ACIK
+- **Karar**: `noise.enabled: true` varsayilan; kapatmak istisna.
+- **Neden**: Gercek cihaz davranisi budur. Gurultusuz mod bir
+  "ozellik" degil, bir TEST/KARSILASTIRMA araci.
+- **Nasil kapatilir**: `enabled: false` ya da `scale: 0.0`. Ara
+  degerler (`scale: 0.5`) genligi olceklendirir.
+
+### K-9: CSAC sicakligindaki 47 -> 54 tirmanisi FAZ 2'ye AIT DEGIL
+- **Durum**: Gercek cihaz ciktilarinda CSAC sicakligi 47 ile 54
+  arasinda gorulmustu. Ilk plan bunu +/- 3.5'luk bir gurultu genligi
+  olarak modellemekti.
+- **Karar**: Yanlis. Bu bir SALINIM degil, TEK YONLU TIRMANIS --
+  cihaz acildiktan sonra 54 civarina cikar ve ORADA KALIR.
+- **Neden**: Cihazi calistiran kisinin gozlemi. Genis araligi gurultu
+  sanip +/- 3.5 genlik verseydik, cihaz 47 ile 54 arasinda surekli
+  gidip gelirdi -- gercekte olmayan bir davranis.
+- **Sonuc**: FAZ 2'de taban 54, genlik +/- 0.25 (kisa vadeli jitter).
+  Tirmanisin kendisi FAZ 3'e (isinma rampasi) birakildi.
+- **Ders**: Gozlenen bir ARALIK, otomatik olarak gurultu genligi
+  demek degildir. Once "bu aralik bir salinim mi, yoksa bir gecis mi?"
+  diye sormak gerekir.
+
 ---
 
 ## 5. Duzeltilen Gerceklik Hatalari
@@ -304,8 +356,8 @@ Modeli kurarken fark edilen, mevcut kodda GERCEK CIHAZLA CELISEN noktalar:
 | Faz | Icerik | Durum |
 |---|---|---|
 | 1 | Holdover hata birikimi (bu belge) | **TAMAMLANDI** |
-| 2 | Olcumlere deterministik gurultu (sicaklik, voltaj, TINT jitter) | planli |
-| 3 | Isinma rampasi + SERVo:STATe durum makinesi (0->2->6, ve 5) | planli |
+| 2 | Olcumlere deterministik gurultu (sicaklik, voltaj, TINT jitter) | **TAMAMLANDI** |
+| 3 | Isinma rampasi + SERVo:STATe durum makinesi (0->2->6, ve 5). CSAC sicakliginin 47->54 tirmanisi da burada (bkz. K-9) | planli |
 | 4 | Bildiri | planli |
 
 **FAZ 2 notu**: Gurultu DETERMINISTIK olacak (sabit tohumlu rastgele
