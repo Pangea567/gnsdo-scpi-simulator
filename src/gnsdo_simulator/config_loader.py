@@ -30,12 +30,16 @@ gibi degerleri) OLDUGU GIBI birakiyoruz -- yani config dosyasi
 "kismi" olabilir, her seyi tekrar yazmak zorunda degilsin.
 """
 
+import logging
 from datetime import datetime
 from pathlib import Path
 
 import yaml
 
 from gnsdo_simulator.device_state import DeviceState, enter_holdover
+
+
+logger = logging.getLogger("gnsdo_simulator.config_loader")
 
 
 def load_scenario_config(path: str | Path) -> dict:
@@ -73,6 +77,28 @@ def apply_config_to_state(state: DeviceState, config: dict) -> None:
         state.gnss_satellites_visible = gps["visible"]
     if "tracking" in gps:
         state.gnss_satellites_tracking = gps["tracking"]
+
+    # TUTARLILIK KURALI: takip edilen uydu sayisi, gorunur uydu
+    # sayisini asamaz -- goremedigin bir uyduyu takip edemezsin.
+    #
+    # ILGINC NOT: GERCEK cihaz bu kurali her zaman tutmuyor. Kayitlarda
+    # GPS:SAT:TRAC:COUN? -> 20 iken GPS:SAT:VIS:COUN? -> 19 gorulmus.
+    # Muhtemel sebep: iki sayac farkli seyleri sayiyor (biri alicinin
+    # kanal tablosunun tamamini -- SYST:STAT?'taki "Tracking:14 +
+    # Not Tracking:6" = 20 ile ortusuyor -- digeri gercekten sinyal
+    # alinanlari) ve farkli anlarda orneklenıyorlar.
+    #
+    # Biz bu tuhafligi TAKLIT ETMIYORUZ: simulatorun anlasilir ve
+    # tutarli olmasi, gercek cihazin bir olcum artifaktini yeniden
+    # uretmesinden daha degerli. Karar docs/tasarim-kararlari.md'de.
+    if state.gnss_satellites_tracking > state.gnss_satellites_visible:
+        logger.warning(
+            "Config tutarsiz: tracking=%d > visible=%d. tracking, visible'a "
+            "kisitlandi (goremedigin uyduyu takip edemezsin).",
+            state.gnss_satellites_tracking,
+            state.gnss_satellites_visible,
+        )
+        state.gnss_satellites_tracking = state.gnss_satellites_visible
 
     sync = config.get("sync", {})
     if "locked" in sync:

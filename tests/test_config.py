@@ -250,3 +250,39 @@ def test_noise_scale_reduces_amplitude():
     sapma_yari = abs(measured_temperature(yari) - taban)
 
     assert sapma_yari < sapma_tam
+
+
+def test_tracking_cannot_exceed_visible():
+    """
+    TUTARLILIK KURALI: goremedigin bir uyduyu takip edemezsin.
+
+    ILGINC NOT: gercek cihaz bu kurali her zaman tutmuyor -- kayitlarda
+    GPS:SAT:TRAC:COUN? -> 20 iken GPS:SAT:VIS:COUN? -> 19 gorulmus.
+    Iki sayac muhtemelen farkli seyleri sayiyor ve farkli anlarda
+    ornekleniyor. Biz bu tuhafligi taklit etmiyoruz: simulatorun
+    tutarli olmasi daha degerli (bkz. docs/tasarim-kararlari.md).
+    """
+    from gnsdo_simulator.config_loader import apply_config_to_state
+    from gnsdo_simulator.device_state import DeviceState
+
+    state = DeviceState()
+    apply_config_to_state(state, {"gps": {"visible": 5, "tracking": 9}})
+
+    assert state.gnss_satellites_tracking == 5
+    assert state.gnss_satellites_visible == 5
+
+
+def test_normal_scenario_satellite_counts_consistent():
+    """Hazir senaryolarin hicbiri bu kurali ihlal etmemeli."""
+    for senaryo in [
+        "normal",
+        "gnss-lost",
+        "holdover",
+        "warming-up",
+        "not-locked",
+        "hardware-error",
+    ]:
+        state = load_scenario(senaryo)
+        assert (
+            state.gnss_satellites_tracking <= state.gnss_satellites_visible
+        ), f"{senaryo}: tracking > visible"
