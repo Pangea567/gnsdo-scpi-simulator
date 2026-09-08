@@ -39,7 +39,7 @@ def make_meas_temp_handler(state: DeviceState):
     """MEAS:TEMP? -- PCB sicakligi. Ciplak sayi doner (etiketsiz)."""
 
     def handler() -> str:
-        return str(measured_temperature(state))
+        return f"{measured_temperature(state):.4f}"
 
     return handler
 
@@ -48,7 +48,7 @@ def make_meas_volt_handler(state: DeviceState):
     """MEAS:VOLT? -- TCXO ayar voltaji. Ciplak sayi doner (etiketsiz)."""
 
     def handler() -> str:
-        return str(measured_voltage(state))
+        return f"{measured_voltage(state):.3f}"
 
     return handler
 
@@ -67,7 +67,7 @@ def make_meas_curr_handler(state: DeviceState):
     """
 
     def handler() -> str:
-        return str(measured_rubidium_temperature(state))
+        return f"{measured_rubidium_temperature(state):.4f}"
 
     return handler
 
@@ -76,7 +76,7 @@ def make_meas_powersupply_handler(state: DeviceState):
     """MEAS:POW? -- guc kaynagi giris voltaji. Ciplak sayi doner."""
 
     def handler() -> str:
-        return str(measured_power_supply(state))
+        return f"{measured_power_supply(state):.2f}"
 
     return handler
 
@@ -92,10 +92,10 @@ def make_meas_handler(state: DeviceState):
 
     def handler() -> str:
         lines = [
-            f"PCB Temperature: {measured_temperature(state)}",
-            f"CSAC Temperature: {measured_csac_temperature(state)}",
-            f"TCXO Voltage: {measured_voltage(state)}",
-            f"Power Supply Voltage: {measured_power_supply(state)}",
+            f"PCB Temperature: {measured_temperature(state):.4f}",
+            f"CSAC Temperature: {measured_csac_temperature(state):.2f}",
+            f"TCXO Voltage: {measured_voltage(state):.3f}",
+            f"Power Supply Voltage: {measured_power_supply(state):.2f}",
         ]
         return "\r\n".join(lines)
 

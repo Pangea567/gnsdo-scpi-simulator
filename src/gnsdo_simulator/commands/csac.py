@@ -37,7 +37,7 @@ def make_csac_status_handler(state: DeviceState):
 
 def make_csac_temp_handler(state: DeviceState):
     def handler() -> str:
-        return str(measured_csac_temperature(state))
+        return f"{measured_csac_temperature(state):.2f}"
 
     return handler
 
@@ -99,7 +99,7 @@ def make_csac_handler(state: DeviceState):
             f"TCXO VOLTAGE: {state.voltage:.3f}",
             f"DC SIGNAL LEVEL: {state.csac_dc_signal_level:.2f}",
             f"HEAT PACKAGE: {state.csac_heat_package:.2f}",
-            f"TEMPERATURE: {measured_csac_temperature(state)}",
+            f"TEMPERATURE: {measured_csac_temperature(state):.2f}",
             f"SN: {state.csac_serial_number}",
             f"FIRMWARE REV: {state.csac_firmware_rev}",
             f"LIFETIME: {lifetime}",

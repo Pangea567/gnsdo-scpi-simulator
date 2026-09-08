@@ -369,13 +369,13 @@ def test_measure():
     parser, state = make_test_parser_with_state()
     state.noise_scale = 0.0
 
-    assert parser.dispatch("MEAS:TEMP?") == "52.8"
-    assert parser.dispatch("MEAS:VOLT?") == "1.66"
+    assert parser.dispatch("MEAS:TEMP?") == "52.8000"
+    assert parser.dispatch("MEAS:VOLT?") == "1.660"
     # MEAS:CURR? AKIM DEGIL SICAKLIK doner (kilavuz §3.8.3, "legacy
     # SCPI command"). Gercek cihaz: MEAS:CURR? -> 51.3210 iken
     # hemen yanindaki MEAS:TEMP? -> 51.1479 idi.
-    assert parser.dispatch("MEAS:CURR?") == "54.12"
-    assert parser.dispatch("MEAS:POW?") == "11.7"
+    assert parser.dispatch("MEAS:CURR?") == "54.1200"
+    assert parser.dispatch("MEAS:POW?") == "11.70"
 
     # MEAS? artik gercek cihaz ciktisina gore ETIKETLI 4 satir,
     # CSAC Temperature dahil. CSAC sicakligi PCB'den TURETILIYOR
@@ -383,10 +383,10 @@ def test_measure():
     meas_response = parser.dispatch("MEAS?")
     assert meas_response is not None
     assert meas_response.split("\r\n") == [
-        "PCB Temperature: 52.8",
+        "PCB Temperature: 52.8000",
         "CSAC Temperature: 54.12",
-        "TCXO Voltage: 1.66",
-        "Power Supply Voltage: 11.7",
+        "TCXO Voltage: 1.660",
+        "Power Supply Voltage: 11.70",
     ]
 
 
