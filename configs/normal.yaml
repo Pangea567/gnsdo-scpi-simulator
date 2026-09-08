@@ -25,3 +25,20 @@ measure:
   voltage: 1.66
   current: 0.42
   power_supply: 11.7
+# --- OLCUM GURULTUSU ---
+# (model ve gerekceler: models/noise.py, docs/tasarim-kararlari.md)
+#
+# Gercek cihazda MEAS:TEMP? her sorguda tipatip ayni sayiyi dondurmez;
+# sensor okumasi son hanede surekli oynar. Gurultu bu yuzden
+# VARSAYILAN OLARAK ACIKTIR.
+#
+# Gurultu ZAMANIN fonksiyonudur, rastgele sayi akisi degil. Boylece:
+#   - ayni anda iki sorgu AYNI cevabi verir (fiziksel olarak dogru)
+#   - ayni calistirma AYNI degerleri uretir (hata ayiklanabilir)
+#
+# enabled: false yaparak ya da scale: 0.0 vererek tamamen kapatilir --
+# gercek cihazla birebir cikti karsilastirmasi yaparken kullanislidir.
+# scale: 0.5 gibi ara degerler genligi olceklendirir.
+noise:
+  enabled: true
+  scale: 1.0

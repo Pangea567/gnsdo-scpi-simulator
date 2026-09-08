@@ -192,3 +192,54 @@ def test_holdover_scenario_tint_accumulates_over_time():
     # 5 saat geriye tarihle: 210 ns'lik saglik esigi (§3.6.18) asilmali
     state.holdover_started_at = datetime.now() - timedelta(hours=5)
     assert abs(current_tint_seconds(state)) > 210e-9
+
+
+def test_noise_enabled_by_default():
+    """
+    Gurultu VARSAYILAN OLARAK ACIK olmali -- gercek cihaz davranisi
+    budur. Sessizce kapali kalirsa simulator yine sabit deger
+    dondurur ve FAZ 2'nin tum kazanimi kaybolur.
+    """
+    state = load_scenario("normal")
+    assert state.noise_enabled is True
+    assert state.noise_scale == 1.0
+
+
+def test_noise_can_be_disabled_from_config():
+    """
+    Gurultuyu kapatabilmek gercek cihazla birebir cikti
+    karsilastirmasi yaparken gerekli. Iki yol da calismali.
+    """
+    from gnsdo_simulator.config_loader import apply_config_to_state
+    from gnsdo_simulator.device_state import DeviceState, measured_temperature
+
+    kapali = DeviceState()
+    apply_config_to_state(kapali, {"noise": {"enabled": False}})
+    assert measured_temperature(kapali) == kapali.temperature_celsius
+
+    sifir_olcek = DeviceState()
+    apply_config_to_state(sifir_olcek, {"noise": {"scale": 0.0}})
+    assert measured_temperature(sifir_olcek) == sifir_olcek.temperature_celsius
+
+
+def test_noise_scale_reduces_amplitude():
+    """
+    Ara olcek degerleri genligi orantili azaltmali -- 0 ile 1
+    arasinda kademeli gecis mumkun olsun.
+    """
+    from datetime import datetime, timedelta
+
+    from gnsdo_simulator.config_loader import apply_config_to_state
+    from gnsdo_simulator.device_state import DeviceState, measured_temperature
+
+    an = datetime.now() - timedelta(seconds=137)
+
+    tam = DeviceState(process_started_at=an)
+    yari = DeviceState(process_started_at=an)
+    apply_config_to_state(yari, {"noise": {"scale": 0.5}})
+
+    taban = tam.temperature_celsius
+    sapma_tam = abs(measured_temperature(tam) - taban)
+    sapma_yari = abs(measured_temperature(yari) - taban)
+
+    assert sapma_yari < sapma_tam

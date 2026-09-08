@@ -113,6 +113,20 @@ def apply_config_to_state(state: DeviceState, config: dict) -> None:
             state.holdover = False
             state.holdover_started_at = None
 
+    # --- OLCUM GURULTUSU ---
+    # Gurultu VARSAYILAN OLARAK ACIK (gercek cihaz davranisi budur).
+    # Kapatmak isteyenler icin iki yol var:
+    #   enabled: false   -> tamamen kapatir
+    #   scale: 0.0       -> ayni etki, ama genligi kismen azaltmak da
+    #                       mumkun (ornegin 0.5 ile yariya indirmek)
+    # Gurultusuz mod, gercek cihazla birebir cikti karsilastirmasi
+    # yaparken ve kesin deger bekleyen testlerde ise yarar.
+    noise = config.get("noise", {})
+    if "enabled" in noise:
+        state.noise_enabled = bool(noise["enabled"])
+    if "scale" in noise:
+        state.noise_scale = float(noise["scale"])
+
     measure = config.get("measure", {})
     if "temperature" in measure:
         state.temperature_celsius = measure["temperature"]
