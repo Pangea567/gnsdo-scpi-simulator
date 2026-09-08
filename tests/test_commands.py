@@ -25,6 +25,7 @@ from gnsdo_simulator.commands.sync import register_sync_commands
 from gnsdo_simulator.commands.diagnostic import register_diagnostic_commands
 from gnsdo_simulator.commands.measure import register_measure_commands
 from gnsdo_simulator.commands.csac import register_csac_commands
+from gnsdo_simulator.commands.servo import register_servo_commands
 
 
 def make_test_parser() -> SCPIParser:
@@ -45,6 +46,7 @@ def make_test_parser() -> SCPIParser:
     register_diagnostic_commands(parser, state)
     register_measure_commands(parser, state)
     register_csac_commands(parser, state)
+    register_servo_commands(parser, state)
     return parser
 
 
@@ -69,6 +71,7 @@ def make_test_parser_with_state():
     register_diagnostic_commands(parser, state)
     register_measure_commands(parser, state)
     register_csac_commands(parser, state)
+    register_servo_commands(parser, state)
     return parser, state
 
 
@@ -606,3 +609,106 @@ def test_same_instant_gives_same_reading():
 
     # Ayni an (mikrosaniye farkiyla) -- degerler pratikte ayni olmali
     assert ilk == ikinci
+
+
+def test_servo_state_query():
+    """
+    SERVo:STATe? cihazin isinma/kilitlenme asamasini bildirir
+    (kilavuz §3.10.3). Coktan isinmis bir cihazda 6 (kilitli) olmali.
+    """
+    parser, state = make_test_parser_with_state()
+    assert parser.dispatch("SERV:STATE?") == "6"
+    # Kilavuzun uzun yazimlari da calismali
+    assert parser.dispatch("SERVO:STATE?") == "6"
+
+
+def test_servo_state_distinguishes_warmup_from_locking():
+    """
+    SERVo:STATe?'IN ASIL DEGERI: SYNC:LOCKED?'in ayirt EDEMEDIGI iki
+    durumu ayirir.
+
+    Cihaz aciliskan kilide tek adimda gecmez:
+        0 isinma  ->  2 kilitleniyor  ->  6 kilitli
+    SYNC:LOCKED? ilk ikisinde de "0" doner -- yani bir izleme
+    yazilimi "neden hala kilitlenmedi?" sorusuna cevap veremez.
+    SERVo:STATe? ise cihazin henuz mi isindigini, yoksa isinip da
+    GNSS'e mi kilitlenemedigini soyler.
+    """
+    from datetime import timedelta
+
+    from gnsdo_simulator.models.warmup import ATOMIC_LOCK_SECONDS, GNSS_LOCK_SECONDS
+
+    parser, state = make_test_parser_with_state()
+    state.warmup_started_at = datetime.now()
+
+    # Isinma: STATe 0, LOCKED? 0
+    assert parser.dispatch("SERV:STATE?") == "0"
+    assert parser.dispatch("SYNC:LOCKED?") == "0"
+
+    # Kilitleniyor: STATe 2, ama LOCKED? HALA 0 -- iste fark burada
+    state.warmup_started_at = datetime.now() - timedelta(
+        seconds=ATOMIC_LOCK_SECONDS + 10
+    )
+    assert parser.dispatch("SERV:STATE?") == "2"
+    assert parser.dispatch("SYNC:LOCKED?") == "0"
+
+    # Kilitli: ikisi de uyumlu
+    state.warmup_started_at = datetime.now() - timedelta(
+        seconds=GNSS_LOCK_SECONDS + 10
+    )
+    assert parser.dispatch("SERV:STATE?") == "6"
+    assert parser.dispatch("SYNC:LOCKED?") == "1"
+
+
+def test_servo_state_shows_phase_locked_holdover():
+    """
+    Kilavuz §3.10.3, durum 5: GNSS kaybindan sonra cihaz ANINDA
+    holdover demez, ~100 saniye faz kilitli kalir.
+
+    Bu ara durum simulatorde olmasaydi, GNSS kaybini izleyen bir test
+    uygulamasi gercek cihazda gorecegi gecisi hic gormezdi.
+    """
+    from datetime import timedelta
+
+    parser, state = make_test_parser_with_state()
+    parser.dispatch("SYNC:HOLD:INIT")
+
+    # Holdover'in ilk saniyeleri: faz halen kilitli (durum 5)
+    assert parser.dispatch("SERV:STATE?") == "5"
+
+    # 100 saniye sonra: tam holdover (durum 1)
+    state.holdover_started_at = datetime.now() - timedelta(seconds=150)
+    assert parser.dispatch("SERV:STATE?") == "1"
+
+
+def test_serv_summary_matches_real_device_format():
+    """
+    SERV? ciktisi gercek cihaz kaydiyla BIREBIR ayni olmali
+    (docs/gercek-cihaz-ciktilari.md).
+
+    Etiketlerdeki bosluk tutarsizliklari ("LOOP:" bitisik ama
+    "EFC SCALE :" ayrik, "FASTLOCK PERIOD  :" iki bosluklu) BILEREK
+    korunuyor: sabit bicimde ayristiran bir istemci, bizim
+    "duzelttigimiz" bir bosluk yuzunden gercek cihazda calisip
+    simulatorde calismayabilir.
+    """
+    parser = make_test_parser()
+    response = parser.dispatch("SERV?")
+    assert response is not None
+
+    assert response.split("\r\n") == [
+        "SERVO: CSAC",
+        "LOOP: 1",
+        "DAC GAIN: 2.000",
+        "EFC SCALE : 0.50",
+        "PHASE CORRECTION : 1.500000",
+        "EFC DAMPING: 10",
+        "FILTER LENGTH: 20",
+        "TEMPERATURE COMPENSATION : 0",
+        "AGING COMPENSATION : -0.000547502",
+        "1PPS OFFSET : 0.000 ns",
+        "TRACE PORT : RS232",
+        "TRACE : 0",
+        "FASTLOCK : 1",
+        "FASTLOCK PERIOD  : 1800",
+    ]

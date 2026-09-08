@@ -287,6 +287,32 @@ class DeviceState:
     noise_enabled: bool = True
     noise_scale: float = 1.0
 
+    # --- SERVO ALT SISTEMI ---
+    # Degerler GERCEK cihazin SERV? ciktisindan alindi
+    # (docs/gercek-cihaz-ciktilari.md). Bunlarin tamami "ayar"
+    # niteliginde: kullanici elle degistirmedikce sabit kalirlar,
+    # o yuzden sabit tutmak burada dogru davranistir.
+    #
+    # Not: SERVo:STATe? bu listede YOK -- o hesaplanan bir degerdir
+    # (bkz. current_servo_state), saklanan degil.
+    servo_selected_loop: str = "CSAC"
+    servo_loop_enabled: bool = True
+    servo_dac_gain: float = 2.000
+    servo_efc_scale: float = 0.50
+    servo_phase_correction: float = 1.500000
+    servo_efc_damping: int = 10
+    servo_filter_length: int = 20
+    servo_temp_compensation: float = 0.0
+    servo_aging_compensation: float = -0.000547502
+    servo_1pps_offset_ns: float = 0.000
+    servo_trace_port: str = "RS232"
+    servo_trace: int = 0
+    servo_fastlock: int = 1
+    # Kilavuz §3.10.16: FASTLOCK, aciliskan sonra dongu kazancini
+    # gecici olarak artirip kilitlenmeyi hizlandirir. Bu deger o
+    # pencerenin suresi (saniye) -- gercek cihazda 1800, yani 30 dk.
+    servo_fastlock_period: int = 1800
+
     # --- ISINMA (bkz. models/warmup.py) ---
     # Bu parametreler yalnizca warmup_started_at DOLU iken devreye
     # girer. Yani "normal" senaryo zaten isinmis bir cihazi temsil
