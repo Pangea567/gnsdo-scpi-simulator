@@ -22,6 +22,29 @@ sync:
   locked: false
   holdover: true
 
+  # --- HOLDOVER HATA BIRIKIMI MODELI ---
+  # (formul ve gerekceler: docs/tasarim-kararlari.md, models/holdover.py)
+  #
+  #     x(t) = x0 + y0*t + (D/2)*t^2
+  #
+  # freq_error_estimate (y0): kayip anindaki bagil frekans hatasi.
+  #   Kilavuz §3.6.10'daki FEE degeri. Hatanin ne HIZLA birikecegini
+  #   belirleyen ana parametre. Asagidaki deger GERCEK cihazin SYNC?
+  #   ciktisindan alindi.
+  #   Bu degerle 210 ns'lik saglik esigine (§3.6.18, HEALTH 0x4)
+  #   yaklasik 4.5 SAATTE ulasilir.
+  #
+  # locked_tint (x0 kaynagi): kilitliyken TINT. Holdover'a girildigi
+  #   anda dondurulup birikimin baslangic noktasi olur. GERCEK cihaz
+  #   ciktisindan: "TIME INTERVAL DIFFERENCE : 1.133E-08".
+  #
+  # drift_per_day (D): Rubidyum osilatorun yaslanma hizi. Kilavuz
+  #   §2.9: kilitliyken ADEV "8E-014 per day"e yaklasiyor. Bu terim
+  #   saatler mertebesinde gorunmez, GUNLER mertebesinde belirginlesir.
+  freq_error_estimate: 1.31e-11
+  locked_tint: 1.2e-08
+  drift_per_day: 8.0e-14
+
 measure:
   temperature: 42.5
   voltage: 1.66

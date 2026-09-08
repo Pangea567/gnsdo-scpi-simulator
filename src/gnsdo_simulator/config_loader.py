@@ -77,6 +77,25 @@ def apply_config_to_state(state: DeviceState, config: dict) -> None:
     sync = config.get("sync", {})
     if "locked" in sync:
         state.sync_locked = sync["locked"]
+    # --- HOLDOVER MODELI PARAMETRELERI ---
+    # DIKKAT -- SIRA ONEMLI: bunlar "holdover" bayragindan ONCE
+    # okunmali. Cunku enter_holdover(), giristeki TINT'i (modelin x0'i)
+    # locked_tint_seconds'tan kopyalar; parametreleri sonra okusaydik
+    # holdover varsayilan degerle baslar, config'teki deger yok
+    # sayilirdi.
+    if "freq_error_estimate" in sync:
+        # y0 -- kayip anindaki bagil frekans hatasi. Kilavuz §3.6.10:
+        # FEE, "frekans hata tahmini". Holdover'da hatanin ne HIZLA
+        # birikecegini belirleyen ana parametre budur.
+        state.freq_error_estimate = float(sync["freq_error_estimate"])
+    if "locked_tint" in sync:
+        # Kilitliyken TINT. Kapali dongu bunu sifira cektigi icin
+        # kucuk ve sabittir; ayrica holdover'a girerken x0 olur.
+        state.locked_tint_seconds = float(sync["locked_tint"])
+    if "drift_per_day" in sync:
+        # D -- Rubidyum yaslanma hizi (gun basina). Kilavuz §2.9.
+        state.rb_drift_per_day = float(sync["drift_per_day"])
+
     if "holdover" in sync:
         # Holdover'a girisi ARTIK dogrudan burada kurmuyoruz --
         # device_state.enter_holdover() cagiriyoruz. Nicin? Cunku

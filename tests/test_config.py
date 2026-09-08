@@ -127,3 +127,64 @@ def test_load_hardware_error_scenario():
     state = load_scenario("hardware-error", configs_dir=CONFIGS_DIR)
     assert state.hardware_fault is True
     assert state.fault_message == "OSCILLATOR FAILURE"
+
+def test_holdover_scenario_loads_model_parameters():
+    """
+    holdover.yaml'daki hata birikimi modeli parametreleri gercekten
+    DeviceState'e ulasmali. Bu parametreler config'ten okunmazsa model
+    sessizce varsayilan degerlerle calisir ve senaryoyu ayarlamak
+    imkansiz hale gelir -- bu tur "sessiz duserek calisma" hatalarini
+    yakalamak icin bu test var.
+    """
+    state = load_scenario("holdover")
+
+    assert state.freq_error_estimate == 1.31e-11  # y0, kilavuz §3.6.10
+    assert state.locked_tint_seconds == 1.2e-08  # x0 kaynagi, §1.1
+    assert state.rb_drift_per_day == 8.0e-14  # D, kilavuz §2.9
+
+
+def test_holdover_entry_tint_frozen_from_locked_value():
+    """
+    KRITIK SIRA KONTROLU: config_loader, model parametrelerini
+    "holdover: true" bayragindan ONCE okumali.
+
+    Cunku enter_holdover(), holdover'a girerken TINT'i (modelin x0'i)
+    locked_tint_seconds'tan kopyalar. Sira ters olsaydi holdover
+    VARSAYILAN degerle baslar, config'teki locked_tint yok sayilirdi
+    -- ve bu sessizce olurdu, hicbir hata vermeden.
+    """
+    state = load_scenario("holdover")
+
+    assert state.holdover is True
+    assert state.holdover_entry_tint_seconds == state.locked_tint_seconds
+
+
+def test_holdover_scenario_tint_accumulates_over_time():
+    """
+    Senaryonun ASIL amaci: holdover'da TINT zamanla BUYUMELI.
+
+    Gercek zamanda beklemek yerine holdover baslangicini geriye
+    tarihliyoruz -- boylece "1 saat gecmis olsa ne olurdu?" sorusunu
+    aninda sorabiliyoruz.
+    """
+    from datetime import datetime, timedelta
+
+    from gnsdo_simulator.device_state import current_tint_seconds
+
+    state = load_scenario("holdover")
+
+    # Holdover henuz yeni basladi: TINT giris degerine cok yakin olmali
+    baslangic = current_tint_seconds(state)
+    assert baslangic == pytest.approx(state.locked_tint_seconds, rel=1e-3)
+
+    # 1 saat geriye tarihle: y0 * 3600 = 1.31e-11 * 3600 = 47.16 ns
+    # birikmis olmali (buna giristeki ~12 ns ekleniyor)
+    state.holdover_started_at = datetime.now() - timedelta(hours=1)
+    bir_saat_sonra = current_tint_seconds(state)
+    assert bir_saat_sonra == pytest.approx(
+        state.locked_tint_seconds + 1.31e-11 * 3600, rel=1e-3
+    )
+
+    # 5 saat geriye tarihle: 210 ns'lik saglik esigi (§3.6.18) asilmali
+    state.holdover_started_at = datetime.now() - timedelta(hours=5)
+    assert abs(current_tint_seconds(state)) > 210e-9
