@@ -27,7 +27,7 @@ GUNCELLEME (gercek cihazin GERCEK ciktisina gore):
 from gnsdo_simulator.device_state import (
     DeviceState,
     measured_csac_temperature,
-    measured_current,
+    measured_rubidium_temperature,
     measured_power_supply,
     measured_temperature,
     measured_voltage,
@@ -54,10 +54,20 @@ def make_meas_volt_handler(state: DeviceState):
 
 
 def make_meas_curr_handler(state: DeviceState):
-    """MEAS:CURR? -- legacy olcum (gercekte akim degil). Ciplak sayi doner."""
+    """
+    MEAS:CURR? -- ADI YANILTICI: akim DEGIL, sicaklik doner.
+
+    Kilavuz §3.8.3: "Legacy SCPI command, instead of OCXO current this
+    command displays either the internal Rubidium temperature or PCB
+    temperature around the filter oscillator."
+
+    Gercek cihaz kaydi da bunu dogruluyor (MEAS:CURR? -> 51.3210,
+    yanindaki MEAS:TEMP? -> 51.1479). Bizim eski cevabimiz 0.42 idi,
+    yani gercekten akim sanmisiz -- yanlisti.
+    """
 
     def handler() -> str:
-        return str(measured_current(state))
+        return str(measured_rubidium_temperature(state))
 
     return handler
 

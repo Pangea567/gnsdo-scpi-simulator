@@ -165,15 +165,21 @@ class DeviceState:
     # aslinda TCXO ayar voltaji -- kucuk bir deger (~1.6-1.7V), bizim
     # eski varsayimimiz (12.1V) YANLIS OLCEKTEYDI (guc kaynagi
     # voltajiyla karistirmisiz). Duzelttik.
-    temperature_celsius: float = 42.5
+    # GERCEK cihaz kayitlarindan (MEAS? ciktilari): PCB sicakligi
+    # 46.57 - 52.87 araliginda gozlendi. Kararli durum ust kumede
+    # (~52.8); dusuk okumalar isinma sirasinda alinmis olmali --
+    # isinma rampasi FAZ 3'te modellenecek.
+    temperature_celsius: float = 52.8
     voltage: float = 1.66  # TCXO ayar voltaji (gercek ornek: 1.658-1.672 araligi)
     current: float = 0.42
 
     # CSAC (Chip Scale Atomic Clock) -- cihazin icindeki kucuk atomik
     # saat modulu. Ayri bir seri numarasi ve kendi sicakligi olur.
     csac_status: str = "RUNNING"
-    # Gercek cihaz ciktisinda CSAC Temperature ~47-54 araliginda,
-    # PCB sicakligina yakin -- eski varsayimimiz (85.0) cok yuksekti.
+    # CSAC sicakligi ARTIK BAGIMSIZ BIR ALAN DEGIL -- PCB sicakligina
+    # BAGLI olarak turetiliyor (bkz. CSAC_PCB_TEMP_OFFSET ve
+    # measured_csac_temperature). Bu alan yalnizca geriye donuk
+    # uyumluluk ve config icin duruyor; asil hesap turetilmis olandir.
     csac_temperature_celsius: float = 54.0
     # GERCEK cihazdan alinan ornek seri numara (kalip: YYMM + harf
     # kodu + 5 haneli sira no). Gercek uretim tarihi degil, ama
@@ -428,9 +434,14 @@ def current_tint_seconds(state: DeviceState, now: Optional[datetime] = None) -> 
 # NOT: CSAC sicakligindaki 47 -> 54 TIRMANISI burada YOK. O, kisa
 # vadeli gurultu degil ISINMA davranisidir (cihaz 54 civarina cikip
 # orada kalir) ve FAZ 3'te isinma rampasi olarak modellenecektir.
+# CSAC modulu ile cevresindeki PCB arasindaki sicaklik farki (C).
+# GERCEK cihaz kayitlarindaki dort MEAS? ciftinin ortalamasi.
+CSAC_PCB_TEMP_OFFSET = 1.32
+
+
 NOISE_PROFILES = {
-    "temperature": (0.3, 300.0),
-    "csac_temperature": (0.25, 240.0),
+    "temperature": (0.35, 420.0),
+    "csac_temperature": (0.06, 260.0),
     "voltage": (0.007, 8.0),
     "current": (0.005, 6.0),
     "power_supply": (0.02, 12.0),
@@ -478,25 +489,70 @@ def apply_noise(
 
 
 def measured_temperature(state: DeviceState, now: Optional[datetime] = None) -> float:
-    """MEAS:TEMP? -- PCB sicakligi (gurultulu)."""
-    return round(apply_noise(state, state.temperature_celsius, "temperature", now), 2)
+    """
+    MEAS:TEMP? -- PCB sicakligi.
+
+    DORT ondalikla donduruluyor: gercek cihaz ciktisi boyle
+    ("PCB Temperature: 46.5688", "51.1479"). CSAC sicakligi ise IKI
+    ondalik kullaniyor ("54.10") -- ayni cihazda farkli biçimler,
+    ama gercek davranis bu.
+    """
+    return round(apply_noise(state, state.temperature_celsius, "temperature", now), 4)
 
 
 def measured_csac_temperature(state: DeviceState, now: Optional[datetime] = None) -> float:
-    """CSAC:TEMP? -- CSAC modulu sicakligi (gurultulu)."""
+    """
+    CSAC:TEMP? -- CSAC modulu sicakligi.
+
+    BAGIMSIZ DEGIL, PCB SICAKLIGINDAN TURETILIYOR. Gercek cihazin
+    MEAS? ciktilarinda ikisi HER ZAMAN birlikte hareket ediyor ve
+    aradaki fark neredeyse sabit:
+
+        PCB 46.5688 -> CSAC 47.83   (+1.261)
+        PCB 52.7762 -> CSAC 54.10   (+1.324)
+        PCB 52.8652 -> CSAC 54.17   (+1.305)
+        PCB 49.7419 -> CSAC 51.13   (+1.388)
+                              ortalama +1.319
+
+    Fiziksel olarak makul: CSAC modulu isi KAYNAGIDIR, cevresindeki
+    kart ondan biraz serindir. Ikisini bagimsiz modelleseydik ters
+    yonlere gidebilir ve gercekte hic gorulmeyen kombinasyonlar
+    uretebilirlerdi.
+
+    Uzerine kucuk bir bagimsiz jitter ekliyoruz -- ayri sensorler
+    oldugu icin fark tipatip sabit degil (1.261 ile 1.388 arasi).
+    """
+    pcb = apply_noise(state, state.temperature_celsius, "temperature", now)
+    csac = pcb + CSAC_PCB_TEMP_OFFSET
+    return round(apply_noise(state, csac, "csac_temperature", now), 2)
+
+
+def measured_rubidium_temperature(state: DeviceState, now: Optional[datetime] = None) -> float:
+    """
+    MEASure:CURRent? -- ADI YANILTICI, AKIM DONDURMEZ.
+
+    Kilavuz §3.8.3: "Legacy SCPI command, instead of OCXO current this
+    command displays either the internal Rubidium temperature or PCB
+    temperature around the filter oscillator."
+
+    Gercek cihaz kaydi bunu dogruluyor: MEAS:CURR? -> 51.3210, hemen
+    yanindaki MEAS:TEMP? -> 51.1479. Ikisi de SICAKLIK, akim degil.
+    (Bizim eski cevabimiz 0.42 idi -- akim sanmisiz.)
+
+    Eski bir komutun adiyla isi arasindaki bu uyumsuzluk gercek
+    cihazlarda siktir: komut geriye donuk uyumluluk icin korunur ama
+    dondurdugu sey degismistir.
+    """
     return round(
-        apply_noise(state, state.csac_temperature_celsius, "csac_temperature", now), 2
+        apply_noise(state, state.temperature_celsius, "current", now)
+        + CSAC_PCB_TEMP_OFFSET,
+        4,
     )
 
 
 def measured_voltage(state: DeviceState, now: Optional[datetime] = None) -> float:
     """MEAS:VOLT? -- TCXO ayar voltaji (gurultulu)."""
     return round(apply_noise(state, state.voltage, "voltage", now), 3)
-
-
-def measured_current(state: DeviceState, now: Optional[datetime] = None) -> float:
-    """MEAS:CURR? -- akim (gurultulu)."""
-    return round(apply_noise(state, state.current, "current", now), 3)
 
 
 def measured_power_supply(state: DeviceState, now: Optional[datetime] = None) -> float:
