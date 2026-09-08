@@ -30,6 +30,9 @@ import serial
 
 from gnsdo_simulator.scpi_parser import SCPIParser
 
+# Taninmayan komutlara gercek cihazin verdigi cevap.
+UNKNOWN_COMMAND_RESPONSE = "Command Error"
+
 logger = logging.getLogger("gnsdo_simulator.serial_server")
 
 
@@ -118,8 +121,17 @@ class SerialServer:
                 response = self.parser.dispatch(raw_line)
 
                 if response is None:
-                    logger.warning("Bilinmeyen komut, cevap verilmiyor: %r", raw_line)
-                    continue
+                    # GERCEK CIHAZ DAVRANISI: taninmayan komutta cihaz
+                    # SESSIZ KALMIYOR, "Command Error" donuyor. Bunu
+                    # gercek cihaz kayitlarindan ogrendik.
+                    #
+                    # Nicin onemli: sessiz kalinsa istemci cevabi
+                    # bekleyip zaman asimina ugrar ve komutun mu
+                    # taninmadigini yoksa baglantinin mi koptugunu
+                    # ayirt edemez. Acik bir hata mesaji bu belirsizligi
+                    # kaldirir.
+                    logger.warning("Bilinmeyen komut: %r", raw_line)
+                    response = UNKNOWN_COMMAND_RESPONSE
 
                 out = (response + "\r\n").encode("ascii")
                 self._serial.write(out)

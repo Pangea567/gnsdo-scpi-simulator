@@ -101,11 +101,19 @@ def test_serial_pty_unknown_command_does_not_crash_server():
     try:
         os.write(master_fd, b"FOO:BAR:BAZ?\r\n")
         time.sleep(0.3)
+        hata_cevabi = os.read(master_fd, 200)
+
+        # GERCEK CIHAZ DAVRANISI: taninmayan komutta cihaz SESSIZ
+        # KALMAZ, "Command Error" dondurur (gercek cihaz kayitlarindan).
+        # Sessiz kalinsaydi istemci zaman asimina ugrar ve komutun mu
+        # taninmadigini yoksa baglantinin mi koptugunu ayirt edemezdi.
+        assert hata_cevabi.strip() == b"Command Error"
 
         os.write(master_fd, b"SYNC:LOCKED?\r\n")
         time.sleep(0.3)
         response = os.read(master_fd, 200)
 
+        # Hatadan SONRA da normal calismaya devam etmeli
         assert response.strip() == b"1"
         assert server_thread.is_alive()  # server hala calisiyor, cokmemis
     finally:
