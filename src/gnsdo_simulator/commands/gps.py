@@ -107,6 +107,17 @@ def generate_satellite_table_rows(tracked_count: int, not_tracked_count: int) ->
     return rows
 
 
+def _has_fix(state: DeviceState) -> bool:
+    """
+    Cihazin GNSS fix'i var mi?
+
+    ORTAK YARDIMCI: hem GPS? ozeti hem de tekil sorgular (GPS:POSition?,
+    GPS:SURVey:STATus? ...) ayni kurali kullansin diye. Iki yerde ayri
+    yazsaydik, ozet "fix var" derken tekil sorgu "yok" diyebilirdi.
+    """
+    return state.gnss_satellites_tracking >= MIN_SATELLITES_FOR_LOCK
+
+
 def make_gps_handler(state: DeviceState):
     """
     GPS? -- gercek cihaz ciktisina gore ETIKETLI 22 satir.
@@ -116,7 +127,7 @@ def make_gps_handler(state: DeviceState):
     """
 
     def handler() -> str:
-        has_fix = state.gnss_satellites_tracking >= MIN_SATELLITES_FOR_LOCK
+        has_fix = _has_fix(state)
 
         if has_fix:
             lat_str = _to_ddmm(state.gps_latitude).rjust(9)
@@ -193,8 +204,195 @@ def register_gps_commands(parser: SCPIParser, state: DeviceState) -> None:
     parser.register("GPS?", make_gps_handler(state))
     parser.register("GPS:SAT:TRAC:COUN?", make_gps_sat_tracking_handler(state))
     parser.register("GPS:SAT:VIS:COUN?", make_gps_sat_visible_handler(state))
+    parser.register("GPS:POSITION?", make_gps_position_handler(state))
+    parser.register("GPS:POSITION:ECEF?", make_gps_position_ecef_handler(state))
+    parser.register("GPS:JAMLEVEL?", make_gps_jamlevel_handler(state))
+    parser.register("GPS:FWVER?", make_gps_fwver_handler(state))
+    parser.register("GPS:SURVEY:STATUS?", make_gps_survey_status_handler(state))
+    parser.register("GPS:DYNAMIC:MODE?", make_gps_dynamic_mode_handler(state))
+    parser.register("GPS:DYNAMIC:STATE?", make_gps_dynamic_state_handler(state))
+    parser.register("GPS:REF:PULSE:SAWTOOTH?", make_gps_sawtooth_handler(state))
+    parser.register("GPS:REF:ADELAY?", make_gps_adelay_handler(state))
+
+    parser.register_alias("GPS:POS?", "GPS:POSITION?")
+    parser.register_alias("GPS:POS:ECEF?", "GPS:POSITION:ECEF?")
+    parser.register_alias("GPS:JAM?", "GPS:JAMLEVEL?")
+    parser.register_alias("GPS:SURV:STAT?", "GPS:SURVEY:STATUS?")
+    parser.register_alias("GPS:DYNAM:MODE?", "GPS:DYNAMIC:MODE?")
+    parser.register_alias("GPS:DYNAM:STATE?", "GPS:DYNAMIC:STATE?")
+    parser.register_alias(
+        "GPS:REFERENCE:PULSE:SAWTOOTH?", "GPS:REF:PULSE:SAWTOOTH?"
+    )
+    parser.register_alias("GPS:REFERENCE:ADELAY?", "GPS:REF:ADELAY?")
 
     # --- KISA/UZUN FORM ALIAS'LARI (gercek kilavuzdan) ---
     parser.register_alias("GPS:SAT:TRA:COUN?", "GPS:SAT:TRAC:COUN?")
     parser.register_alias("GPS:SATELLITE:TRACKING:COUNT?", "GPS:SAT:TRAC:COUN?")
     parser.register_alias("GPS:SATELLITE:VISIBLE:COUNT?", "GPS:SAT:VIS:COUN?")
+
+def make_gps_position_handler(state: DeviceState):
+    """
+    GPS:POSition? -- konum, yukseklik, hiz ve yon.
+
+    Bicim GERCEK cihaz kaydindan (docs/gercek-cihaz-ciktilari.md):
+
+        N,4047.2327
+        E,2927.2257
+        194.70 m
+        0.07 Knots
+        0.00 Degrees
+
+    Bu, GPS? ciktisindaki "ACTUAL POSITION" blogunun aynisidir ama
+    basliksiz -- yani ayni bilgiyi tek basina sormanin yolu.
+    """
+
+    def handler() -> str:
+        if not _has_fix(state):
+            # Fix yokken cihaz sifir konum bildiriyor (GPS? ciktisinda
+            # da boyle davraniyor)
+            return "\r\n".join(
+                ["N,   0.0000", "E,   0.0000", "0.00 m", "0.00 Knots", "0.00 Degrees"]
+            )
+
+        lat_str = _to_ddmm(state.gps_latitude).rjust(9)
+        lon_str = _to_ddmm(state.gps_longitude).rjust(9)
+        return "\r\n".join(
+            [
+                f"N,{lat_str}",
+                f"E,{lon_str}",
+                f"{state.gps_altitude_m:.2f} m",
+                f"{state.gps_speed_knots:.2f} Knots",
+                f"{state.gps_heading_degrees:.2f} Degrees",
+            ]
+        )
+
+    return handler
+
+
+def make_gps_position_ecef_handler(state: DeviceState):
+    """
+    GPS:POSition:ECEF? -- konum, Earth-Centered Earth-Fixed
+    koordinatlarinda (santimetre cinsinden tam sayilar).
+
+    ECEF, dunyanin merkezini baslangic alan kartezyen bir sistemdir;
+    enlem/boylam yerine x,y,z kullanir. Survey (konum belirleme)
+    islemleri bu sistemde yapilir.
+    """
+
+    def handler() -> str:
+        if not _has_fix(state):
+            return "0,0,0"
+        return f"{state.gps_ecef_x},{state.gps_ecef_y},{state.gps_ecef_z}"
+
+    return handler
+
+
+def make_gps_jamlevel_handler(state: DeviceState):
+    """
+    GPS:JAMlevel? -- girisim (jamming) seviyesi, 0-255 (kilavuz §3.3.28).
+
+    0 = girisim yok, 255 = guclu girisim. Kilavuz: "Any level exceeding
+    50 in combination to loss of GNSS lock will cause a SYNC:HEALTH
+    0x800 event".
+
+    Bu degeri SYNC:HEALTH? zaten kullaniyordu ama disaridan
+    OKUNAMIYORDU -- bir tutarsizlikti, artik giderildi.
+    """
+
+    def handler() -> str:
+        return str(state.gps_jamming_level)
+
+    return handler
+
+
+def make_gps_fwver_handler(state: DeviceState):
+    """GPS:FWver? -- GNSS alicisinin (cihazin degil) yazilim surumu."""
+
+    def handler() -> str:
+        return state.gps_firmware_version
+
+    return handler
+
+
+def make_gps_survey_status_handler(state: DeviceState):
+    """
+    GPS:SURVey:STATus? -- konum belirleme (survey) durumu (§3.3.24).
+
+    Sabit kurulumlarda cihaz once uzun bir olcumle kendi konumunu
+    belirler ("survey"), sonra o konumu sabitleyip ("position hold")
+    tum uydu sinyalini ZAMAN dogrulugu icin kullanir. Bu, timing
+    uygulamalarinda dogrulugu ciddi olcude artirir.
+
+    Bicim, GPS? ciktisindaki survey satirlarindan turetildi.
+    """
+
+    def handler() -> str:
+        duration = (
+            state.gps_survey_duration_seconds
+            if _has_fix(state)
+            else NO_FIX_SURVEY_DURATION
+        )
+        variance = state.gps_3d_variance if _has_fix(state) else NO_FIX_3D_VARIANCE
+        ecef = (
+            f"{state.gps_ecef_x},{state.gps_ecef_y},{state.gps_ecef_z}"
+            if _has_fix(state)
+            else "0,0,0"
+        )
+        return "\r\n".join(
+            [
+                f"SURVEY STATUS:{state.gps_survey_status}",
+                f"Duration : {duration}, ECEF {ecef}, 3D variance {variance}",
+            ]
+        )
+
+    return handler
+
+
+def make_gps_dynamic_mode_handler(state: DeviceState):
+    """GPS:DYNAMic:MODE? -- alicinin hareket profili modu (§3.3.13)."""
+
+    def handler() -> str:
+        return state.gps_dynamic_mode_label
+
+    return handler
+
+
+def make_gps_dynamic_state_handler(state: DeviceState):
+    """GPS:DYNAMic:STATe? -- alicinin algiladigi hareket durumu (§3.3.15)."""
+
+    def handler() -> str:
+        return state.gps_dynamic_state_label
+
+    return handler
+
+
+def make_gps_sawtooth_handler(state: DeviceState):
+    """
+    GPS:REFerence:PULse:SAWtooth? -- testere disi (sawtooth) hatasi, ns.
+
+    GNSS alicisinin 1PPS darbesi ic saatinin adimlarina yuvarlanir;
+    bu yuvarlama her darbede bilinen bir hata birakir. Alici bu hatayi
+    bildirir, kullanici da isterse duzeltir. Fix yokken anlamsizdir,
+    o yuzden 0.0 doner (GPS? ciktisinda da boyle).
+    """
+
+    def handler() -> str:
+        deger = state.gps_pulse_sawtooth if _has_fix(state) else 0.0
+        return f"{deger}"
+
+    return handler
+
+
+def make_gps_adelay_handler(state: DeviceState):
+    """
+    GPS:REFerence:ADELay? -- anten kablosu gecikmesi, saniye (§3.3.16).
+
+    Sinyalin antenden cihaza ulasmasi zaman alir; bu gecikme
+    bilinmezse zaman referansi sabit bir hatayla kayar. Kullanici
+    kablo uzunluguna gore ayarlar.
+    """
+
+    def handler() -> str:
+        return str(state.gps_antenna_delay_seconds)
+
+    return handler

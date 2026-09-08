@@ -289,6 +289,13 @@ class DeviceState:
     #     deger kullaniyoruz (bu yaziya kadar birikmis deger 18'dir).
     ptime_output_enabled: bool = False
     leap_second_accumulated: int = 18
+    # Bekleyen arti saniye bilgisi (kilavuz §3.5.7-3.5.10).
+    # Varsayilan: bekleyen olay YOK. Kilavuz §3.5.10'a gore DURation
+    # icin 60 = "normal dakika, olay yok"; 61 = saniye eklenecek,
+    # 59 = cikarilacak.
+    leap_second_pending: bool = False
+    leap_second_date: str = "0,0,0"
+    leap_second_duration: int = 60
 
     # "warming-up" senaryosu icin -- gercek cihazin kullanim kilavuzuna
     # gore CSAC/Rubidium modulunun atomik kilide gecmesi icin gereken

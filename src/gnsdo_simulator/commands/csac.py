@@ -15,7 +15,13 @@ GUNCELLEME (gercek cihazin GERCEK ciktisina gore):
   ("0"), bizim eski varsayimimiz (hex "0x0") YANLISTI -- duzelttik.
 """
 
-from gnsdo_simulator.device_state import DeviceState, measured_csac_temperature, elapsed_hours_since_start, is_locked
+from gnsdo_simulator.device_state import (
+    DeviceState,
+    elapsed_hours_since_start,
+    is_locked,
+    measured_csac_temperature,
+    measured_voltage,
+)
 from gnsdo_simulator.scpi_parser import SCPIParser
 
 
@@ -115,6 +121,7 @@ def register_csac_commands(parser: SCPIParser, state: DeviceState) -> None:
     parser.register("CSAC:SN?", make_csac_sn_handler(state))
     parser.register("CSAC:LIFE?", make_csac_lifetime_handler(state))
     parser.register("CSAC?", make_csac_handler(state))
+    register_csac_field_queries(parser, state)
 
     # --- KISA/UZUN FORM VE ALIAS'LAR ---
     # Kilavuz: "CSAC:STATus?" -> mandatory kisa form "CSAC:STAT?"
@@ -125,3 +132,48 @@ def register_csac_commands(parser: SCPIParser, state: DeviceState) -> None:
     # GERCEK cihaz ciktisinda "MAC?" diye ayri bir komut var ama
     # sonucu CSAC? ile BIREBIR AYNI -- alias olarak ekliyoruz.
     parser.register_alias("MAC?", "CSAC?")
+
+def _basit_sorgu(deger_uretici):
+    """Tek bir degeri metne cevirip donduren handler uretir."""
+
+    def handler() -> str:
+        return deger_uretici()
+
+    return handler
+
+
+def register_csac_field_queries(parser, state: DeviceState) -> None:
+    """
+    CSAC? ozetindeki her alani TEK BASINA sorulabilir hale getirir
+    (kilavuz §3.11).
+
+    Nicin: bir izleme yazilimi genelde tek bir degeri periyodik olarak
+    okur. Her seferinde 13 satirlik ozeti alip ayristirmak hem gereksiz
+    trafik hem de kirilgan (ozetin bicimi degisirse ayristirma bozulur).
+
+    Degerlerin tamami CSAC? ile AYNI kaynaklardan okunuyor, dolayisiyla
+    ozet ile tekil sorgu celisemez.
+    """
+    parser.register("CSAC:RS232?", _basit_sorgu(lambda: state.csac_rs232_status))
+    parser.register("CSAC:STEER?", _basit_sorgu(lambda: f"{state.csac_steer:.3f}"))
+    parser.register("CSAC:MODE?", _basit_sorgu(lambda: state.csac_mode))
+    parser.register(
+        "CSAC:TEC?", _basit_sorgu(lambda: f"{state.csac_tec_control:.2f}")
+    )
+    parser.register(
+        "CSAC:TCXO?", _basit_sorgu(lambda: f"{measured_voltage(state):.3f}")
+    )
+    parser.register(
+        "CSAC:SIG?", _basit_sorgu(lambda: f"{state.csac_dc_signal_level:.2f}")
+    )
+    parser.register(
+        "CSAC:HEAT?", _basit_sorgu(lambda: f"{state.csac_heat_package:.2f}")
+    )
+    parser.register("CSAC:FW?", _basit_sorgu(lambda: state.csac_firmware_rev))
+
+    # Kilavuzun uzun yazimlari (§3.11)
+    parser.register_alias("CSAC:STEER?", "CSAC:STEER?")
+    parser.register_alias("CSAC:TECCONTROL?", "CSAC:TEC?")
+    parser.register_alias("CSAC:SIGNAL?", "CSAC:SIG?")
+    parser.register_alias("CSAC:HEATPACKAGE?", "CSAC:HEAT?")
+    parser.register_alias("CSAC:FWREV?", "CSAC:FW?")

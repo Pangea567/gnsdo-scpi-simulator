@@ -74,7 +74,7 @@ olur: `GPS` (normal), `EXTERNAL` (dışarıdan başka bir referans saat), ya da
 
 ---
 
-## DIAG — Tanı (diagnostic) komutu
+## DIAG — Tanı (diagnostic) komutları
 
 **`DIAG?`** ("Diagnostic") → Cihazın kendi kendini test etmesi / genel arıza
 sorgusu. Neredeyse her profesyonel test/ölçüm cihazında böyle bir komut
@@ -141,6 +141,54 @@ Gerçek cihazda `MAC?` komutu da birebir aynı çıktıyı verir (alias).
 
 ---
 
+
+## SERVO — Disiplin döngüsü komutları
+
+Cihazın içinde iki tane **kontrol döngüsü** (servo loop) var. Bunların işi,
+osilatörün frekansını sürekli ince ayar yaparak referansa kilitli tutmak:
+
+- **Rubidyum döngüsü:** Rubidyum osilatörü GNSS 1PPS'ine kilitler
+- **Filtre döngüsü:** Filtre OCXO'sunu Rubidyum'a kilitler
+
+| Komut | Ne yapar |
+|---|---|
+| `SERV:STATE?` | Cihazın hangi aşamada olduğunu söyler (aşağıya bakın) |
+| `SERV?` | Döngü ayarlarının tamamının özeti (kazanç, sönümleme, filtre uzunluğu vb.) |
+
+### `SERV:STATE?` — neden önemli
+
+Cihaz açılıştan kilide **tek adımda geçmez**:
+
+| Değer | Anlamı |
+|---|---|
+| `0` | Osilatör ısınıyor |
+| `2` | Kilitleniyor — atomik kilit sağlandı, GNSS'e kilitlenme eğitimi sürüyor |
+| `6` | Kilitli, GNSS aktif |
+| `5` | Holdover ama hâlâ faz kilitli (GNSS kaybından sonraki ~100 saniye) |
+| `1` | Holdover |
+
+`SYNC:LOCKED?` yalnızca `1`/`0` döner, yani **`0` ile `2`'yi ayırt edemez**.
+İzleme yazılımı "neden hâlâ kilitlenmedi?" sorusuna ancak `SERV:STATE?` ile
+cevap verebilir: cihaz henüz mü ısınıyor, yoksa ısındı da GNSS'e mi
+kilitlenemiyor?
+
+## GYRO — İvmeölçer komutları
+
+Cihazda opsiyonel bir ivmeölçer var. Amacı süslü değil, tamamen pratik:
+**bir osilatörün frekansı üzerine etki eden g-kuvvetine duyarlıdır**
+("g-sensitivity"). Uçakta, araçta veya titreşimli bir ortamda bu etki
+ölçülebilir bir frekans hatası yaratır. Cihaz ivmeyi ölçüp bu hatayı
+yazılımla telafi edebiliyor.
+
+| Komut | Ne yapar |
+|---|---|
+| `GYRO?` | Mod, kalibrasyon, g-duyarlılık, g-yükü ve port bilgisinin özeti |
+| `GYRO:GLOAD?` | Üç eksendeki anlık g-kuvveti (`x,y,z`) |
+| `GYRO:PORT?` | İvmeölçerin bağlı olduğu seri arayüz |
+
+`GYRO:GLOAD?` çıktısında **Z ekseni yaklaşık `-1`** çıkar — cihaz düz
+duruyorsa ölçtüğü şey yerçekimidir.
+
 ## Sistem / kimlik komutları
 
 **`*IDN?`** → "Kimsin?" Üretici, model ve firmware bilgisini döndüren
@@ -152,3 +200,102 @@ tutulmaz; parser'ın gerçekten kayıtlı komutlarından otomatik üretilir.
 **`SYST:STAT?`** → Cihazın çok satırlı "gösterge paneli" raporu: başlık,
 uydu tablosu, konum/UTC ve sağlık özeti (GPSDO Status: Locked / Holdover /
 Warming Up / Not Locked / Fault).
+
+
+---
+
+## Sonradan eklenen sorgular
+
+Aşağıdaki komutlar, cihazın zaten modellediği ama başlangıçta tek başına
+sorulamayan değerlerini dışarı açar. Hepsi özet çıktılarla **aynı kaynaktan**
+okur, dolayısıyla özet ile tekil sorgu birbiriyle çelişemez.
+
+### SYNC
+
+| Komut | Ne yapar |
+|---|---|
+| `SYNC:FEE?` | Frekans hata tahmini. Holdover'da hatanın **ne hızla** birikeceğini belirleyen değer |
+| `SYNC:HOLD:STATE?` | Holdover'da mıyız (`1`/`0`) |
+| `SYNC:SOUR:STATE?` | Aktif 1PPS kaynağı |
+| `SYNC:TINT:CSAC?` | Rubidyum 1PPS ↔ GNSS 1PPS farkı — **holdover'da biriken** değer |
+| `SYNC:TINT:FILTER?` | Filtre OCXO 1PPS ↔ Rubidyum 1PPS farkı — **holdover'da birikmez** |
+| `SYNC:TINT:THRESHOLD?` | Jam-sync eşiği (ns) |
+| `SYNC:OUT:FILTER?` | Faz gürültü filtresi açık mı |
+| `SYNC:OUT:1PPS:RESET?` | Reset'te 1PPS üretilsin mi |
+| `SYNC:OUT:1PPS:DOMAIN?` | 1PPS çıkışı hangi osilatörden alınıyor |
+
+**İki TINT'i karıştırmayın.** Biri Rubidyum'u GNSS'e kıyaslar, diğeri filtre
+osilatörünü Rubidyum'a. GNSS kaybolunca **birincisi** birikir; ikincisi
+birikmez, çünkü o döngü GNSS'e değil Rubidyum'a kilitlidir ve o çalışmaya
+devam eder.
+
+### DIAG
+
+| Komut | Ne yapar |
+|---|---|
+| `DIAG:ROSC:EFC:REL?` | Elektronik frekans kontrolü, yüzde (−100…+100) |
+| `DIAG:ROSC:EFC:ABS?` | Aynı büyüklük, parts-per-trillion cinsinden |
+
+Bu ikisi **bağımsız değil**: `Absolute = Relative × 200`. Asıl değer tam sayı
+olan `Absolute`, yüzde ondan hesaplanıyor.
+
+### GPS
+
+| Komut | Ne yapar |
+|---|---|
+| `GPS:POSITION?` | Konum, yükseklik, hız, yön |
+| `GPS:POSITION:ECEF?` | Konum, yer merkezli kartezyen koordinatlarda |
+| `GPS:JAMLEVEL?` | Girişim (jamming) seviyesi, 0–255 |
+| `GPS:FWVER?` | GNSS alıcısının yazılım sürümü |
+| `GPS:SURVEY:STATUS?` | Konum belirleme (survey) durumu |
+| `GPS:DYNAMIC:MODE?` / `:STATE?` | Hareket profili modu ve algılanan durum |
+| `GPS:REF:PULSE:SAWTOOTH?` | Testere dişi hatası (ns) |
+| `GPS:REF:ADELAY?` | Anten kablosu gecikmesi (s) |
+
+**Survey nedir:** Sabit kurulumlarda cihaz önce uzun bir ölçümle kendi
+konumunu belirler, sonra o konumu sabitleyip *tüm* uydu sinyalini zaman
+doğruluğu için kullanır. Timing uygulamalarında doğruluğu ciddi ölçüde artırır.
+
+**Testere dişi (sawtooth) hatası:** Alıcının 1PPS darbesi iç saatinin
+adımlarına yuvarlanır; bu yuvarlama her darbede bilinen bir hata bırakır.
+Alıcı bu hatayı bildirir, isteyen düzeltir.
+
+### CSAC
+
+`CSAC?` özetindeki her alan tek başına da sorulabilir: `CSAC:RS232?`,
+`CSAC:STEER?`, `CSAC:MODE?`, `CSAC:TEC?`, `CSAC:TCXO?`, `CSAC:SIG?`,
+`CSAC:HEAT?`, `CSAC:FW?`
+
+Bir izleme yazılımı genelde tek bir değeri periyodik okur; her seferinde
+13 satırlık özeti alıp ayrıştırmak hem gereksiz trafik hem de kırılgandır.
+
+### PTIME — artı saniye
+
+| Komut | Ne yapar |
+|---|---|
+| `PTIME:LEAP?` | Artı saniye bilgilerinin özeti |
+| `PTIME:LEAP:PEND?` | Bekleyen bir artı saniye var mı |
+| `PTIME:LEAP:DATE?` | Bekleyen olayın tarihi |
+| `PTIME:LEAP:DUR?` | O günkü son dakikanın uzunluğu |
+
+**Artı saniye nedir:** Dünyanın dönüşü düzensiz olduğu için, atomik zaman ile
+astronomik zaman arasındaki fark büyüdüğünde UTC'ye bir saniye eklenir. Alıcı
+bunu almanaktan öğrenip önceden haber verir — zaman kritik sistemler o anı
+hazırlıklı karşılasın diye.
+
+`PTIME:LEAP:DUR?` için **`60` = bekleyen olay yok** (normal dakika),
+`61` = bir saniye eklenecek, `59` = çıkarılacak.
+
+### Sistem
+
+| Komut | Ne yapar |
+|---|---|
+| `SYST:ID?` / `:SN?` / `:HWREV?` | Seri numarası ve donanım revizyonu |
+| `SYST:COMM:SER:ECHO <ON\|OFF>` | Cihaz aldığı karakterleri geri yansıtsın mı |
+| `SYST:COMM:SER:PROMPT <ON\|OFF>` | Cevaplardan sonra komut istemi yazılsın mı |
+| `SYST:COMM:SER:BAUD?` | Seri hız |
+
+**Echo ve prompt neden var:** İkisi de terminalden elle komut yazan bir
+*insan* için faydalıdır (yazdığını görürsün, istem seni bekler). Ama
+*yazılım* için gürültüdür — gönderdiği her şeyi geri okur ve istem satırını
+da cevap sanabilir. Bu yüzden varsayılan olarak kapalıdırlar.

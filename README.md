@@ -261,14 +261,15 @@ Her komutun **ne anlama geldiğinin** sade açıklaması için
 
 | Grup | Komutlar |
 |---|---|
-| Sistem/kimlik | `*IDN?`, `HELP?`, `SYST:STAT?` |
-| Senkronizasyon | `SYNC?`, `SYNC:LOCKED?`, `SYNC:TINT?`, `SYNC:HEALTH?`, `SYNC:HOLD:DUR?`, `SYNC:HOLD:INIT`, `SYNC:HOLD:REC:INIT`, `SYNC:SOUR:MODE <değer>` |
-| GPS | `GPS?`, `GPS:SAT:TRAC:COUN?`, `GPS:SAT:VIS:COUN?` |
-| Zaman | `PTIME?`, `PTIME:DATE?`, `PTIME:TIME?`, `PTIME:TIME:STRING?`, `PTIME:OUTPUT?`/`<ON\|OFF>`, `PTIME:LEAP:ACC?` |
-| Tanı | `DIAG?`, `DIAG:LIFE:COUN?` |
+| Sistem/kimlik | `*IDN?`, `HELP?`, `SYST:STAT?`, `SYST:ID?`, `SYST:ID:SN?`, `SYST:ID:HWREV?`, `SYST:COMM:SER:ECHO`/`?`, `SYST:COMM:SER:PROMPT`/`?`, `SYST:COMM:SER:BAUD?` |
+| Senkronizasyon | `SYNC?`, `SYNC:LOCKED?`, `SYNC:TINT?`, `SYNC:TINT:CSAC?`, `SYNC:TINT:FILTER?`, `SYNC:TINT:THRESHOLD?`, `SYNC:HEALTH?`, `SYNC:FEE?`, `SYNC:HOLD:DUR?`, `SYNC:HOLD:STATE?`, `SYNC:HOLD:INIT`, `SYNC:HOLD:REC:INIT`, `SYNC:SOUR:MODE <değer>`, `SYNC:SOUR:STATE?`, `SYNC:OUT:FILTER?`, `SYNC:OUT:1PPS:RESET?`, `SYNC:OUT:1PPS:DOMAIN?` |
+| GPS | `GPS?`, `GPS:SAT:TRAC:COUN?`, `GPS:SAT:VIS:COUN?`, `GPS:POSITION?`, `GPS:POSITION:ECEF?`, `GPS:JAMLEVEL?`, `GPS:FWVER?`, `GPS:SURVEY:STATUS?`, `GPS:DYNAMIC:MODE?`, `GPS:DYNAMIC:STATE?`, `GPS:REF:PULSE:SAWTOOTH?`, `GPS:REF:ADELAY?` |
+| Zaman | `PTIME?`, `PTIME:DATE?`, `PTIME:TIME?`, `PTIME:TIME:STRING?`, `PTIME:TINT?`, `PTIME:OUTPUT?`/`<ON\|OFF>`, `PTIME:LEAP?`, `PTIME:LEAP:ACC?`, `PTIME:LEAP:PEND?`, `PTIME:LEAP:DATE?`, `PTIME:LEAP:DUR?` |
+| Tanı | `DIAG?`, `DIAG:LIFE:COUN?`, `DIAG:ROSC:EFC:REL?`, `DIAG:ROSC:EFC:ABS?` |
 | Ölçüm | `MEAS?`, `MEAS:TEMP?`, `MEAS:VOLT?`, `MEAS:CURR?`, `MEAS:POW?` |
-| CSAC | `CSAC?` (`MAC?`), `CSAC:STATUS?`, `CSAC:TEMP?`, `CSAC:SN?`, `CSAC:LIFE?` |
+| CSAC | `CSAC?` (`MAC?`), `CSAC:STATUS?`, `CSAC:TEMP?`, `CSAC:SN?`, `CSAC:LIFE?`, `CSAC:RS232?`, `CSAC:STEER?`, `CSAC:MODE?`, `CSAC:TEC?`, `CSAC:TCXO?`, `CSAC:SIG?`, `CSAC:HEAT?`, `CSAC:FW?` |
 | Servo | `SERV?`, `SERV:STATE?` |
+| Gyro | `GYRO?`, `GYRO:GLOAD?`, `GYRO:PORT?` |
 
 Komutlar büyük/küçük harf duyarsızdır ve çoğu için uzun form takma adı
 (`MEASURE:TEMPERATURE?` gibi) tanımlıdır.
@@ -401,7 +402,7 @@ gnsdo-scpi-simulator/
 │   │   ├── noise.py          #   deterministik ölçüm gürültüsü
 │   │   └── warmup.py         #   ısınma rampası + servo durum makinesi
 │   └── commands/
-│       ├── system.py  gps.py  ptime.py  servo.py
+│       ├── system.py  gps.py  ptime.py  servo.py  gyro.py
 │       ├── sync.py  diagnostic.py  measure.py  csac.py
 └── tests/
     ├── test_parser.py  test_config.py

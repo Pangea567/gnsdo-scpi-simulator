@@ -145,6 +145,15 @@ def register_ptime_commands(parser: SCPIParser, state: DeviceState) -> None:
     parser.register("PTIME:OUTPUT?", make_ptime_output_query_handler(state))
     parser.register_setter("PTIME:OUTPUT", make_ptime_output_setter(state))
     parser.register("PTIME:LEAP:ACC?", make_ptime_leap_accumulated_handler(state))
+    parser.register("PTIME:LEAP?", make_ptime_leap_handler(state))
+    parser.register("PTIME:LEAP:PEND?", make_ptime_leap_pending_handler(state))
+    parser.register("PTIME:LEAP:DATE?", make_ptime_leap_date_handler(state))
+    parser.register("PTIME:LEAP:DUR?", make_ptime_leap_duration_handler(state))
+
+    parser.register_alias("PTIME:LEAPSECOND?", "PTIME:LEAP?")
+    parser.register_alias("PTIME:LEAPSECOND:PENDING?", "PTIME:LEAP:PEND?")
+    parser.register_alias("PTIME:LEAPSECOND:DATE?", "PTIME:LEAP:DATE?")
+    parser.register_alias("PTIME:LEAPSECOND:DURATION?", "PTIME:LEAP:DUR?")
 
     # PTIME? en son kaydediliyor CUNKU yukaridaki komutlarin hepsinin
     # ONCE parser'a kayitli olmasi lazim (dispatch() ile onlari
@@ -157,3 +166,74 @@ def register_ptime_commands(parser: SCPIParser, state: DeviceState) -> None:
     parser.register_alias("PTIME:OUT?", "PTIME:OUTPUT?")
     parser.register_alias("PTIME:OUT", "PTIME:OUTPUT")
     parser.register_alias("PTIME:LEAPSECOND:ACCUMULATED?", "PTIME:LEAP:ACC?")
+
+def make_ptime_leap_pending_handler(state: DeviceState):
+    """
+    PTIMe:LEAPsecond:PENDing? -- bekleyen bir arti saniye var mi (§3.5.7).
+
+    ARTI SANIYE NEDIR: Dunyanin donusu duzensiz oldugu icin, atomik
+    zaman (TAI) ile astronomik zaman (UT1) arasindaki fark buyudugunde
+    UTC'ye bir saniye eklenir. GNSS alicisi bunu almanaktan ogrenir ve
+    onceden haber verir -- zaman kritik sistemler o ani hazirlikli
+    karsilasin diye.
+    """
+
+    def handler() -> str:
+        return "1" if state.leap_second_pending else "0"
+
+    return handler
+
+
+def make_ptime_leap_date_handler(state: DeviceState):
+    """
+    PTIMe:LEAPsecond:DATE? -- bekleyen arti saniyenin tarihi (§3.5.9).
+
+    Bekleyen bir olay yoksa cihaz gecerli bir tarih uretmez.
+    """
+
+    def handler() -> str:
+        return state.leap_second_date
+
+    return handler
+
+
+def make_ptime_leap_duration_handler(state: DeviceState):
+    """
+    PTIMe:LEAPsecond:DURation? -- arti saniye gunundeki son dakikanin
+    uzunlugu (§3.5.10).
+
+    Kilavuz: "The returned value is 59, 60 or 61 if GPS Almanac data is
+    available, and 0 otherwise. A response of 60 indicates that no leap
+    second is pending."
+
+    Yani 60 = normal dakika (olay yok), 61 = bir saniye EKLENECEK,
+    59 = bir saniye CIKARILACAK.
+    """
+
+    def handler() -> str:
+        return str(state.leap_second_duration)
+
+    return handler
+
+
+def make_ptime_leap_handler(state: DeviceState):
+    """
+    PTIMe:LEAPsecond? -- arti saniye bilgilerinin ozeti.
+
+    BICIM NOTU: Bu komutun ciktisi gercek cihaz kayitlarinda YOK ve
+    kilavuz ornek vermiyor. Bicimi, PTIME? ozetindeki etiketli satir
+    duzenine benzeterek turettik. Gercek cihazla karsilastirma imkani
+    dogarsa once burasi dogrulanmali.
+    """
+
+    def handler() -> str:
+        return "\r\n".join(
+            [
+                f"PENDING :{make_ptime_leap_pending_handler(state)()}",
+                f"ACCUMULATED :{state.leap_second_accumulated}",
+                f"DATE :{state.leap_second_date}",
+                f"DURATION :{state.leap_second_duration}",
+            ]
+        )
+
+    return handler

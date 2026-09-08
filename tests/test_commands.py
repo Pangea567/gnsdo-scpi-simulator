@@ -994,3 +994,92 @@ def test_new_sync_queries_answer():
         "SYNC:OUT:1PPS:DOMAIN?",
     ]:
         assert parser.dispatch(komut) is not None, komut
+
+
+def test_all_registered_queries_answer():
+    """
+    KAPSAM TESTI: kayitli HER sorgu komutu bir cevap dondurmeli.
+
+    Nicin degerli: yeni bir komut eklerken handler'i yazip parser'a
+    kaydetmeyi unutmak ya da eksik bir alan adi yuzunden calisma
+    aninda patlamak kolaydir. Bu test, komut sayisi buyudukce
+    tek tek test yazmadan bu tur hatalari yakalar.
+    """
+    parser = make_test_parser()
+
+    for komut in parser.list_commands():
+        if not komut.endswith("?"):
+            continue  # setter'lar deger ister, burada kapsam disi
+        cevap = parser.dispatch(komut)
+        assert cevap is not None, f"{komut} cevap vermedi"
+        assert cevap != "", f"{komut} bos cevap dondu"
+
+
+def test_gps_position_query_matches_summary_block():
+    """
+    GPS:POSition? ciktisi, GPS? ozetindeki "ACTUAL POSITION" blogunun
+    aynisi olmali -- ikisi de ayni kaynaktan okuyor.
+    """
+    parser = make_test_parser()
+
+    tekil = parser.dispatch("GPS:POSITION?")
+    ozet = parser.dispatch("GPS?")
+    assert tekil is not None and ozet is not None
+
+    for satir in tekil.split("\r\n"):
+        assert satir in ozet, satir
+
+
+def test_gps_jamlevel_is_readable():
+    """
+    Bir tutarsizligi gideriyor: jamming seviyesini SYNC:HEALTH? 0x800
+    icin KULLANIYORDUK ama disaridan okunamiyordu.
+    """
+    parser, state = make_test_parser_with_state()
+    assert parser.dispatch("GPS:JAMLEVEL?") == "5"
+
+    state.gps_jamming_level = 120
+    assert parser.dispatch("GPS:JAMLEVEL?") == "120"
+
+
+def test_csac_field_queries_match_summary():
+    """
+    CSAC? ozetindeki her alan tek basina da sorulabilmeli ve ayni
+    degeri vermeli.
+
+    Nicin gerekli: bir izleme yazilimi genelde tek bir degeri
+    periyodik okur; her seferinde 13 satirlik ozeti ayristirmak hem
+    gereksiz hem kirilgan.
+    """
+    parser, state = make_test_parser_with_state()
+    state.noise_scale = 0.0
+
+    ozet = parser.dispatch("CSAC?")
+    assert ozet is not None
+
+    eslesmeler = {
+        "RS232: ": "CSAC:RS232?",
+        "STEER: ": "CSAC:STEER?",
+        "MODE: ": "CSAC:MODE?",
+        "TEC CONTROL: ": "CSAC:TEC?",
+        "DC SIGNAL LEVEL: ": "CSAC:SIG?",
+        "HEAT PACKAGE: ": "CSAC:HEAT?",
+        "TEMPERATURE: ": "CSAC:TEMP?",
+        "FIRMWARE REV: ": "CSAC:FW?",
+    }
+    for etiket, komut in eslesmeler.items():
+        deger = parser.dispatch(komut)
+        assert f"{etiket}{deger}" in ozet, f"{komut} ozetle uyusmuyor"
+
+
+def test_ptime_leap_queries():
+    """
+    Artı saniye sorgulari (kilavuz §3.5.7-3.5.10).
+
+    Kilavuz §3.5.10: DURation icin 60 = "bekleyen olay yok".
+    """
+    parser = make_test_parser()
+
+    assert parser.dispatch("PTIME:LEAP:PEND?") == "0"
+    assert parser.dispatch("PTIME:LEAP:DUR?") == "60"
+    assert parser.dispatch("PTIME:LEAP:ACC?") == "18"
