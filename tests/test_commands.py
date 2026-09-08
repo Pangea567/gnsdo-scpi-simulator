@@ -46,6 +46,30 @@ def make_test_parser() -> SCPIParser:
     return parser
 
 
+def make_test_parser_with_state():
+    """
+    make_test_parser() ile ayni kurulumu yapar ama parser'in YANINDA
+    DeviceState'i de dondurur.
+
+    Nicin ayri bir fonksiyon? Bazi testlerin state'e dogrudan
+    dokunmasi gerekiyor (ornegin holdover baslangicini geriye
+    tarihleyip "5 saat gecmis olsaydi" senaryosunu kurmak icin).
+    Mevcut make_test_parser()'in donus tipini degistirmek yerine
+    yeni bir yardimci ekliyoruz -- boylece onu kullanan onlarca test
+    oldugu gibi calismaya devam ediyor.
+    """
+    state = DeviceState()
+    parser = SCPIParser()
+    register_system_commands(parser, state)
+    register_gps_commands(parser, state)
+    register_ptime_commands(parser, state)
+    register_sync_commands(parser, state)
+    register_diagnostic_commands(parser, state)
+    register_measure_commands(parser, state)
+    register_csac_commands(parser, state)
+    return parser, state
+
+
 def test_idn():
     parser = make_test_parser()
     response = parser.dispatch("*IDN?")
@@ -382,3 +406,80 @@ def test_csac_status_reflects_lock_state():
     parser = SCPIParser()
     register_csac_commands(parser, state)
     assert parser.dispatch("CSAC:STATUS?") == "1"
+
+def test_holdover_tint_grows_over_time_via_scpi():
+    """
+    Holdover'da SYNC:TINT? SCPI cevabi zamanla BUYUMELI.
+
+    Bu, modelin dogrudan degil KOMUT KATMANI uzerinden testi -- yani
+    gercek bir istemcinin gordugu sey. Model dogru calissa bile
+    komutlara baglanmasi unutulmus olabilirdi; bu test onu yakalar.
+
+    Gercek zamanda saatlerce beklemek yerine holdover baslangicini
+    geriye tarihliyoruz.
+    """
+    from datetime import timedelta
+
+    parser, state = make_test_parser_with_state()
+    parser.dispatch("SYNC:HOLD:INIT")
+
+    okumalar = []
+    for saat in [0, 1, 5]:
+        # "su kadar sure gecmis olsaydi" -- gercek zamanda beklemek
+        # yerine holdover baslangicini geriye tarihliyoruz
+        state.holdover_started_at = datetime.now() - timedelta(hours=saat)
+        cevap = parser.dispatch("SYNC:TINT?")
+        assert cevap is not None
+        okumalar.append(float(cevap))
+
+    # Kesin artan olmali -- holdover uzadikca hata birikir
+    assert okumalar == sorted(okumalar)
+    assert okumalar[0] < okumalar[1] < okumalar[2]
+
+    # 5 saat sonra 210 ns'lik saglik esigi (§3.6.18) asilmis olmali
+    assert abs(okumalar[2]) > 210e-9
+
+
+def test_holdover_health_matches_manual_worked_example():
+    """
+    Kilavuz §3.6.18 su ornegi veriyor:
+
+        "if the unit is in GNSS holdover and the UTC phase offset is
+         > 250ns then ... 0x10 | 0x4 = 0x14"
+
+    Yani uzun sureli holdover + 210 ns ustu faz kaymasi = 0x14.
+    Modelimiz bu birlesimi KENDILIGINDEN uretmeli; hedefleyerek
+    kodlamadik, fizik oraya goturuyor.
+    """
+    from datetime import timedelta
+
+    parser, state = make_test_parser_with_state()
+    parser.dispatch("SYNC:HOLD:INIT")
+
+    # 0x8 (calisma suresi < 200 sn) karismasin diye programi
+    # "coktan acilmis" say
+    state.process_started_at = datetime.now() - timedelta(seconds=1000)
+
+    # 5 saatlik holdover: hem holdover>60sn (0x10) hem faz>210ns (0x4)
+    state.holdover_started_at = datetime.now() - timedelta(hours=5)
+
+    assert parser.dispatch("SYNC:HEALTH?") == "0x14"
+
+
+def test_locked_tint_stays_constant():
+    """
+    Kilitliyken TINT SABIT kalmali -- buyumemeli.
+
+    Bu, modelin en kolay yanlis anlasilan tarafi: "dinamik" demek
+    "her sey degissin" demek DEGIL. Kilitliyken kapali kontrol dongusu
+    TINT'i sifira ceker (§1.1), dolayisiyla oraya bir trend eklemek
+    fiziksel olarak YANLIS olurdu -- dongunun calismadigi anlamina
+    gelirdi.
+    """
+    parser = make_test_parser()
+
+    ilk = parser.dispatch("SYNC:TINT?")
+    time.sleep(0.2)
+    ikinci = parser.dispatch("SYNC:TINT?")
+
+    assert ilk == ikinci
