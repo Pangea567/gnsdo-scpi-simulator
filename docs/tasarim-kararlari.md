@@ -351,6 +351,111 @@ Modeli kurarken fark edilen, mevcut kodda GERCEK CIHAZLA CELISEN noktalar:
 
 ---
   
+## 5.7 Gercek Cihaz Kayitlariyla Hizalama Turu
+
+Kaynak: `Rubidium GNSDO SCPI Device.docx` -- gercek cihazdan alinmis
+komut girdi/cikti kayitlari. Bu belge KILAVUZDA OLMAYAN seyleri
+gosterdi ve modelimizdeki bir kisim hatayi ortaya cikardi.
+
+**Genel ders:** Kilavuz ne YAPILMASI gerektigini anlatir; kayitlar
+cihazin GERCEKTE ne yaptigini gosterir. Ikisi her zaman ortusmuyor.
+
+### D-4: Kilitli TINT modeli yanlisti (EN ONEMLI)
+- **Bizim modelimiz**: taban +12 ns sabit, jitter +/-0.2 ns. Yani
+  hicbir zaman negatif olmuyor, neredeyse hic oynamiyordu.
+- **Gercek kayitlar**:
+  `1.133E-08  -7.873E-09  -1.179E-08  9.063E-09  2.672E-09  6.763E-08`
+  TINT SIFIRIN ETRAFINDA, arti ve eksi yonde, ~+/-12 ns salaniyor.
+- **Hatanin kaynagi**: Kilavuz §1.1'deki "better than 0.2ns AVERAGE
+  phase accuracy" ifadesini "jitter genligi 0.2 ns" diye okuduk.
+  "average" kelimesi kilit: ORTALAMA sifira 0.2 ns yakin demek;
+  anlik okuma cok daha genis salinir.
+- **Duzeltme**: taban 0.0, jitter genligi 12 ns.
+- **Yan etki**: D-2'deki `abs()` duzeltmesi artik cok daha kritik --
+  TINT gercekten negatife geciyor.
+- **Ders**: Bir spesifikasyon sayisini okurken yanindaki niteleyiciye
+  (average, typical, peak, RMS) dikkat et. Ayni sayi, niteleyiciye
+  gore tamamen farkli bir sey anlatir.
+
+### D-5: MEAS:CURR? akim dondurmuyor
+- **Bizim cevabimiz**: `0.42` (akim, amper sanmisiz).
+- **Gercek kayit**: `51.3210` -- yanindaki `MEAS:TEMP?` ise `51.1479`.
+- **Kilavuz §3.8.3**: "Legacy SCPI command, instead of OCXO current
+  this command displays either the internal Rubidium temperature or
+  PCB temperature."
+- **Ders**: Eski cihazlarda komut ADI ile ISI arasindaki uyumsuzluk
+  siktir -- ad geriye donuk uyumluluk icin korunur, islev degisir.
+
+### D-6: CSAC ve PCB sicakligi bagimsiz degil
+Gercek kayitlardaki dort MEAS? cifti:
+
+| PCB | CSAC | fark |
+|---|---|---|
+| 46.5688 | 47.83 | +1.261 |
+| 52.7762 | 54.10 | +1.324 |
+| 52.8652 | 54.17 | +1.305 |
+| 49.7419 | 51.13 | +1.388 |
+
+Ortalama fark **+1.32 C**, dordunde de tutuyor. Fiziksel aciklama:
+CSAC modulu isi KAYNAGIDIR, cevresindeki kart ondan serindir.
+
+CSAC sicakligi artik PCB'den turetiliyor. Bagimsiz modelleseydik ters
+yonlere gidip gercekte hic gorulmeyen kombinasyonlar uretebilirlerdi.
+
+### D-7: EFControl Absolute ve Relative de bagimsiz degil
+Gercek kayitlar: `-82 -> -0.410000%`, `-88 -> -0.440000%`,
+`-128 -> -0.640000%`, `-21 -> -0.105000%`. Hepsinde
+**Absolute = Relative x 200**.
+
+Bagintinin YONU de veriden okundu: Absolute her zaman TAM SAYI,
+Relative ise 6 ondalikta TAM cikiyor. Rastgele bir yuzde olsaydi bu
+mumkun olmazdi -- demek ki asil deger tam sayi olan Absolute
+(muhtemelen bir DAC adimi), yuzde ondan hesaplaniyor.
+
+- **Ders**: Verideki sayilarin BICIMI, aralarindaki nedenselligi ele
+  verir. "Hangisi hangisinden turuyor?" sorusunu, tam sayi olani
+  bularak cevaplayabildik.
+
+### D-8: Bilinmeyen komutta cihaz sessiz kalmiyor
+- **Bizim davranisimiz**: hicbir sey yazmiyorduk.
+- **Gercek cihaz**: `Command Error` donduruyor.
+- **Nicin onemli**: Sessizlik istemci acisindan belirsizdir -- komut
+  mu taninmadi, baglanti mi koptu, ayirt edilemez.
+- **Tasarim notu**: Parser hala `None` donduruyor ("bilmiyorum"
+  demenin dogru yolu); bunu gorunur mesaja cevirmek SerialServer'in
+  isi. Boylece parser protokol metinlerinden habersiz kaliyor.
+
+### D-9: Sayi bicimleri sabit ondalikli olmali
+Gercek cihaz `CSAC Temperature: 54.10` yaziyor -- sondaki sifir
+DURUYOR. PCB sicakligi 4 ondalik (`46.5688`), CSAC 2 ondalik. Biz
+`str()` kullaniyorduk, `54.1` yaziyordu. Sabit genislikte alan
+bekleyen bir istemci icin bu fark ayristirma hatasina yol acabilir.
+
+### K-10: Gercek cihazin TUTARSIZLIGINI taklit etmiyoruz
+- **Durum**: Kayitlarda `GPS:SAT:TRAC:COUN?` -> 20 iken
+  `GPS:SAT:VIS:COUN?` -> 19. Takip edilen, gorunurden fazla.
+- **Muhtemel aciklama**: Iki sayac farkli seyleri sayiyor.
+  `SYST:STAT?` ciktisindaki "Tracking:14 + Not Tracking:6 = 20" ile
+  TRAC:COUN?'un 20'si ortusuyor -- o, alicinin kanal tablosunun
+  TAMAMINI sayiyor olabilir. Ayrica ikisi farkli anlarda ornekleniyor.
+  (Bu bir yorum; kilavuz acikca yazmiyor.)
+- **Karar**: Taklit ETMIYORUZ. Config tutarsizsa uyari loglanip
+  tracking, visible'a kisitlaniyor.
+- **Neden**: Simulatorun tutarli olmasi, gercek cihazin bir olcum
+  artifaktini yeniden uretmesinden daha degerli. Bir test uygulamasi
+  gelistiren kisi "takip > gorunur" gorurse kendi kodunda hata arar.
+
+### Kalan Bilinen Farklar (henuz ele alinmadi)
+- **FEE sabit tutuluyor**: gercek kayitlarda `1.31E-11`, `2.49E-11`,
+  `1.59E-11` diye degisiyor. Holdover birikim HIZINI belirleyen
+  parametre oldugu icin ayrica ele alinmali.
+- **PCB sicaklik araligi**: kayitlarda 46.57 - 52.87. Dusuk okumalar
+  muhtemelen isinma sirasinda alindi; kararli durum ust kumede
+  (~52.8). Tirmanis FAZ 3'e ait.
+
+---
+
+
 ## 6. Yol Haritasi
 
 | Faz | Icerik | Durum |
