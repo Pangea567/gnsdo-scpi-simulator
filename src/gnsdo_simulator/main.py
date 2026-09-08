@@ -23,6 +23,7 @@ import logging
 import os
 
 from gnsdo_simulator.commands.csac import register_csac_commands
+from gnsdo_simulator.commands.gyro import register_gyro_commands
 from gnsdo_simulator.commands.servo import register_servo_commands
 from gnsdo_simulator.commands.diagnostic import register_diagnostic_commands
 from gnsdo_simulator.commands.gps import register_gps_commands
@@ -118,6 +119,7 @@ def main() -> None:
     register_measure_commands(scpi_parser, device_state)
     register_csac_commands(scpi_parser, device_state)
     register_servo_commands(scpi_parser, device_state)
+    register_gyro_commands(scpi_parser, device_state)
 
     server = SerialServer(port=args.port, parser=scpi_parser, baudrate=args.baudrate)
     server.run_forever()

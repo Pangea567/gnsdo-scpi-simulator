@@ -141,4 +141,136 @@ def register_system_commands(parser: SCPIParser, state: DeviceState) -> None:
 
     # Kilavuz: "SYSTem:STATus?" -> mandatory SYST+STAT (bizimkiyle
     # ayni), long alias:
+    parser.register("SYST:ID?", make_syst_id_handler(state))
+    parser.register("SYST:ID:SN?", make_syst_id_sn_handler(state))
+    parser.register("SYST:ID:HWREV?", make_syst_id_hwrev_handler(state))
+    parser.register("SYST:COMM:SER:ECHO?", make_syst_serial_echo_handler(state))
+    parser.register("SYST:COMM:SER:PROMPT?", make_syst_serial_prompt_handler(state))
+    parser.register("SYST:COMM:SER:BAUD?", make_syst_serial_baud_handler(state))
+
+    # Gorev tanimindaki "state degistiren" komutlar
+    parser.register_setter("SYST:COMM:SER:ECHO", make_syst_serial_echo_setter(state))
+    parser.register_setter("SYST:COMM:SER:PROMPT", make_syst_serial_prompt_setter(state))
+
     parser.register_alias("SYSTEM:STATUS?", "SYST:STAT?")
+    parser.register_alias("SYSTEM:ID?", "SYST:ID?")
+    parser.register_alias("SYSTEM:ID:SN?", "SYST:ID:SN?")
+    parser.register_alias("SYSTEM:ID:HWREV?", "SYST:ID:HWREV?")
+    parser.register_alias(
+        "SYSTEM:COMMUNICATE:SERIAL:ECHO", "SYST:COMM:SER:ECHO"
+    )
+    parser.register_alias(
+        "SYSTEM:COMMUNICATE:SERIAL:PROMPT", "SYST:COMM:SER:PROMPT"
+    )
+    parser.register_alias(
+        "SYSTEM:COMMUNICATE:SERIAL:BAUD?", "SYST:COMM:SER:BAUD?"
+    )
+
+def make_syst_id_sn_handler(state: DeviceState):
+    """SYSTem:ID:SN? -- cihazin seri numarasi (kilavuz §3.9.5)."""
+
+    def handler() -> str:
+        return state.serial_number
+
+    return handler
+
+
+def make_syst_id_hwrev_handler(state: DeviceState):
+    """SYSTem:ID:HWrev? -- donanim revizyonu (kilavuz §3.9.6)."""
+
+    def handler() -> str:
+        return state.hw_version
+
+    return handler
+
+
+def make_syst_id_handler(state: DeviceState):
+    """
+    SYSTem:ID? -- seri numarasi ve donanim revizyonunun ozeti.
+
+    BICIM NOTU: Bu komutun ciktisi gercek cihaz kayitlarinda YOK ve
+    kilavuz da ornek vermiyor. Bicimi, ayni bilgileri iceren
+    SYST:STAT? basligindaki yazimdan turettik:
+        "Serial Number : 122301668    Hw version : 1.01.00"
+    Gercek cihazla karsilastirma imkani dogarsa once burasi
+    dogrulanmali.
+    """
+
+    def handler() -> str:
+        return (
+            f"Serial Number : {state.serial_number}    "
+            f"Hw version : {state.hw_version}"
+        )
+
+    return handler
+
+
+def make_syst_serial_echo_handler(state: DeviceState):
+    """SYSTem:COMMunicate:SERial:ECHO? -- yanki ayarinin durumu."""
+
+    def handler() -> str:
+        return "ON" if state.serial_echo_enabled else "OFF"
+
+    return handler
+
+
+def make_syst_serial_prompt_handler(state: DeviceState):
+    """SYSTem:COMMunicate:SERial:PROmpt? -- istem ayarinin durumu."""
+
+    def handler() -> str:
+        return "ON" if state.serial_prompt_enabled else "OFF"
+
+    return handler
+
+
+def make_syst_serial_baud_handler(state: DeviceState):
+    """SYSTem:COMMunicate:SERial:BAUD? -- seri hiz (kilavuz §3.9.3)."""
+
+    def handler() -> str:
+        return str(state.serial_baud)
+
+    return handler
+
+
+def _on_off_setter(state: DeviceState, alan: str):
+    """
+    "ON"/"OFF" alan bir setter uretir.
+
+    Neden ortak bir yardimci: ECHO ve PROMPT birebir ayni sekilde
+    calisiyor. Iki kez yazsaydik biri gunun birinde digerinden
+    ayrisirdi.
+
+    Taninmayan bir deger geldiginde durumu DEGISTIRMIYORUZ -- yanlis
+    girdi yuzunden cihazin sessizce baska bir duruma gecmesi, hata
+    ayiklamasi en zor davranislardan biridir.
+    """
+
+    def setter(value: str):
+        normalized = (value or "").strip().upper()
+        if normalized == "ON":
+            setattr(state, alan, True)
+        elif normalized == "OFF":
+            setattr(state, alan, False)
+        return None
+
+    return setter
+
+
+def make_syst_serial_echo_setter(state: DeviceState):
+    """
+    SYSTem:COMMunicate:SERial:ECHO <ON|OFF> (kilavuz §3.9.1).
+
+    Yanki acikken cihaz, aldigi karakterleri geri yansitir. Terminalden
+    elle komut yazan bir insan icin faydalidir; yazilim icin gurultudur.
+    """
+    return _on_off_setter(state, "serial_echo_enabled")
+
+
+def make_syst_serial_prompt_setter(state: DeviceState):
+    """
+    SYSTem:COMMunicate:SERial:PROmpt <ON|OFF> (kilavuz §3.9.2).
+
+    Istem acikken cevaplardan sonra bir komut istemi yazilir. Yine
+    insan icin faydali, ayristirici yazilim icin engel.
+    """
+    return _on_off_setter(state, "serial_prompt_enabled")

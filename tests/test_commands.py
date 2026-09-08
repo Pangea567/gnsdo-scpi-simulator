@@ -25,6 +25,7 @@ from gnsdo_simulator.commands.sync import register_sync_commands
 from gnsdo_simulator.commands.diagnostic import register_diagnostic_commands
 from gnsdo_simulator.commands.measure import register_measure_commands
 from gnsdo_simulator.commands.csac import register_csac_commands
+from gnsdo_simulator.commands.gyro import register_gyro_commands
 from gnsdo_simulator.commands.servo import register_servo_commands
 
 
@@ -47,6 +48,7 @@ def make_test_parser() -> SCPIParser:
     register_measure_commands(parser, state)
     register_csac_commands(parser, state)
     register_servo_commands(parser, state)
+    register_gyro_commands(parser, state)
     return parser
 
 
@@ -72,6 +74,7 @@ def make_test_parser_with_state():
     register_measure_commands(parser, state)
     register_csac_commands(parser, state)
     register_servo_commands(parser, state)
+    register_gyro_commands(parser, state)
     return parser, state
 
 
@@ -837,3 +840,84 @@ def _health_bits(parser) -> str:
     cevap = parser.dispatch("SYNC:HEALTH?")
     assert cevap is not None
     return cevap
+
+
+def test_gyro_summary_matches_real_device_format():
+    """
+    GYRO? ciktisi gercek cihaz kaydiyla ayni bicimde olmali
+    (docs/gercek-cihaz-ciktilari.md). GLOAD satiri haric -- o bir
+    sensor okumasi oldugu icin gurultulu.
+
+    Bicim tutarsizliklari BILEREK korunuyor: "MODE :" ayrik ama
+    "TRACE:" bitisik; G-SENSITIVITY satirinda X ve Y'den sonra iki
+    nokta yokken Z'den sonra var.
+    """
+    parser = make_test_parser()
+    response = parser.dispatch("GYRO?")
+    assert response is not None
+
+    satirlar = response.split("\r\n")
+    assert satirlar[0] == "MODE : 0"
+    assert satirlar[1] == "TRACE: 0"
+    assert satirlar[2] == (
+        "CALIBRATION : Offset: 0.000, 0.000, 0.000, "
+        "Gain: 1.0000, 1.0000, 1.0000"
+    )
+    assert satirlar[3] == (
+        "G-SENSITIVITY : X 0.000 mHz/g, Y 0.000 mHz/g, Z: 0.000 mHz/g"
+    )
+    assert satirlar[4].startswith("GLOAD : ")
+    assert satirlar[5] == "PORT : RS232"
+
+
+def test_gyro_gload_is_a_noisy_sensor_reading():
+    """
+    GLOAD bir IVMEOLCER okumasidir -- sabit olmamali, titresim ve
+    elektriksel gurultu yuzunden son hanede oynamali.
+
+    Z ekseni yaklasik -1 g olmali: cihaz duz duruyor ve YERCEKIMINI
+    olcuyor. Gercek cihaz -1.063 okumustu.
+    """
+    from datetime import timedelta
+
+    parser, state = make_test_parser_with_state()
+
+    okumalar = set()
+    for saniye in range(0, 60, 5):
+        state.process_started_at = datetime.now() - timedelta(seconds=saniye)
+        cevap = parser.dispatch("GYRO:GLOAD?")
+        assert cevap is not None
+        okumalar.add(cevap)
+        z = float(cevap.split(",")[2])
+        assert -1.1 < z < -1.0  # yercekimi, kucuk sapmayla
+
+    assert len(okumalar) > 3  # gercekten oynuyor
+
+
+def test_serial_echo_and_prompt_setters():
+    """
+    Gorev tanimindaki iki "state degistiren" komut:
+    SYST:COMM:SER:ECHO ve SYST:COMM:SER:PROMPT.
+
+    Ayrica GECERSIZ bir deger geldiginde durum DEGISMEMELI -- yanlis
+    girdi yuzunden cihazin sessizce baska bir duruma gecmesi, hata
+    ayiklamasi en zor davranislardan biridir.
+    """
+    parser = make_test_parser()
+
+    assert parser.dispatch("SYST:COMM:SER:ECHO?") == "OFF"
+    parser.dispatch("SYST:COMM:SER:ECHO ON")
+    assert parser.dispatch("SYST:COMM:SER:ECHO?") == "ON"
+
+    parser.dispatch("SYST:COMM:SER:ECHO SACMALIK")
+    assert parser.dispatch("SYST:COMM:SER:ECHO?") == "ON"  # degismedi
+
+    parser.dispatch("SYST:COMM:SER:PROMPT ON")
+    assert parser.dispatch("SYST:COMM:SER:PROMPT?") == "ON"
+
+
+def test_system_id_queries():
+    """SYST:ID:SN? ve SYST:ID:HWrev? (kilavuz §3.9.5, §3.9.6)."""
+    parser = make_test_parser()
+    assert parser.dispatch("SYST:ID:SN?") == "122301668"
+    assert parser.dispatch("SYST:ID:HWREV?") == "1.01.00"

@@ -65,6 +65,17 @@ class DeviceState:
     firmware_version: str = "1.17"
     hw_version: str = "1.01.00"  # gercek cihaz ciktisindan (SYST:STAT? basligi icin)
 
+    # --- SERI ARAYUZ AYARLARI (kilavuz §3.9.1-3.9.3) ---
+    # ECHO: cihaz, aldigi karakterleri geri yansitir mi? Terminalden
+    #   elle komut yazan bir insan icin faydali (yazdigini gorursun),
+    #   ama YAZILIM icin gurultu -- gonderdigi her seyi geri okur.
+    # PROMPT: cevaplardan sonra "scpi > " gibi bir istem yazilir mi?
+    #   Yine insan icin faydali, ayristirici yazilim icin engel.
+    # Ikisi de gorev tanimindaki komut listesinde yer aliyor.
+    serial_echo_enabled: bool = False
+    serial_prompt_enabled: bool = False
+    serial_baud: int = 115200
+
     # GPS/GNSS ile ilgili durum. Gercek cihazda bunlar surekli
     # degisir (uydu gorunurlugu, sinyal kalitesi vb.), ama biz
     # simdilik basit, sabit varsayilan degerlerle basliyoruz.
@@ -300,6 +311,24 @@ class DeviceState:
     noise_enabled: bool = True
     noise_scale: float = 1.0
 
+    # --- GYRO ALT SISTEMI ---
+    # Cihazda opsiyonel bir ivmeolcer/jiroskop var (kilavuz §3.4).
+    # Amaci: g-kuvvetinin osilator frekansina etkisini ("g-duyarlilik")
+    # olcup telafi etmek -- hareketli platformlarda (ucak, arac) onemli.
+    # Degerler GERCEK cihazin GYRO? ciktisindan.
+    gyro_mode: int = 0
+    gyro_trace: int = 0
+    gyro_cal_offset: tuple = (0.000, 0.000, 0.000)
+    gyro_cal_gain: tuple = (1.0000, 1.0000, 1.0000)
+    gyro_sensitivity_mhz_per_g: tuple = (0.000, 0.000, 0.000)
+    # GLOAD: uc eksendeki g-kuvveti. Gercek cihaz -0.067,-0.045,-1.063
+    # okumustu: Z ekseninde ~-1 g, yani cihaz duz duruyor ve YERCEKIMINI
+    # olcuyor. X/Y'deki kucuk degerler hafif egiklik.
+    gyro_gload_x: float = -0.067
+    gyro_gload_y: float = -0.045
+    gyro_gload_z: float = -1.063
+    gyro_port: str = "RS232"
+
     # --- SERVO ALT SISTEMI ---
     # Degerler GERCEK cihazin SERV? ciktisindan alindi
     # (docs/gercek-cihaz-ciktilari.md). Bunlarin tamami "ayar"
@@ -527,6 +556,11 @@ NOISE_PROFILES = {
     # cihaz kayitlarindaki uc ardisik SYNC? sorgusu: 1.31E-11,
     # 2.49E-11, 1.59E-11 -- ortalama 1.80E-11, yayilim ~+/-0.6E-11.
     "freq_error_estimate": (0.6e-11, 90.0),
+    # GLOAD bir ivmeolcer okumasidir; titresim/gurultu yuzunden son
+    # hanede surekli oynar. Genlik kucuk: cihaz sabit duruyor.
+    "gload_x": (0.004, 7.0),
+    "gload_y": (0.004, 9.0),
+    "gload_z": (0.004, 11.0),
     # TINT jitter'i. Genlik GERCEK CIHAZ KAYITLARINDAN: kilitliyken
     # okumalar +/-12 ns bandinda, sifirin iki yaninda geziniyor
     # (1.133E-08, -7.873E-09, -1.179E-08, 9.063E-09, 2.672E-09).
@@ -817,4 +851,20 @@ def is_filter_loop_locked(state: DeviceState, now: Optional[datetime] = None) ->
     return current_servo_state(state, now) not in (
         SERVO_STATE_WARMUP,
         SERVO_STATE_LOCKING,
+    )
+
+
+def measured_gload(state: DeviceState, now: Optional[datetime] = None) -> tuple:
+    """
+    GYRO:GLOAD? -- uc eksendeki g-kuvveti okumasi (gurultulu).
+
+    Ivmeolcer okumasi da bir SENSOR okumasidir: sabit degildir,
+    titresim ve elektriksel gurultu yuzunden son hanede oynar.
+    Her eksene AYRI tohum veriyoruz, yoksa uc eksen birlikte
+    salinir ve yapay gorunurdu.
+    """
+    return (
+        apply_noise(state, state.gyro_gload_x, "gload_x", now),
+        apply_noise(state, state.gyro_gload_y, "gload_y", now),
+        apply_noise(state, state.gyro_gload_z, "gload_z", now),
     )
