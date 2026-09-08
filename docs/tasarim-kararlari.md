@@ -456,13 +456,99 @@ bekleyen bir istemci icin bu fark ayristirma hatasina yol acabilir.
 ---
 
 
+## 5.8 FAZ 3 -- Isinma Rampasi ve Servo Durum Makinesi
+
+### K-11: Isil rampa USTEL, dogrusal degil
+- **Karar**: `T(t) = T_son - (T_son - T_bas) * e^(-t/tau)`
+- **Neden**: Isi kaybi, cisimle ortam arasindaki SICAKLIK FARKI ile
+  orantilidir (Newton soguma yasasi). Fark buyukken hizli isinir,
+  fark kapandikca yavaslar. Dogrusal bir rampa fiziksel olarak yanlis
+  olurdu: sicaklik hedefe varinca aniden durmaz, ona asimptotik
+  yaklasir -- ve dogrusal model devam etseydi hedefi ASARDI.
+- **tau = 600 s**: Kilavuz §2.5'teki 20 dakikalik kilit suresiyle
+  uyumlu bir isil oturma profili verir (30 dk'da farkin %95'i kapanir).
+- **DOGRULAMA**: Bu parametrelerle model 15. dakikada PCB 46.60 C /
+  CSAC 47.92 C uretiyor. Gercek cihaz kayitlarindaki EN SOGUK MEAS?
+  cifti 46.5688 / 47.83 idi. tau'yu kilavuzun kilit suresinden sectik,
+  bu sayilara BAKARAK degil -- model bagimsiz bir gozlemi yeniden
+  uretiyor.
+
+### K-12: Ortam sicakligi bir VARSAYIMDIR
+- **Durum**: Rampanin baslangic noktasi (T_bas) icin bir degere
+  ihtiyac var, ama kilavuz ortam sicakligi vermiyor ve gercek cihaz
+  kayitlari da acilis anini icermiyor.
+- **Karar**: 25 C (ic mekan oda sicakligi), config'ten ayarlanabilir.
+- **Neden**: Kilavuz §1.3.4 cihazin ic mekan kullanimi icin
+  tasarlandigini soyluyor. Deger yanlissa tek satirla duzelir.
+- **Ders**: Elde veri olmayan bir parametreyi UYDURMAK ile
+  VARSAYIM OLARAK ISARETLEMEK ayni sey degil. Ikincisi, sonradan
+  duzeltilebilir olmasini saglar.
+
+### D-10: SYNC:LOCKED? yanlis esigi kullaniyordu
+- **Bizim davranisimiz**: Isinma senaryosunda 120 saniye sonra
+  "kilitli" donuyorduk.
+- **Sorun**: 120 saniye kilavuz §1.1'deki ATOMIK kilit suresidir
+  ("less than 2 minutes warmup time to atomic lock"). Ama
+  SYNC:LOCKED?, §3.6.11'e gore atomik kilidi degil "Rubidyum
+  osilatoru kontrol eden PLL"in durumunu, yani GNSS'E KILITLENMEYI
+  bildirir. O ise §2.5'e gore tipik olarak 20 DAKIKA surer.
+- **Duzeltme**: Kilit karari artik servo durum makinesinden geliyor;
+  yalnizca durum 6 gercek kilittir.
+- **Ders**: Iki farkli "kilit" kavramini ayni sanmisiz. Kilavuzda
+  ayni kelimenin farkli alt sistemlerde farkli anlamlari olabiliyor;
+  hangi komutun HANGI kilidi bildirdigini tek tek dogrulamak gerek.
+
+### K-13: SERVo alt sistemi eklendi (gorev taniminda yoktu)
+- **Durum**: Gorev tanimindaki komut listesinde SERVo yok. Ama hem
+  kilavuzda (§3.10) hem gercek cihaz kayitlarinda var.
+- **Karar**: `SERVo:STATe?` ve `SERV?` eklendi.
+- **Neden**: Cihaz aciliskan kilide TEK ADIMDA gecmez:
+  `0 isinma -> 2 kilitleniyor -> 6 kilitli`. SYNC:LOCKED? ilk ikisinde
+  de "0" doner, yani ikisini AYIRT EDEMEZ. Bir izleme yazilimi
+  "neden hala kilitlenmedi?" sorusuna ancak SERVo:STATe? ile cevap
+  verebilir: cihaz henuz mi isiniyor, yoksa isindi da GNSS'e mi
+  kilitlenemiyor?
+- **Not**: Deger SAKLANMIYOR, HESAPLANIYOR. SYNC:LOCKED? ile ayni
+  kaynaktan okuduklari icin celisemezler.
+
+### K-14: Gercek ciktidaki bicim tutarsizliklari KORUNUYOR
+- **Durum**: Gercek `SERV?` ciktisinda etiket bicimi tutarsiz:
+  `LOOP:` bitisik, `EFC SCALE :` ayrik, `FASTLOCK PERIOD  :` iki
+  bosluklu.
+- **Karar**: Aynen taklit ediliyor, "duzeltilmiyor".
+- **Neden**: Ciktiyi sabit bicimde ayristiran bir istemci, bizim
+  duzelttigimiz bir bosluk yuzunden gercek cihazda calisip
+  simulatorde calismayabilir. Simulatorun amaci gercegi taklit
+  etmek, guzellestirmek degil.
+- **Not**: Bu, K-10 (tutarsizligi taklit etmeme karari) ile CELISMEZ.
+  Oradaki tutarsizlik cihazin bir OLCUM artifaktiydi ve kullaniciyi
+  yaniltirdi; buradaki ise PROTOKOL bicimidir ve istemci ona bagimli
+  olabilir.
+
+### Isinma profili (olculen)
+
+| Dakika | PCB | CSAC | SERVo:STATe? | SYNC:LOCKED? |
+|---|---|---|---|---|
+| 0  | 25.00 | 26.32 | 0 | 0 |
+| 1  | 27.65 | 28.97 | 0 | 0 |
+| 2  | 30.04 | 31.36 | 2 | 0 |
+| 5  | 35.94 | 37.26 | 2 | 0 |
+| 10 | 42.57 | 43.89 | 2 | 0 |
+| 15 | 46.60 | 47.92 | 2 | 0 |
+| 20 | 49.04 | 50.36 | 6 | 1 |
+| 30 | 51.42 | 52.74 | 6 | 1 |
+| 60 | 52.73 | 54.05 | 6 | 1 |
+
+---
+
+
 ## 6. Yol Haritasi
 
 | Faz | Icerik | Durum |
 |---|---|---|
 | 1 | Holdover hata birikimi (bu belge) | **TAMAMLANDI** |
 | 2 | Olcumlere deterministik gurultu (sicaklik, voltaj, TINT jitter) | **TAMAMLANDI** |
-| 3 | Isinma rampasi + SERVo:STATe durum makinesi (0->2->6, ve 5). CSAC sicakliginin 47->54 tirmanisi da burada (bkz. K-9) | planli |
+| 3 | Isinma rampasi + SERVo:STATe durum makinesi (0->2->6, ve 5). CSAC sicakliginin 47->54 tirmanisi da burada (bkz. K-9) | **TAMAMLANDI** |
 | 4 | Bildiri | planli |
 
 **FAZ 2 notu**: Gurultu DETERMINISTIK olacak (sabit tohumlu rastgele
