@@ -24,8 +24,12 @@ from datetime import datetime
 from typing import Optional
 
 from gnsdo_simulator.device_state import (
+    MIN_SATELLITES_FOR_LOCK,
     DeviceState,
     current_tint_seconds,
+    is_filter_loop_locked,
+    measured_freq_error_estimate,
+    short_term_drift_seconds,
     enter_holdover,
     exit_holdover,
     is_locked,
@@ -73,7 +77,7 @@ def make_sync_handler(state: DeviceState):
             f"1PPS LOCK STATUS  : {lock_status}",
             f"HOLDOVER STATE: {holdover_state}",
             f"LAST HOLDOVER DURATION : {make_sync_hold_dur_handler(state)()}",
-            f"FREQ ERROR ESTIMATE : {state.freq_error_estimate:.2E}",
+            f"FREQ ERROR ESTIMATE : {measured_freq_error_estimate(state):.2E}",
             f"TIME INTERVAL DIFFERENCE : {_tint_seconds(state):.3E}",
             f"TIME INTERVAL THRESHOLD : {state.tint_threshold_ns}",
             f"PHASE NOISE FILTER : {phase_filter}",
@@ -137,10 +141,19 @@ def make_sync_health_handler(state: DeviceState):
     simule EDEBILDIKLERIMIZ (digerleri -- jamming, filter loop,
     frequency estimate -- henuz simule etmiyoruz, o bitler hep 0):
 
-        0x4    faz farki (TINT) > 210ns
-        0x8    calisma suresi < 200 saniye (yeni acilmis)
-        0x10   holdover suresi > 60 saniye
-        0x400  donanim/osilator arizasi (hardware_fault)
+        0x4     faz farki (TINT) > 210ns
+        0x8     calisma suresi < 200 saniye (yeni acilmis)
+        0x10    holdover suresi > 60 saniye
+        0x100   kisa donem drift (ADEV @ 100s) > 100ns
+        0x400   donanim/osilator arizasi (hardware_fault)
+        0x800   guclu jamming (>=50) VE GNSS fix yok
+        0x1000  filtre osilator dongusu kilitli degil
+
+    HENUZ URETMEDIGIMIZ IKI BIT ve nedenleri:
+        0x20   "Frequency Estimate is out of bounds" -- kilavuz bir
+               ESIK DEGERI VERMIYOR. Uydurmak yerine uretmiyoruz.
+        0x200  "first 3 minutes after a phase-reset" -- jam-sync /
+               faz-reset davranisini henuz modellemiyoruz (§3.6.19).
 
     0x0 = "duzgun kilitli ve isinmis, tamamen saglikli" (kilavuzun
     kendi tanimi).
@@ -166,8 +179,32 @@ def make_sync_health_handler(state: DeviceState):
             if holdover_seconds > 60:
                 health |= 0x10
 
+        # 0x100 -- kisa donem drift (ADEV @ 100s) > 100 ns (§3.6.18).
+        # Kilitliyken kapali dongu bunu sifirda tutar; holdover'da
+        # dogrudan birikim hizina baglidir.
+        if short_term_drift_seconds(state) > 100e-9:
+            health |= 0x100
+
         if state.hardware_fault:
             health |= 0x400
+
+        # 0x800 -- guclu jamming VE GNSS fix kaybi (§3.6.18, §3.3.28).
+        # Kilavuz §3.3.28: "Any level exceeding 50 in combination to
+        # loss of GNSS lock will cause a SYNC:HEALTH 0x800 event".
+        # DIKKAT: iki kosul BIRLIKTE saglanmali -- sadece jamming
+        # yuksekse ama fix devam ediyorsa bayrak yanmaz.
+        if (
+            state.gps_jamming_level >= 50
+            and state.gnss_satellites_tracking < MIN_SATELLITES_FOR_LOCK
+        ):
+            health |= 0x800
+
+        # 0x1000 -- filtre osilator dongusu kilitli degil (§3.6.18).
+        # Kilavuz bunu "with Rubidium oscillator loop selected only"
+        # diye sinirliyor, o yuzden secili dongu CSAC (Rubidyum)
+        # degilse bayragi hic uretmiyoruz.
+        if state.servo_selected_loop == "CSAC" and not is_filter_loop_locked(state):
+            health |= 0x1000
 
         return f"0x{health:X}"
 

@@ -29,10 +29,15 @@ sync:
   #
   # freq_error_estimate (y0): kayip anindaki bagil frekans hatasi.
   #   Kilavuz §3.6.10'daki FEE degeri. Hatanin ne HIZLA birikecegini
-  #   belirleyen ana parametre. Asagidaki deger GERCEK cihazin SYNC?
-  #   ciktisindan alindi.
+  #   belirleyen ana parametre.
+  #   Deger, GERCEK cihaz kayitlarindaki uc olcumun ORTALAMASI
+  #   (1.31E-11, 2.49E-11, 1.59E-11 -> 1.80E-11). Tek bir ornegi
+  #   secmek yerine ortalamayi almak gozlenen araligin ortasina oturur.
   #   Bu degerle 210 ns'lik saglik esigine (§3.6.18, HEALTH 0x4)
-  #   yaklasik 4.5 SAATTE ulasilir.
+  #   yaklasik 3 SAATTE ulasilir.
+  #   NOT: FEE calisirken de oynar; birikim hesabi holdover'a GIRERKEN
+  #   dondurulan degeri kullanir (gecmiste biriken hata sonradan
+  #   degismemeli).
   #
   # locked_tint: kilitliyken TINT'in ORTALAMA degeri. Kapali kontrol
   #   dongusu TINT'i sifira cektigi icin bu SIFIRDIR; anlik okuma
@@ -44,7 +49,7 @@ sync:
   # drift_per_day (D): Rubidyum osilatorun yaslanma hizi. Kilavuz
   #   §2.9: kilitliyken ADEV "8E-014 per day"e yaklasiyor. Bu terim
   #   saatler mertebesinde gorunmez, GUNLER mertebesinde belirginlesir.
-  freq_error_estimate: 1.31e-11
+  freq_error_estimate: 1.8e-11
   locked_tint: 0.0
   drift_per_day: 8.0e-14
 

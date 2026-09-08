@@ -26,7 +26,7 @@ SU ANKI ASAMADA:
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 
 from gnsdo_simulator.models.holdover import (
@@ -38,6 +38,8 @@ from gnsdo_simulator.models.warmup import (
     AMBIENT_TEMPERATURE_C,
     GNSS_LOCK_SECONDS,
     SERVO_STATE_LOCKED,
+    SERVO_STATE_LOCKING,
+    SERVO_STATE_WARMUP,
     THERMAL_TIME_CONSTANT_SECONDS,
     servo_state,
     thermal_ramp,
@@ -150,6 +152,13 @@ class DeviceState:
     #   "onceki holdover"i dondurmesini istiyor.
     locked_tint_seconds: float = 0.0
     holdover_entry_tint_seconds: float = 0.0
+    # holdover_entry_fee: holdover'a girildigi ANDAKI frekans hatasi
+    #   (modeldeki y0). FEE artik zamanla oynadigi icin, birikim
+    #   hesabinin ANLIK degere degil KAYIP ANINDAKI degere dayanmasi
+    #   gerekiyor -- yoksa birikim hizi geriye donuk olarak degisirdi,
+    #   ki bu fiziksel olarak sacma (gecmiste biriken hata sonradan
+    #   degismez).
+    holdover_entry_fee: float = 1.8e-11
     rb_drift_per_day: float = RB_DRIFT_PER_DAY
     last_holdover_duration_seconds: Optional[float] = None
 
@@ -166,7 +175,11 @@ class DeviceState:
     # FREQ ERROR ESTIMATE -- gercekte osilatorun anlik frekans sapma
     # tahmini, surekli kucuk oynar. Biz sabit tutuyoruz (bilinçli
     # basitlestirme, MEAS/DIAG alanlarindaki gibi).
-    freq_error_estimate: float = 1.31e-11
+    # Taban deger, GERCEK cihaz kayitlarindaki uc olcumun ORTALAMASI
+    # (1.31E-11, 2.49E-11, 1.59E-11 -> 1.80E-11). Tek bir orneği
+    # secmek yerine ortalamayi almak, gozlenen aralikin ortasina
+    # oturmayi saglar.
+    freq_error_estimate: float = 1.8e-11
 
     # Olcum (measurement) degerleri -- MEAS:* komutlari icin.
     # GUNCELLEME: gercek cihaz ciktisindan ogrendik ki MEAS:VOLT?
@@ -411,6 +424,11 @@ def enter_holdover(state: DeviceState, now: Optional[datetime] = None) -> None:
     # yapilmali, yoksa current_tint_seconds() holdover dalina girer
     # ve heniz baslamamis bir birikimi hesaplamaya calisir.
     state.holdover_entry_tint_seconds = current_tint_seconds(state, now)
+    # FEE'yi de donduruyoruz: birikim hizi, KAYIP ANINDAKI frekans
+    # hatasina baglidir. Anlik degeri kullansaydik, FEE zamanla
+    # oynadigi icin gecmiste biriken hata sonradan degisirdi -- ki
+    # bu fiziksel olarak sacma.
+    state.holdover_entry_fee = measured_freq_error_estimate(state, now)
 
     state.holdover = True
     state.sync_locked = False
@@ -459,7 +477,7 @@ def current_tint_seconds(state: DeviceState, now: Optional[datetime] = None) -> 
         base = holdover_tint_seconds(
             elapsed_seconds=elapsed_seconds,
             entry_tint_seconds=state.holdover_entry_tint_seconds,
-            freq_error_estimate=state.freq_error_estimate,
+            freq_error_estimate=state.holdover_entry_fee,
             drift_per_day=state.rb_drift_per_day,
         )
     else:
@@ -505,6 +523,10 @@ NOISE_PROFILES = {
     # cihaz kayitlarinda dort ardisik DIAG? sorgusu -82, -88, -128,
     # -21 verdi, yani ~50 ppt'lik bir bant.
     "ef_control_absolute": (50.0, 45.0),
+    # FEE (Frequency Error Estimate) sabit degil, oynuyor. GERCEK
+    # cihaz kayitlarindaki uc ardisik SYNC? sorgusu: 1.31E-11,
+    # 2.49E-11, 1.59E-11 -- ortalama 1.80E-11, yayilim ~+/-0.6E-11.
+    "freq_error_estimate": (0.6e-11, 90.0),
     # TINT jitter'i. Genlik GERCEK CIHAZ KAYITLARINDAN: kilitliyken
     # okumalar +/-12 ns bandinda, sifirin iki yaninda geziniyor
     # (1.133E-08, -7.873E-09, -1.179E-08, 9.063E-09, 2.672E-09).
@@ -732,4 +754,67 @@ def current_pcb_temperature_base(
         final_temperature=state.temperature_celsius,
         start_temperature=state.ambient_temperature_c,
         time_constant=state.thermal_time_constant_s,
+    )
+
+
+def measured_freq_error_estimate(
+    state: DeviceState, now: Optional[datetime] = None
+) -> float:
+    """
+    SYNC:FEE? / SYNC? -- frekans hata tahmini.
+
+    Kilavuz §3.6.10: 1000 saniyelik olcum araligiyla hesaplanan, Allan
+    varyansina benzer bir buyukluk. Dolayisiyla SABIT DEGILDIR --
+    gercek cihaz kayitlarindaki uc ardisik sorgu 1.31E-11, 2.49E-11 ve
+    1.59E-11 verdi.
+    """
+    return apply_noise(state, state.freq_error_estimate, "freq_error_estimate", now)
+
+
+def short_term_drift_seconds(
+    state: DeviceState, now: Optional[datetime] = None
+) -> float:
+    """
+    100 saniyelik kisa donem drift'i -- SYNC:HEALTH? 0x100 biti icin.
+
+    Kilavuz §3.6.18: "If the short-term-drift (ADEV @ 100s) > 100ns".
+    Yani 100 saniye icinde faz hatasinin ne kadar kaydigina bakiliyor.
+
+    Kilitliyken kapali dongu bunu sifira yakin tutar. Holdover'da ise
+    dogrudan birikim hizina baglidir: 100 saniyede y0*100 kadar kayar.
+    """
+    if not (state.holdover and state.holdover_started_at is not None):
+        return 0.0
+
+    now = now or datetime.now()
+    simdi = current_tint_seconds(state, now)
+    yuz_saniye_sonra = current_tint_seconds(state, now + timedelta(seconds=100))
+    return abs(yuz_saniye_sonra - simdi)
+
+
+def is_filter_loop_locked(state: DeviceState, now: Optional[datetime] = None) -> bool:
+    """
+    Filtre osilator dongusu kilitli mi? -- SYNC:HEALTH? 0x1000 biti icin.
+
+    Kilavuz §3.6.18: "If the filter oscillator loop is not locked (with
+    Rubidium oscillator loop selected only)".
+
+    Modelimiz: filtre dongusu yalnizca ISINMA ve KILITLENME
+    asamalarinda (durum 0 ve 2) kilitsizdir. Gercek cihaz kayitlarinda
+    da SYNC:HEALTH? bir noktada 0x1000 dondurmustu.
+
+    HOLDOVER'DA KILITLI SAYILIR -- kilavuz §2.5 bunu acikca soyluyor:
+    GNSS beslemesi olmadan cihaz "geleneksel bir Atomik Saat gibi
+    Rubidyum holdover modunda calisir" ve LED'i yavas yanip sonerek
+    "OCXO'yu Rubidyum referansina ICSEL OLARAK kilitledigini, cihazin
+    saglikli oldugunu ve bekleyen olay olmadigini" bildirir.
+
+    Yani GNSS'in kaybi filtre dongusunu bozmaz: o dongu OCXO'yu
+    Rubidyum'a kilitler, GNSS'e degil. Ilk modelimiz bunu "durum 6
+    degilse kilitsiz" diye kurmustu ve holdover'da yanlislikla 0x1000
+    yakiyordu.
+    """
+    return current_servo_state(state, now) not in (
+        SERVO_STATE_WARMUP,
+        SERVO_STATE_LOCKING,
     )

@@ -203,7 +203,7 @@ def test_holdover_scenario_loads_model_parameters():
     """
     state = load_scenario("holdover")
 
-    assert state.freq_error_estimate == 1.31e-11  # y0, kilavuz §3.6.10
+    assert state.freq_error_estimate == 1.8e-11  # y0, kilavuz §3.6.10
     # DUZELTILDI: taban artik SIFIR -- gercek cihazda TINT sifirin
     # etrafinda salinir, sabit pozitif offseti yoktur
     assert state.locked_tint_seconds == 0.0
@@ -255,11 +255,15 @@ def test_holdover_scenario_tint_accumulates_over_time():
     baslangic = current_tint_seconds(state)
     assert baslangic == pytest.approx(giris, abs=1e-12)
 
-    # 1 saat geriye tarihle: y0 * 3600 = 1.31e-11 * 3600 = 47.16 ns
-    # birikmis olmali (giris degerinin USTUNE)
+    # 1 saat geriye tarihle: y0 * 3600 kadar birikmis olmali
+    # (giris degerinin USTUNE). y0 artik holdover'a GIRERKEN
+    # dondurulan FEE degeridir -- anlik FEE degil, cunku gecmiste
+    # biriken hata sonradan degismez.
     state.holdover_started_at = datetime.now() - timedelta(hours=1)
     bir_saat_sonra = current_tint_seconds(state)
-    assert bir_saat_sonra == pytest.approx(giris + 1.31e-11 * 3600, rel=1e-3)
+    assert bir_saat_sonra == pytest.approx(
+        giris + state.holdover_entry_fee * 3600, rel=1e-3
+    )
 
     # 5 saat geriye tarihle: 210 ns'lik saglik esigi (§3.6.18) asilmali
     state.holdover_started_at = datetime.now() - timedelta(hours=5)

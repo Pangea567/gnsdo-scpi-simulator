@@ -712,3 +712,128 @@ def test_serv_summary_matches_real_device_format():
         "FASTLOCK : 1",
         "FASTLOCK PERIOD  : 1800",
     ]
+
+
+def test_health_jamming_requires_both_conditions():
+    """
+    Kilavuz §3.3.28: "Any level exceeding 50 in combination to loss of
+    GNSS lock will cause a SYNC:HEALTH 0x800 event".
+
+    IKI KOSUL BIRLIKTE saglanmali. Sadece jamming yuksekse ama fix
+    devam ediyorsa bayrak YANMAMALI -- gercek cihaz da oyle davraniyor.
+    """
+    from datetime import timedelta
+
+    parser, state = make_test_parser_with_state()
+    # 0x8 (calisma suresi < 200 sn) karismasin
+    state.process_started_at = datetime.now() - timedelta(seconds=1000)
+
+    # Sadece jamming yuksek, fix var -> bayrak YOK
+    state.gps_jamming_level = 90
+    state.gnss_satellites_tracking = 8
+    assert "0x800" not in _health_bits(parser)
+
+    # Sadece fix yok, jamming dusuk -> bayrak YOK
+    state.gps_jamming_level = 5
+    state.gnss_satellites_tracking = 0
+    assert 0x800 & _health_value(parser) == 0
+
+    # Ikisi birden -> bayrak VAR
+    state.gps_jamming_level = 90
+    state.gnss_satellites_tracking = 0
+    assert 0x800 & _health_value(parser) == 0x800
+
+
+def test_health_filter_loop_bit_during_warmup_only():
+    """
+    Kilavuz §3.6.18, 0x1000: filtre osilator dongusu kilitli degil.
+
+    Isinma ve kilitlenme asamalarinda yanar, kilitlendikten sonra soner.
+
+    HOLDOVER'DA YANMAMALI -- kilavuz §2.5: GNSS beslemesi olmadan cihaz
+    "Rubidyum holdover modunda" calisir ve LED'i "OCXO'yu Rubidyum
+    referansina icsel olarak kilitledigini, cihazin SAGLIKLI oldugunu
+    ve BEKLEYEN OLAY OLMADIGINI" bildirir. Yani GNSS kaybi filtre
+    dongusunu bozmaz: o dongu OCXO'yu Rubidyum'a kilitler, GNSS'e degil.
+    """
+    from datetime import timedelta
+
+    from gnsdo_simulator.models.warmup import ATOMIC_LOCK_SECONDS, GNSS_LOCK_SECONDS
+
+    parser, state = make_test_parser_with_state()
+    state.process_started_at = datetime.now() - timedelta(seconds=1000)
+
+    # Isinma -> 0x1000 yanar
+    state.warmup_started_at = datetime.now()
+    assert 0x1000 & _health_value(parser) == 0x1000
+
+    # Kilitleniyor -> hala yanar
+    state.warmup_started_at = datetime.now() - timedelta(
+        seconds=ATOMIC_LOCK_SECONDS + 10
+    )
+    assert 0x1000 & _health_value(parser) == 0x1000
+
+    # Kilitli -> soner
+    state.warmup_started_at = datetime.now() - timedelta(
+        seconds=GNSS_LOCK_SECONDS + 10
+    )
+    assert 0x1000 & _health_value(parser) == 0
+
+    # Holdover -> YANMAMALI (filtre dongusu Rubidyum'a kilitli kalir)
+    parser.dispatch("SYNC:HOLD:INIT")
+    state.holdover_started_at = datetime.now() - timedelta(seconds=300)
+    assert 0x1000 & _health_value(parser) == 0
+
+
+def test_freq_error_estimate_varies():
+    """
+    FEE sabit degil. Kilavuz §3.6.10'a gore 1000 saniyelik olcum
+    araligiyla hesaplanan, Allan varyansina benzer bir buyukluktur --
+    dolayisiyla oynar. Gercek cihaz kayitlarindaki uc ardisik sorgu:
+    1.31E-11, 2.49E-11, 1.59E-11.
+    """
+    import re
+    from datetime import timedelta
+
+    parser, state = make_test_parser_with_state()
+
+    degerler = set()
+    for saniye in range(0, 300, 25):
+        state.process_started_at = datetime.now() - timedelta(seconds=saniye)
+        response = parser.dispatch("SYNC?")
+        assert response is not None
+        degerler.add(re.search(r"FREQ ERROR ESTIMATE : (\S+)", response).group(1))
+
+    assert len(degerler) > 3
+
+
+def test_holdover_accumulation_uses_frozen_fee():
+    """
+    Holdover birikimi, KAYIP ANINDAKI frekans hatasina dayanmali --
+    anlik FEE'ye degil.
+
+    Nicin: FEE artik zamanla oynuyor. Birikim anlik degeri kullansaydi,
+    gecmiste birikmis hata sonradan DEGISIRDI -- fiziksel olarak sacma.
+    Bir kere olan sey, sonradan baska turlu olmus sayilamaz.
+    """
+    parser, state = make_test_parser_with_state()
+
+    parser.dispatch("SYNC:HOLD:INIT")
+    dondurulmus = state.holdover_entry_fee
+
+    # Taban FEE'yi degistirsek bile birikim dondurulmus degeri kullanmali
+    state.freq_error_estimate = 9.9e-10
+    assert state.holdover_entry_fee == dondurulmus
+
+
+def _health_value(parser) -> int:
+    """SYNC:HEALTH? cevabini sayiya cevirir."""
+    cevap = parser.dispatch("SYNC:HEALTH?")
+    assert cevap is not None
+    return int(cevap, 16)
+
+
+def _health_bits(parser) -> str:
+    cevap = parser.dispatch("SYNC:HEALTH?")
+    assert cevap is not None
+    return cevap
