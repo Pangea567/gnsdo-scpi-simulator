@@ -34,15 +34,18 @@ sync:
   #   Bu degerle 210 ns'lik saglik esigine (§3.6.18, HEALTH 0x4)
   #   yaklasik 4.5 SAATTE ulasilir.
   #
-  # locked_tint (x0 kaynagi): kilitliyken TINT. Holdover'a girildigi
-  #   anda dondurulup birikimin baslangic noktasi olur. GERCEK cihaz
-  #   ciktisindan: "TIME INTERVAL DIFFERENCE : 1.133E-08".
+  # locked_tint: kilitliyken TINT'in ORTALAMA degeri. Kapali kontrol
+  #   dongusu TINT'i sifira cektigi icin bu SIFIRDIR; anlik okuma
+  #   sifirin etrafinda +/-12 ns salinir (jitter).
+  #   DUZELTILDI: eskiden 1.2e-08 idi. Gercek cihaz kayitlari TINT'in
+  #   artı ve eksi deger aldigini gosterdi (-7.873E-09, -1.179E-08,
+  #   1.133E-08 ...) -- yani sabit pozitif bir offset YOK.
   #
   # drift_per_day (D): Rubidyum osilatorun yaslanma hizi. Kilavuz
   #   §2.9: kilitliyken ADEV "8E-014 per day"e yaklasiyor. Bu terim
   #   saatler mertebesinde gorunmez, GUNLER mertebesinde belirginlesir.
   freq_error_estimate: 1.31e-11
-  locked_tint: 1.2e-08
+  locked_tint: 0.0
   drift_per_day: 8.0e-14
 
 measure:

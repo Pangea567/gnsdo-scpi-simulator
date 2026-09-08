@@ -502,16 +502,28 @@ def test_locked_tint_has_no_trend():
     # ediyoruz -- holdover olsaydi bu araligi coktan asardi.
     state.noise_scale = 1.0
     okumalar = []
-    for saat in range(0, 6):
-        state.process_started_at = datetime.now() - timedelta(hours=saat)
+    # DIKKAT -- ornekleme araligi jitter PERIYODUNUN TAM KATI OLMAMALI.
+    # Ilk yazimda saat basi ornekleme yapmistik; jitter periyodu 5 sn
+    # oldugu icin 3600 sn tam 720 cevrime denk geliyordu ve her ornek
+    # AYNI faza dusuyordu (ortusme/aliasing). Sonuc: sinyal sabitmis
+    # gibi gorunuyordu. Periyotla ortak boleni olmayan bir adim
+    # seciyoruz.
+    for adim in range(24):
+        gecen = adim * 3.7  # 5 sn'lik periyotla ortak katı yok
+        state.process_started_at = datetime.now() - timedelta(seconds=gecen)
         cevap = parser.dispatch("SYNC:TINT?")
         assert cevap is not None
         okumalar.append(float(cevap))
 
-    taban = state.locked_tint_seconds
+    # Jitter genligi 12 ns (gercek cihaz kayitlarindan) -- okumalar
+    # SIFIRIN ETRAFINDA bu bant icinde kalmali. Holdover olsaydi
+    # 5 saatte 200 ns'yi asardi; buradaki sinir onun cok altinda.
     for deger in okumalar:
-        # jitter genligi 0.2 ns -- bant disina cikmamali
-        assert abs(deger - taban) < 0.3e-9
+        assert abs(deger) < 15e-9
+
+    # Ayrica gercek cihaz gibi HEM ARTI HEM EKSI deger gorulmeli --
+    # sifirin tek tarafinda kalsaydi bu bir trend (offset) olurdu
+    assert min(okumalar) < 0 < max(okumalar)
 
 
 def test_measurements_vary_over_time():

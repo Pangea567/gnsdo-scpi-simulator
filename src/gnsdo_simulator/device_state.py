@@ -114,12 +114,19 @@ class DeviceState:
     # --- HOLDOVER HATA BIRIKIMI MODELI ICIN ALANLAR ---
     # (bkz. models/holdover.py ve docs/tasarim-kararlari.md)
     #
-    # locked_tint_seconds: cihaz GPS'e KILITLIYKEN TINT'in aldigi
-    #   deger. Kapali kontrol dongusu TINT'i sifira cektigi icin bu
-    #   kucuk ve sabittir -- kilitliyken TINT'e trend eklemek fiziksel
-    #   olarak yanlis olurdu (dongunun calismadigi anlamina gelirdi).
-    #   Deger GERCEK cihaz ciktisindan: "TIME INTERVAL DIFFERENCE :
-    #   1.133E-08" yani ~11.3 ns.
+    # locked_tint_seconds: cihaz GPS'e KILITLIYKEN TINT'in ORTALAMA
+    #   degeri. Kapali kontrol dongusu TINT'i SIFIRA cektigi icin bu
+    #   sifirdir; anlik okuma sifirin ETRAFINDA salinir (jitter
+    #   NOISE_PROFILES["tint"] ile veriliyor).
+    #
+    #   DUZELTILDI: eskiden 12e-9 (sabit pozitif) idi. Gercek cihaz
+    #   kayitlari bunun yanlis oldugunu gosterdi -- TINT ARTI VE EKSI
+    #   deger aliyor, yani sifir etrafinda salaniyor:
+    #       1.133E-08  -7.873E-09  -1.179E-08  9.063E-09  2.672E-09
+    #   Hatanin kaynagi kilavuz §1.1'deki "better than 0.2ns AVERAGE
+    #   phase accuracy" ifadesini "jitter genligi 0.2 ns" diye
+    #   okumakti. "average" kelimesi kilit: ORTALAMA sifira 0.2 ns
+    #   yakin demek; anlik okuma cok daha genis salinir.
     #
     # holdover_entry_tint_seconds: holdover'a GIRILDIGI ANDAKI TINT
     #   (modeldeki x0). Faz sureklidir -- GPS kesildiginde faz farki
@@ -133,8 +140,8 @@ class DeviceState:
     # last_holdover_duration_seconds: BITMIS en son holdover'in
     #   suresi. Kilavuz §3.6.1 SYNC:HOLD:DUR?'un holdover disindayken
     #   "onceki holdover"i dondurmesini istiyor.
-    locked_tint_seconds: float = 12e-9
-    holdover_entry_tint_seconds: float = 12e-9
+    locked_tint_seconds: float = 0.0
+    holdover_entry_tint_seconds: float = 0.0
     rb_drift_per_day: float = RB_DRIFT_PER_DAY
     last_holdover_duration_seconds: Optional[float] = None
 
@@ -337,10 +344,16 @@ def enter_holdover(state: DeviceState, now: Optional[datetime] = None) -> None:
     ORADAN baslar.
     """
     now = now or datetime.now()
+
+    # ANLIK okumayi donduruyoruz (jitter dahil), taban degeri degil.
+    # DIKKAT -- SIRA: bu cagri holdover bayragi ACILMADAN once
+    # yapilmali, yoksa current_tint_seconds() holdover dalina girer
+    # ve heniz baslamamis bir birikimi hesaplamaya calisir.
+    state.holdover_entry_tint_seconds = current_tint_seconds(state, now)
+
     state.holdover = True
     state.sync_locked = False
     state.holdover_started_at = now
-    state.holdover_entry_tint_seconds = state.locked_tint_seconds
 
 
 def exit_holdover(state: DeviceState, now: Optional[datetime] = None) -> None:
@@ -421,9 +434,12 @@ NOISE_PROFILES = {
     "voltage": (0.007, 8.0),
     "current": (0.005, 6.0),
     "power_supply": (0.02, 12.0),
-    # Kilavuz §1.1: kilitliyken faz dogrulugu "better than 0.2ns
-    # average" -- jitter genligini oradan aliyoruz.
-    "tint": (0.2e-9, 3.0),
+    # TINT jitter'i. Genlik GERCEK CIHAZ KAYITLARINDAN: kilitliyken
+    # okumalar +/-12 ns bandinda, sifirin iki yaninda geziniyor
+    # (1.133E-08, -7.873E-09, -1.179E-08, 9.063E-09, 2.672E-09).
+    # Kilavuzdaki "0.2ns average" bu bandin ORTALAMASIDIR, genligi
+    # degil -- ilk modelde bu karistirilmisti.
+    "tint": (12e-9, 5.0),
 }
 
 

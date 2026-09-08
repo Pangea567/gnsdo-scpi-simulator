@@ -139,7 +139,9 @@ def test_holdover_scenario_loads_model_parameters():
     state = load_scenario("holdover")
 
     assert state.freq_error_estimate == 1.31e-11  # y0, kilavuz §3.6.10
-    assert state.locked_tint_seconds == 1.2e-08  # x0 kaynagi, §1.1
+    # DUZELTILDI: taban artik SIFIR -- gercek cihazda TINT sifirin
+    # etrafinda salinir, sabit pozitif offseti yoktur
+    assert state.locked_tint_seconds == 0.0
     assert state.rb_drift_per_day == 8.0e-14  # D, kilavuz §2.9
 
 
@@ -156,7 +158,12 @@ def test_holdover_entry_tint_frozen_from_locked_value():
     state = load_scenario("holdover")
 
     assert state.holdover is True
-    assert state.holdover_entry_tint_seconds == state.locked_tint_seconds
+
+    # Giris degeri, holdover'a girildigi andaki ANLIK okumadir
+    # (jitter dahil), taban deger degil -- faz sureklidir, o an
+    # sayac neyi gosteriyorsa birikim oradan baslar.
+    # Jitter bandi +/-12 ns oldugundan giris degeri de o bantta olmali.
+    assert abs(state.holdover_entry_tint_seconds) < 15e-9
 
 
 def test_holdover_scenario_tint_accumulates_over_time():
@@ -177,17 +184,17 @@ def test_holdover_scenario_tint_accumulates_over_time():
     # diye gurultuyu kapatiyoruz (jitter ayri testlerde dogrulaniyor).
     state.noise_scale = 0.0
 
-    # Holdover henuz yeni basladi: TINT giris degerine cok yakin olmali
+    # Holdover henuz yeni basladi: TINT, DONDURULAN giris degerine
+    # esit olmali
+    giris = state.holdover_entry_tint_seconds
     baslangic = current_tint_seconds(state)
-    assert baslangic == pytest.approx(state.locked_tint_seconds, rel=1e-3)
+    assert baslangic == pytest.approx(giris, abs=1e-12)
 
     # 1 saat geriye tarihle: y0 * 3600 = 1.31e-11 * 3600 = 47.16 ns
-    # birikmis olmali (buna giristeki ~12 ns ekleniyor)
+    # birikmis olmali (giris degerinin USTUNE)
     state.holdover_started_at = datetime.now() - timedelta(hours=1)
     bir_saat_sonra = current_tint_seconds(state)
-    assert bir_saat_sonra == pytest.approx(
-        state.locked_tint_seconds + 1.31e-11 * 3600, rel=1e-3
-    )
+    assert bir_saat_sonra == pytest.approx(giris + 1.31e-11 * 3600, rel=1e-3)
 
     # 5 saat geriye tarihle: 210 ns'lik saglik esigi (§3.6.18) asilmali
     state.holdover_started_at = datetime.now() - timedelta(hours=5)
