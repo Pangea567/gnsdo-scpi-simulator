@@ -174,7 +174,7 @@ Section~\ref{sec:models}.
 \label{sec:related}
 \subsection{Digital models, shadows, and twins}
 The term ``digital twin'' is applied so broadly that it has become
-ambiguous~\cite{ADD_IEEE_REF_1}. We adopt the categorical distinction of
+ambiguous; broad syntheses appear in~\cite{tao2019dt,rasheed2020dt}. We adopt the categorical distinction of
 Kritzinger~\emph{et~al.}~\cite{kritzinger2018dt}, formalised by Barbie
 and Hasselbring~\cite{barbie2024dtp}, which classifies a virtual
 counterpart by the degree of \emph{automated} data exchange with a
@@ -223,12 +223,10 @@ recordings.
 Modelling oscillator stability and holdover is a mature area. We use the
 standard two-state clock model, in which the oscillator is described by
 phase and frequency states driven by characteristic noise
-processes~\cite{CITE_CLOCK_MODEL}, with parameters taken from the vendor
+processes~\cite{zucca2005clock}, with parameters taken from the vendor
 manual; refinements using Kalman filtering, machine learning, or
 explicit quantisation-noise models are not needed for our purpose, and
-we claim \emph{no} contribution there. Hardware- and device-level
-simulation of disciplined clocks has likewise been
-studied~\cite{ADD_IEEE_REF_2}. We further distinguish our work from GNSS
+we claim \emph{no} contribution there. We further distinguish our work from GNSS
 \emph{signal} simulators, which synthesise radio-frequency satellite
 signals; our artefact is a device- and protocol-level simulator that
 synthesises SCPI responses. The contribution lies in the method by which
@@ -238,7 +236,7 @@ the model is built and validated, not in the model itself.
 \section{Simulator Architecture}
 \label{sec:arch}
 The simulator is organised in layers so that device physics is isolated
-from protocol handling (Fig.~\ref{fig:arch}):
+from protocol handling:
 \begin{itemize}
 \item a \emph{serial server} that owns a pseudo-terminal, created with
 \texttt{socat}, and converts between the byte stream and lines; a
@@ -262,16 +260,6 @@ would the device read after five hours of holdover?'' is answered in a
 unit test in microseconds, without waiting and without a running server.
 New command groups are added by registering handlers, so the protocol
 surface grows without changes to the core.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{fig13_architecture.pdf}
-\caption{Layered architecture. Unmodified client software connects
-through a virtual serial port; responses are derived from a single
-device-state object, which in turn reads the pure-function physical
-models.}
-\label{fig:arch}
-\end{figure}
 
 %=====================================================================
 \section{Physical Models}
@@ -347,14 +335,14 @@ servo states (\texttt{SERV:STATE?}) from warm-up, to locking, to locked
 last of these transitions and cannot distinguish ``still warming'' from
 ``warm but not yet locked''.
 
-\begin{figure}[t]
+\begin{figure*}[t]
 \centering
-\includegraphics[width=\columnwidth]{fig04_warmup_ramp.pdf}
+\includegraphics[width=0.82\textwidth]{fig04_warmup_ramp.pdf}
 \caption{Warm-up. The board temperature rises within a few minutes,
 while GNSS lock (servo state~6, hence \texttt{SYNC:LOCKED?}$=1$) is not
 reported until about twenty minutes; the two timescales are distinct.}
 \label{fig:warmup}
-\end{figure}
+\end{figure*}
 
 \begin{table}[t]
 \caption{Traceability of model parameters}
@@ -466,14 +454,6 @@ threshold is crossed at about $3.25$~hours.}
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\columnwidth]{fig02_before_after.pdf}
-\caption{Before/after. The earlier static model returned a constant
-$850$~ns in holdover; the shaded area is the error it concealed.}
-\label{fig:beforeafter}
-\end{figure}
-
-\begin{figure}[t]
-\centering
 \includegraphics[width=\columnwidth]{fig08_health_bits.pdf}
 \caption{Health-register evolution during holdover: \texttt{0x10} past
 $60$~s, \texttt{0x4} past $210$~ns, combining to the manual's
@@ -496,7 +476,7 @@ pairs.}
 the $210$~ns health threshold at about $3.25$~hours; after one day it is
 near $1.5\,\mu$s, of which the quadratic ageing term contributes only a
 few nanoseconds. The earlier static behaviour returned a constant
-$850$~ns throughout holdover (Fig.~\ref{fig:beforeafter}); the
+$850$~ns throughout holdover; the
 difference between that constant and \eqref{eq:holdover} is the error
 that a monitoring client would previously have been given no way to
 detect.
