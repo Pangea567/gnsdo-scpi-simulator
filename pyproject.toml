@@ -18,6 +18,8 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest"]
+# Bildiri sekillerini ureten deney script'leri icin (experiments/)
+experiments = ["matplotlib", "numpy"]
 
 [project.scripts]
 gnsdo-sim = "gnsdo_simulator.main:main"
