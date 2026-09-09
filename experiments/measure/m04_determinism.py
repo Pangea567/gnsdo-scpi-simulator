@@ -9,7 +9,7 @@ from harness import Measurement
 from gnsdo_simulator.device_state import DeviceState, measured_temperature
 
 def main():
-    m = Measurement("determinism", "Iki bagimsiz kosu -- ayni cikti")
+    m = Measurement("determinism", "İki bağımsız koşu — aynı çıktı")
     anchor = datetime.now()
     stA = DeviceState(); stA.temperature_celsius = 52.8
     stB = DeviceState(); stB.temperature_celsius = 52.8
@@ -20,7 +20,7 @@ def main():
         a = measured_temperature(stA); b = measured_temperature(stB)
         max_fark = max(max_fark, abs(a - b))
         m.record(saniye=round(sn, 2), kosu_a=a, kosu_b=b, fark=abs(a - b))
-    m.check(max_fark == 0.0, f"iki kosu birebir ayni (maks fark={max_fark})")
+    m.check(max_fark == 0.0, f"iki koşu birebir aynı (maks fark={max_fark})")
     return m.finish()
 
 if __name__ == "__main__":

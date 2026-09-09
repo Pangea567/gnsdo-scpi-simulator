@@ -16,7 +16,7 @@ FEE = 1.8e-11  # cihaz kayitlarindaki uc olcumun ortalamasi (y0)
 HEALTH_THR_NS = 210.0
 
 def main():
-    m = Measurement("holdover", "Holdover'da TINT birikimi (0-24 sa)")
+    m = Measurement("holdover", "Holdover'da TINT birikimi (0-24 saat)")
     for h in np.linspace(0, 24, 289):  # 5 dk cozunurluk
         t = h * 3600
         full = holdover_tint_seconds(t, 0.0, FEE) * 1e9
@@ -25,14 +25,14 @@ def main():
                  kuadratik_ns=full - lin)
 
     ilk, son = m.rows[0]["tint_ns"], m.rows[-1]["tint_ns"]
-    m.check(son > ilk, "TINT monoton artiyor")
-    m.check(abs(m.rows[0]["tint_ns"]) < 1e-6, "t=0'da TINT ~ 0")
+    m.check(son > ilk, "TINT monoton artıyor")
+    m.check(abs(m.rows[0]["tint_ns"]) < 1e-6, "t=0'da TINT ≈ 0")
     # 210 ns esigi makul bir surede asilmali (saatler, dakikalar/gunler degil)
     asan = next(r for r in m.rows if r["tint_ns"] >= HEALTH_THR_NS)
-    m.check(2.0 < asan["saat"] < 5.0, f"210ns esigi {asan['saat']:.2f} sa'te asiliyor")
+    m.check(2.0 < asan["saat"] < 5.0, f"210 ns eşiği {asan['saat']:.2f} saatte aşılıyor")
     # kuadratik terim kisa vadede ihmal edilebilir, uzun vadede belirgin
-    m.check(m.rows[12]["kuadratik_ns"] < 0.1, "kuadratik 1sa'te <0.1ns")
-    m.check(m.rows[-1]["kuadratik_ns"] > 1.0, "kuadratik 24sa'te >1ns")
+    m.check(m.rows[12]["kuadratik_ns"] < 0.1, "kuadratik terim 1 saatte < 0.1 ns")
+    m.check(m.rows[-1]["kuadratik_ns"] > 1.0, "kuadratik terim 24 saatte > 1 ns")
     return m.finish()
 
 if __name__ == "__main__":

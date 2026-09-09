@@ -55,8 +55,12 @@ def apply_ieee_style():
     """IEEE konferans gorunumu icin ortak rcParams'i uygular."""
     plt.rcParams.update({
         # tipografi -- Computer Modern (LaTeX gorunumu), tasinabilir
-        "mathtext.fontset": "cm",
+        "mathtext.fontset": "cm",       # matematik ($...$) -- CM/LaTeX gorunumu
         "font.family": "serif",
+        # Govde metni DejaVu Serif: Turkce karakterleri (ı ş ğ ç ö ü)
+        # icerir. Computer Modern (cmr10) bunlari icermedigi icin govde
+        # fontu olarak kullanilamaz; CM yalniz matematik sembollerinde.
+        "font.serif": ["DejaVu Serif"],
         "font.size": 8,
         "axes.titlesize": 8,
         "axes.labelsize": 8,

@@ -11,7 +11,7 @@ from gnsdo_simulator.device_state import (
 from gnsdo_simulator.models.warmup import ATOMIC_LOCK_SECONDS, GNSS_LOCK_SECONDS
 
 def main():
-    m = Measurement("warmup", "Isinma rampasi + servo durum (0-60 dk)")
+    m = Measurement("warmup", "Isınma rampası + servo durum (0-60 dk)")
     st = DeviceState(); st.noise_scale = 0.0
     st.temperature_celsius = 52.8; st.ambient_temperature_c = 25.0
     for dk in np.linspace(0, 60, 361):
@@ -21,16 +21,16 @@ def main():
                  servo_state=current_servo_state(st),
                  locked=int(is_locked(st)))
     temps = [r["pcb_c"] for r in m.rows]
-    m.check(temps == sorted(temps), "sicaklik monoton artiyor")
-    m.check(temps[0] < 26, "t=0'da ortam sicakligina yakin")
-    m.check(temps[-1] < 52.8, "kararli degeri asmiyor (ustel yaklasim)")
+    m.check(temps == sorted(temps), "sıcaklık monoton artıyor")
+    m.check(temps[0] < 26, "t=0'da ortam sıcaklığına yakın")
+    m.check(temps[-1] < 52.8, "kararlı değeri aşmıyor (üstel yaklaşım)")
     # ilk 5 dk'daki artis, son 5 dk'dakinden buyuk (ustel imza)
-    m.check((temps[30]-temps[0]) > (temps[-1]-temps[-31]), "ustel: erken artis > gec artis")
-    m.check(m.rows[0]["servo_state"] == 0, "acilis durum 0 (isinma)")
-    m.check(any(r["servo_state"] == 2 for r in m.rows), "durum 2 (kilitleniyor) gorulur")
-    m.check(m.rows[-1]["servo_state"] == 6, "60dk'da durum 6 (kilitli)")
+    m.check((temps[30]-temps[0]) > (temps[-1]-temps[-31]), "üstel imza: erken artış > geç artış")
+    m.check(m.rows[0]["servo_state"] == 0, "açılış durum 0 (ısınma)")
+    m.check(any(r["servo_state"] == 2 for r in m.rows), "durum 2 (kilitleniyor) görülür")
+    m.check(m.rows[-1]["servo_state"] == 6, "60 dk'da durum 6 (kilitli)")
     m.check(all(r["locked"] == (r["servo_state"] == 6) for r in m.rows),
-            "LOCKED? yalniz durum 6'da 1")
+            "LOCKED? yalnız durum 6'da 1")
     return m.finish()
 
 if __name__ == "__main__":
