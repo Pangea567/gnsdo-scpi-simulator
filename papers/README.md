@@ -25,7 +25,8 @@ yüklenebilir hale gelirler.
 
 ## Derleme
 Yerelde LaTeX yok; **Overleaf** önerilir (IEEEtran hazır gelir).
-Yerel derleme istenirse: `tectonic main.tex` (tek binary) veya texlive.
+Yerel derleme: `./papers/build.sh draft-en` (tectonic ile; tek binary,
+paketleri ilk calistirmada indirir). tectonic ~/.local/bin altinda.
 
 ## Dil
 Ana taslak İngilizce (ilerleyiş kolaylığı). ELECO sürümünde dil/şablon
