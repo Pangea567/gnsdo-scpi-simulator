@@ -42,3 +42,13 @@ PCB_OBSERVED_MIN = min(p for p, _ in MEAS_PAIRS)
 PCB_OBSERVED_MAX = max(p for p, _ in MEAS_PAIRS)
 CSAC_OBSERVED_MIN = min(c for _, c in MEAS_PAIRS)
 CSAC_OBSERVED_MAX = max(c for _, c in MEAS_PAIRS)
+
+
+# Kilavuz Sekil 2.19 (Premium secenek, GPS'e kilitli) ADEV tablosu:
+# (tau saniye, sigma_y(tau)). GNSS-disipline osilatorun karakteristik
+# "tumsek" egrisi: kisa vade osilator gurultusu, uzun vade GNSS
+# disiplini ile asagi cekilir.
+ADEV_TAU = [1, 2, 4, 8, 10, 20, 40, 80, 100, 200, 400, 800, 1000, 2000, 4000]
+ADEV_SIGMA = [1.76e-12, 2.25e-12, 2.91e-12, 3.84e-12, 4.15e-12, 4.76e-12,
+              4.96e-12, 5.71e-12, 6.11e-12, 7.21e-12, 7.36e-12, 5.60e-12,
+              4.74e-12, 2.98e-12, 1.47e-12]
