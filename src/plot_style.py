@@ -23,6 +23,12 @@ matplotlib.use("Agg")  # dosyaya yazan, ekran gerektirmeyen arka uc
 import matplotlib.pyplot as plt
 from cycler import cycler
 
+
+import matplotlib
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
+
+
 # --- Figur olculeri (inc) ---
 SINGLE_COL = (3.5, 2.5)    # IEEE tek sutun
 DOUBLE_COL = (7.16, 3.5)   # IEEE cift sutun
