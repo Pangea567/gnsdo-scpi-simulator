@@ -57,12 +57,12 @@ def apply_ieee_style():
         # tipografi -- Computer Modern (LaTeX gorunumu), tasinabilir
         "mathtext.fontset": "cm",
         "font.family": "serif",
-        "font.size": 9,
-        "axes.titlesize": 9,
-        "axes.labelsize": 9,
-        "xtick.labelsize": 8,
-        "ytick.labelsize": 8,
-        "legend.fontsize": 9,          # eksen fontuyla ayni boy
+        "font.size": 8,
+        "axes.titlesize": 8,
+        "axes.labelsize": 8,
+        "xtick.labelsize": 7,
+        "ytick.labelsize": 7,
+        "legend.fontsize": 8,          # eksen fontuyla ayni boy
 
         # figur / kayit
         "figure.figsize": SINGLE_COL,
