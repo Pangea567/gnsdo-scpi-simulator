@@ -126,6 +126,13 @@ varsayiliyor.
 Bu, endustride yaygin bir durum: cihazi satin alirsin, firmware'ine
 erisemezsin, cihaz da surekli elinin altinda degildir.
 
+**Literatur bu boslugu ISMIYLE onayliyor:** Khedr vd. (arXiv:2608.28498)
+dijital ikiz muhendisliginde "relevance, verifiability, **substitutability**
+and **fidelity**" niteliklerinin nasil BICIMLENDIRILIP DOGRULANACAGINA dair
+pratik rehber olmadigini soyluyor. Bizim bildirimiz tam bu iki nitelik
+uzerine somut, calisan bir ornek sunuyor: sinirli veriyle kurulan bir test
+ikizinin YERINE GECEBILIRLIGINI ve SADAKATINI nasil gosterirsin.
+
 ---
 
 ## 3. Kaynakca (buyuyecek)
@@ -155,6 +162,45 @@ erisemezsin, cihaz da surekli elinin altinda degildir.
   Synchronization.* ICICC 2026
 - *Over-the-Air Jamming and Spoofing Tests of GNSS Timing Devices.*
   EFTF/IFCS 2023 — jamming/HEALTH davranisi icin baglam
+
+### Test ikizi / mock / dogrulama (YENI -- cekirdek katkiyi destekliyor)
+- Tiwari, D., Monperrus, M. & Baudry, B. (2023). *RICK: Generating Mocks
+  from Production Data.* arXiv:2302.04547
+  — **GUCLU PARALEL.** Test double davranisini, gercek uygulamanin
+  KAYITLARINDAN turetir: "observes executing applications... Based on the
+  data collected from these observations, RICK produces unit tests with
+  mocks, stubs." Bizim yaptigimizin ta kendisi -- onlar OTOMATIK, uygulama
+  izlerinden; biz ELLE, cihaz protokol kayitlarindan. Yontem ayni: "gercek
+  seyin kaydindan test ikizi uret."
+- Khedr, M.T. vd. (2026). *A System-of-Systems Case Study for the
+  Verification of Composed Digital Twins.* arXiv:2608.28498
+  — **BOSLUGU ISMIYLE SOYLUYOR:** "lack practical guidance on how qualities
+  such as relevance, verifiability, **substitutability** and **fidelity**
+  may be formalised and verified." Bizim bildirinin merkezi tam bu iki
+  nitelik: YERINE GECEBILIRLIK (substitutability) ve SADAKAT (fidelity).
+- Waters, G. (2025). *Testing, Evaluation, Verification and Validation
+  (TEVV) of Digital Twins: A Comprehensive Framework.* arXiv:2507.04555
+- Mertens, J. & Denil, J. (2025). *Reusing Model Validation Methods for the
+  Continuous Validation of Digital Twins of Cyber-Physical Systems.*
+  arXiv:2512.04117
+- Barbie, A., Hasselbring, W. & Hansen, M. (2023). *Enabling Automated
+  Integration Testing of Smart Farming Applications via Digital Twin
+  Prototypes.* arXiv:2311.05748
+
+### GNSDO / holdover / zamanlama (ek)
+- Peil, S., Akin, T.G. & Whalen, J.D. (2025). *100-ns-level timing holdover
+  after 12 years for rubidium atomic fountains.* arXiv:2508.13140
+  — holdover'da ns-seviye hata birikiminin uzun-vade karakteri
+- Engelhardt, M. vd. (2026). *A Road-Mobile GNSS-Disciplined Oscillator...*
+  arXiv:2604.24060 — hareketli GNSSDO, g-duyarlilik (bizim GYRO baglamimiz)
+
+### AYRIM NOTU -- "GNSS simulator" bizim isimiz DEGIL
+- Kim, W. & Seo, J. (2023). *Low-Cost GNSS Simulators with Wireless Clock
+  Synchronization for Indoor Positioning.* arXiv:2306.00633
+  — DIKKAT: bu bir SINYAL simulatoru (RF uydu sinyali uretir). Bizimki bir
+  CIHAZ/PROTOKOL simulatoru (SCPI cevabi uretir). Terminoloji karismasin
+  diye bildirimizde bu ayrimi acikca yapmaliyiz: "GNSS simulator" literaturu
+  bize benzemez.
 
 ### Otomatik test ekipmani
 - *A Holistic Approach to Hardware Abstraction Layers.* IEEE AUTOTESTCON
