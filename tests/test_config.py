@@ -140,8 +140,10 @@ def test_warming_up_temperature_climbs():
     state = load_scenario("warming-up", configs_dir=CONFIGS_DIR)
     state.noise_scale = 0.0
 
+    # Isinma hizli oldugu icin erken zamanlarda ornekliyoruz (5 dk'da
+    # neredeyse doymus olur).
     okumalar = []
-    for dakika in [0, 5, 10, 20, 40]:
+    for dakika in [0, 0.5, 1, 2, 5]:
         state.warmup_started_at = datetime.now() - timedelta(minutes=dakika)
         okumalar.append(measured_temperature(state))
 
@@ -151,7 +153,7 @@ def test_warming_up_temperature_climbs():
     assert okumalar == sorted(okumalar)
     # Kararli degeri ASMAMALI
     assert okumalar[-1] < state.temperature_celsius
-    # USTEL: ilk 5 dakikadaki artis, son 20 dakikadakinden BUYUK olmali
+    # USTEL: erken artis (0->0.5dk) gec artistan (2->5dk) BUYUK olmali
     ilk_artis = okumalar[1] - okumalar[0]
     son_artis = okumalar[4] - okumalar[3]
     assert ilk_artis > son_artis

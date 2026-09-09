@@ -11,10 +11,10 @@ from gnsdo_simulator.device_state import (
 from gnsdo_simulator.models.warmup import ATOMIC_LOCK_SECONDS, GNSS_LOCK_SECONDS
 
 def main():
-    m = Measurement("warmup", "Isınma rampası + servo durum (0-60 dk)")
+    m = Measurement("warmup", "Isınma rampası + servo durum (0-25 dk)")
     st = DeviceState(); st.noise_scale = 0.0
     st.temperature_celsius = 52.8; st.ambient_temperature_c = 25.0
-    for dk in np.linspace(0, 60, 361):
+    for dk in np.linspace(0, 25, 301):
         st.warmup_started_at = datetime.now() - timedelta(minutes=float(dk))
         m.record(dakika=round(dk, 3),
                  pcb_c=current_pcb_temperature_base(st),
@@ -28,7 +28,7 @@ def main():
     m.check((temps[30]-temps[0]) > (temps[-1]-temps[-31]), "üstel imza: erken artış > geç artış")
     m.check(m.rows[0]["servo_state"] == 0, "açılış durum 0 (ısınma)")
     m.check(any(r["servo_state"] == 2 for r in m.rows), "durum 2 (kilitleniyor) görülür")
-    m.check(m.rows[-1]["servo_state"] == 6, "60 dk'da durum 6 (kilitli)")
+    m.check(m.rows[-1]["servo_state"] == 6, "25 dk'da durum 6 (kilitli)")
     m.check(all(r["locked"] == (r["servo_state"] == 6) for r in m.rows),
             "LOCKED? yalnız durum 6'da 1")
     return m.finish()

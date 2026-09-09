@@ -465,13 +465,19 @@ bekleyen bir istemci icin bu fark ayristirma hatasina yol acabilir.
   fark kapandikca yavaslar. Dogrusal bir rampa fiziksel olarak yanlis
   olurdu: sicaklik hedefe varinca aniden durmaz, ona asimptotik
   yaklasir -- ve dogrusal model devam etseydi hedefi ASARDI.
-- **tau = 600 s**: Kilavuz §2.5'teki 20 dakikalik kilit suresiyle
-  uyumlu bir isil oturma profili verir (30 dk'da farkin %95'i kapanir).
-- **DOGRULAMA**: Bu parametrelerle model 15. dakikada PCB 46.60 C /
-  CSAC 47.92 C uretiyor. Gercek cihaz kayitlarindaki EN SOGUK MEAS?
-  cifti 46.5688 / 47.83 idi. tau'yu kilavuzun kilit suresinden sectik,
-  bu sayilara BAKARAK degil -- model bagimsiz bir gozlemi yeniden
-  uretiyor.
+- **tau = 90 s** (DUZELTILDI): Onceki surumde 600 s idi ve "15. dakikada
+  46.57 C, gercek olcumle ortusuyor" diye bir dogrulama iddia ediyordu.
+  Bu YANLISTI: (a) tau, kilavuzun 20 dakikalik KILIT suresinden secilmisti
+  ama o GNSS kilidi suresidir, sicaklik degil; (b) gercek olcumler
+  zaman-damgasizdi, dolayisiyla "15. dakika" atamasi dayanaksizdi;
+  (c) cihazi calistiran kisinin gozlemi sicakligin HIZLI yukseldigi
+  (birkac dakikada 40-50 C) yonundeydi ve bu kilavuz §1.1 ile
+  ("less than 2 minutes warmup time to atomic lock") tutarlidir.
+  Duzeltilen deger 90 s: 1 dk'da ~38, 2 dk'da ~46, 5 dk'da ~52 C.
+- **DERS**: Bir sayiyi "makul bir kaynaktan" secmek onu DOGRU yapmaz.
+  tau'yu kilit suresine baglamak plausible gorunuyordu ama yanlis fizikti;
+  gercek gozlem duzeltti. Bu, K-9'un (gozlenen aralik != gurultu genligi)
+  kardesi: dolayli akil yurutme, dogrudan gozlemin yerini tutmaz.
 
 ### K-12: Ortam sicakligi bir VARSAYIMDIR
 - **Durum**: Rampanin baslangic noktasi (T_bas) icin bir degere
@@ -527,17 +533,19 @@ bekleyen bir istemci icin bu fark ayristirma hatasina yol acabilir.
 
 ### Isinma profili (olculen)
 
-| Dakika | PCB | CSAC | SERVo:STATe? | SYNC:LOCKED? |
-|---|---|---|---|---|
-| 0  | 25.00 | 26.32 | 0 | 0 |
-| 1  | 27.65 | 28.97 | 0 | 0 |
-| 2  | 30.04 | 31.36 | 2 | 0 |
-| 5  | 35.94 | 37.26 | 2 | 0 |
-| 10 | 42.57 | 43.89 | 2 | 0 |
-| 15 | 46.60 | 47.92 | 2 | 0 |
-| 20 | 49.04 | 50.36 | 6 | 1 |
-| 30 | 51.42 | 52.74 | 6 | 1 |
-| 60 | 52.73 | 54.05 | 6 | 1 |
+(tau = 90 s ile; isinma HIZLI, GNSS kilidi 20 dk'da AYRI olarak gelir)
+
+| Dakika | PCB | SERVo:STATe? | SYNC:LOCKED? |
+|---|---|---|---|
+| 0   | 25.0 | 0 | 0 |
+| 1   | 38.5 | 0 | 0 |
+| 2   | 45.5 | 2 | 0 |
+| 3   | 49.0 | 2 | 0 |
+| 5   | 51.8 | 2 | 0 |
+| 20  | 52.8 | 6 | 1 |
+
+Sicaklik 5 dakikada oturur; GNSS kilidi (durum 6) 20. dakikada gelir --
+iki sureç ayridir.
 
 ---
 

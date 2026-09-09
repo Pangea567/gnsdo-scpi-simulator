@@ -98,18 +98,28 @@ def test_sicaklik_monoton_artar():
     assert degerler == sorted(degerler)
 
 
-def test_ramp_gercek_cihaz_olcumuyle_ortusur():
+def test_isinma_hizlidir():
     """
-    DOGRULAMA: Gercek cihaz kayitlarindaki EN DUSUK PCB sicakligi
-    46.5688 idi (docs/gercek-cihaz-ciktilari.md).
+    Isinma HIZLIDIR: sicaklik birkac dakikada kararli degere yaklasir.
 
-    Isil zaman sabitini kilavuzun 20 dakikalik kilit suresinden
-    sectik, bu sayiya BAKARAK degil. Yine de model, ~15. dakikada
-    tam o degeri uretiyor -- yani gercek okuma isinmanin ortalarinda
-    alinmis olmali. Model bagimsiz bir gozlemi yeniden uretiyor.
+    DUZELTME NOTU: Onceki surumde bu test "15. dakikada 46.57 C" diye
+    zaman-damgasiz bir gercek olcumle ortusmeyi iddia ediyordu. O iddia
+    hem cihazi calistiran kisinin gozlemiyle (sicaklik hemen 40-50'ye
+    cikiyordu) hem de kilavuz §1.1 ile ("less than 2 minutes warmup time
+    to atomic lock") celisiyordu. Isil zaman sabiti buna gore
+    duzeltildi; artik isinmanin HIZLI oldugunu dogruluyoruz.
     """
-    on_bes_dakika = thermal_ramp(15 * 60, KARARLI_PCB_SICAKLIGI)
-    assert on_bes_dakika == pytest.approx(46.5688, abs=0.1)
+    # Cihazi calistiran kisinin gozlemi: sicaklik 2 dakikada 40-50 C
+    # araligina cikiyor.
+    iki_dakika = thermal_ramp(2 * 60, KARARLI_PCB_SICAKLIGI)
+    assert 40.0 <= iki_dakika <= 50.0
+
+    # 1 dakikada bile 30'larin ustune cikmis olmali (hizli baslangic)
+    assert thermal_ramp(60, KARARLI_PCB_SICAKLIGI) > 35.0
+
+    # 5 dakikada neredeyse kararli
+    bes_dakika = thermal_ramp(5 * 60, KARARLI_PCB_SICAKLIGI)
+    assert bes_dakika == pytest.approx(KARARLI_PCB_SICAKLIGI, abs=1.5)
 
 
 # --------------------------------------------------------------

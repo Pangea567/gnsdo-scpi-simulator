@@ -41,14 +41,13 @@ warmup:
   #   makul bir deger (kilavuz §1.3.4 cihazin ic mekan icin
   #   tasarlandigini soyler).
   #
-  # time_constant (tau): isil zaman sabiti, saniye. Aradaki farkin
-  #   %63'unun kapandigi sure. 600 s ile 30 dakikada farkin %95'i
-  #   kapanir -- kilavuzun 20 dakikalik kilit suresiyle (§2.5) uyumlu.
-  #
-  # DOGRULAMA: bu degerlerle model 15. dakikada 46.60 C uretiyor;
-  # gercek cihaz kayitlarindaki en dusuk PCB okumasi 46.5688 idi.
+  # time_constant (tau): isil zaman sabiti, saniye. DUZELTILDI: cihazi
+  #   calistiran kisinin gozlemine gore sicaklik HIZLI yukselir (birkac
+  #   dakikada 40-50 C). Kilavuz §1.1 de dogruluyor: atomik kilit
+  #   <2 dakika. 90 s ile 2 dk'da ~46 C, 5 dk'da ~52 C.
+  #   (Eski 600 s degeri yanlisti; kilit suresini isiya baglamisti.)
   ambient_temperature: 25.0
-  time_constant: 600.0
+  time_constant: 90.0
 
 diag:
   lifetime_hours: 0

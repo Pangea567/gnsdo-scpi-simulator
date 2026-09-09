@@ -90,10 +90,18 @@ GNSS_LOCK_SECONDS = 1200.0
 HOLDOVER_PHASE_LOCKED_SECONDS = 100.0
 
 # Isil zaman sabiti (saniye). Cihazin kararli sicakliga yaklasma hizi.
-# 600 s ile: 10 dk'da farkin %63'u, 20 dk'da %86'si, 30 dk'da %95'i
-# kapanir -- kilavuzun 20 dakikalik kilit suresiyle uyumlu bir isil
-# oturma profili.
-THERMAL_TIME_CONSTANT_SECONDS = 600.0
+#
+# DUZELTILDI (cihazi calistiran kisinin gozlemi): sicaklik HIZLI yukselir
+# -- birkac dakikada 40-50 C'ye ulasir. Eski deger (600 s) yanlisti;
+# kilavuzun 20 DAKIKALIK KILIT suresinden secilmisti, ama o GNSS'e
+# kilitlenme suresidir, SICAKLIK degil. Kilavuz §1.1 de bunu dogruluyor:
+# "less than 2 minutes warmup time to atomic lock" -- atomik paket 2
+# dakikada calisma sicakligina ulasir, yani isinma hizlidir.
+#
+# 90 s ile: 1 dk'da ~38 C, 2 dk'da ~46 C, 3 dk'da ~49 C, 5 dk'da ~52 C.
+# Isinma (hizli, ~dakikalar) ile GNSS kilidi (yavas, ~20 dk) AYRI
+# sureclerdir; ikincisi servo durum makinesinde ayrica tutulur.
+THERMAL_TIME_CONSTANT_SECONDS = 90.0
 
 # Cihazin acilis anindaki ortam sicakligi varsayimi (C).
 # VARSAYIM: kilavuz ortam sicakligi vermiyor, gercek cihaz kayitlari

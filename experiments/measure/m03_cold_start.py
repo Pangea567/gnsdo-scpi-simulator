@@ -18,12 +18,12 @@ from gnsdo_simulator.device_state import (
     measured_power_supply, current_servo_state, is_locked)
 
 def main():
-    m = Measurement("cold_start", "Soğuk başlangıç: warmup + gürültü (0-90 dk)")
+    m = Measurement("cold_start", "Soğuk başlangıç: warmup + gürültü (0-20 dk)")
     st = DeviceState()
     st.temperature_celsius = 52.8      # ulaşılacak kararlı değer
     st.ambient_temperature_c = 25.0    # açılış sıcaklığı
     anchor = datetime.now()
-    for dk in np.linspace(0, 90, 541):  # 10 sn çözünürlük
+    for dk in np.linspace(0, 20, 481):  # 10 sn çözünürlük
         st.warmup_started_at = anchor - timedelta(minutes=float(dk))
         st.process_started_at = anchor - timedelta(minutes=float(dk))
         m.record(dakika=round(dk, 3),
