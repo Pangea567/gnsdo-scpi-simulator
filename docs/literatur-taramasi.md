@@ -220,3 +220,85 @@ modelleri kurulmus durumda.
 Modeli, katki olarak degil, "bilinen bir modeli belgelenmis parametrelerle
 uyguladik" diye sunacagiz. Katkimiz modelin KENDISI degil, onu SINIRLI
 VERIYLE KURMA ve DOGRULAMA yontemidir.
+
+
+---
+
+## 5. ADLANDIRMA KARARI (kritik -- eksik ya da fazla iddia etmemek icin)
+
+Projeyi tek bir kelimeye sikistirmak yanlis olur, cunku BAGIMSIZ DORT
+MERCEK var ve her biri ayri bir dogru terim uretiyor. Bunlar celismez;
+ayni seye farkli acilardan bakar. Bildiride hepsini DOGRU yerde
+kullanacagiz.
+
+### Mercek 1 -- Fiziksel sistem modelleme: SIMULATOR mi EMULATOR mu?
+
+- **Simulator**: sistemin IC mekanizmasini/dinamigini modeller.
+- **Emulator** (sistem/gomulu anlaminda): sistemin DIS davranisini yeniden
+  uretir, oyle ki yerine gecebilsin (islevsel esdeglik, black-box).
+
+Biz IKISINI DE yapiyoruz: ic mekanizmayi modelliyoruz (holdover fizigi,
+isil rampa) VE dis davranisi tel uzerinden bire bir uretiyoruz.
+
+**TUZAK -- "emulator" kelimesinin ikinci anlami:** Istatistik/ML
+literaturunde "emulator" = pahali bir simulatorun ucuz istatistiksel
+VEKILI (surrogate). Bu BAMBASKA bir sey. arXiv aramasi bu anlami one
+cikardi. Bildiride "emulator" kullanirsak, sistem/gomulu anlaminda
+kullandigimizi acikca belirtecegiz.
+
+### Mercek 2 -- Yazilim testi terminolojisi: TEST DOUBLE / FAKE
+
+Meszaros'un (xUnit Test Patterns, 2007) yerlesik taksonomisi:
+Dummy, Stub, Spy, Mock, **Fake**.
+
+- **Stub/Mock**: onceden yazilmis sabit cevaplar dondurur, davranis
+  modellemez.
+- **Fake**: CALISAN ama basitlestirilmis bir gerceklestirim (klasik ornek:
+  gercek veritabani yerine bellek-ici veritabani).
+
+Bizimki tam olarak bir **Fake**'tir: cihazin calisan ama basitlestirilmis
+bir gerceklestirimi. Sabit cevap donduren eski hali bir "stub"a yakindi;
+FAZ 1-3 ile onu bir "fake"e donusturduk. Bu, projenin evrimini
+literaturun kendi diliyle anlatmanin guzel bir yolu.
+
+Ust kavram: **test double** (test ikizi). Sagladigi nitelik:
+**substitutability** (yerine gecebilirlik) -- Khedr vd. (2026) bunu dijital
+ikizlerde dogrulanmasi gereken bir nitelik olarak sayiyor.
+
+### Mercek 3 -- Dijital ikiz taksonomisi: DIGITAL MODEL
+
+Barbie & Hasselbring (2024) / Kritzinger vd. (2018) uc katman:
+Digital Model -> Digital Shadow -> Digital Twin (veri baginin otomasyon
+derecesine gore). Bizde otomatik veri bagi YOK => **Digital Model**.
+(Ayrinti icin Bolum 1.)
+
+### Mercek 4 -- Uygulama alani: DEVICE / PROTOCOL SIMULATOR
+
+"GNSS simulator" DEGIL -- o bir RF sinyal ureticisidir (Kim & Seo 2023).
+Bizimki bir SCPI/seri protokol cevabi ureticisidir. Bildiride bu ayrimi
+acikca yapacagiz.
+
+### SONUC -- bildiride kullanilacak dil
+
+| Nerede | Terim |
+|---|---|
+| Baslik / genel ad | **cihaz simulatoru** (device simulator) -- proje adiyla tutarli, fiziksel modellemeyi vurgular |
+| Rol / islev | fiziksel cihazin yerine gecen bir **test ikizi (fake)** |
+| Sagladigi nitelik | **yerine gecebilirlik** (substitutability) ve **sadakat** (fidelity) |
+| Dijital ikiz literaturune gore | bir **dijital model**; dijital ikiz DEGIL, ama DTP calismalarinin akrabasi |
+| KACINILACAK | "dijital ikiz" (yanlis), istatistiksel "emulator" (baska anlam), "GNSS simulator" (sinyal ureticisi) |
+
+**Tek cumlelik ozet (abstract icin taslak):**
+> "Ucuncu-taraf ticari bir GNSS-disipline rubidyum osilatorunun, yalnizca
+> uretici kilavuzu ve sinirli protokol kayitlari kullanilarak insa edilmis,
+> fiziksel olarak anlamli bir cihaz simulatoru (yazilim testi terimiyle bir
+> fake / test ikizi) sunuyoruz; ve sadakatini, cihaza erisimin kisitli
+> oldugu kosullarda nasil dogruladigimizi gosteriyoruz."
+
+### Kaynakca -- adlandirma icin (metadata sonra dogrulanacak)
+- Meszaros, G. (2007). *xUnit Test Patterns: Refactoring Test Code.*
+  Addison-Wesley. — test double / fake / stub / mock taksonomisi
+- Fowler, M. (2007). *Mocks Aren't Stubs.* — test double ayrimlari
+- Kritzinger, W. vd. (2018). *Digital Twin in manufacturing: A categorical
+  literature review and classification.* IFAC-PapersOnLine.
+  — Model/Shadow/Twin uc katmani
