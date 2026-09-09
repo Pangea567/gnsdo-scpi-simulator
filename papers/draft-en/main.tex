@@ -19,7 +19,7 @@ Third-Party GNSS-Disciplined Rubidium Oscillator:\\
 Construction and Fidelity Validation from Limited Data}
 
 \author{\IEEEauthorblockN{Omer Faruk Karagoz}
-\IEEEauthorblockA{Kurum adi\\ ofkaragoz05@gmail.com}}
+\IEEEauthorblockA{[KURUM ADI BURAYA]\\ ofkaragoz05@gmail.com}}
 
 \maketitle
 
@@ -86,11 +86,22 @@ whose single unit is only intermittently available, \emph{how can that
 fidelity be established} without the exhaustive hardware comparison that
 the literature usually assumes?
 
+We use ``physically faithful'' in a deliberately purpose-relative
+sense. The simulator reproduces the device's time-domain behaviour and
+its documented relationships to the precision a client requires, but it
+does \emph{not} reproduce the device's spectral (Allan-deviation)
+signature. This is a conscious design choice rather than a shortcoming:
+the artefact exists to test client software, for which reproducibility
+and determinism are worth more than spectral realism, and for which a
+random-per-query noise source would in fact be a defect
+(Section~\ref{sec:models}). We state this here because it shapes every
+subsequent modelling decision.
+
 This paper answers both questions for a commercial Jackson Labs Low
 Noise Rubidium GNSDO. Our contributions are:
 \begin{itemize}
 \item \textbf{A layered, physically grounded simulator}
-(Section~\ref{sec:arch}--\ref{sec:models}) that answers the device's
+(Sections~\ref{sec:arch}--\ref{sec:models}) that answers the device's
 serial/SCPI interface and reproduces its time-dependent
 behaviour---holdover error accumulation, deterministic measurement
 noise, and warm-up---and that runs over a virtual serial port so that
@@ -163,7 +174,7 @@ Section~\ref{sec:models}.
 \label{sec:related}
 \subsection{Digital models, shadows, and twins}
 The term ``digital twin'' is applied so broadly that it has become
-ambiguous. We adopt the categorical distinction of
+ambiguous~\cite{ADD_IEEE_REF_1}. We adopt the categorical distinction of
 Kritzinger~\emph{et~al.}~\cite{kritzinger2018dt}, formalised by Barbie
 and Hasselbring~\cite{barbie2024dtp}, which classifies a virtual
 counterpart by the degree of \emph{automated} data exchange with a
@@ -209,16 +220,19 @@ traces; we apply the same principle manually, to device protocol
 recordings.
 
 \subsection{Oscillator and holdover modelling}
-Modelling oscillator stability and holdover is a mature area, with
-refinements using Kalman filtering, machine learning, and explicit
-quantisation-noise models. We make \emph{no} claim of contribution
-there: we deliberately use the standard two-state clock model with
-parameters taken from the vendor manual. We also distinguish our work
-from GNSS \emph{signal} simulators, which synthesise radio-frequency
-satellite signals; our artefact is a device- and protocol-level
-simulator that synthesises SCPI responses. The contribution lies in the
-method by which the model is built and validated, not in the model
-itself.
+Modelling oscillator stability and holdover is a mature area. We use the
+standard two-state clock model, in which the oscillator is described by
+phase and frequency states driven by characteristic noise
+processes~\cite{CITE_CLOCK_MODEL}, with parameters taken from the vendor
+manual; refinements using Kalman filtering, machine learning, or
+explicit quantisation-noise models are not needed for our purpose, and
+we claim \emph{no} contribution there. Hardware- and device-level
+simulation of disciplined clocks has likewise been
+studied~\cite{ADD_IEEE_REF_2}. We further distinguish our work from GNSS
+\emph{signal} simulators, which synthesise radio-frequency satellite
+signals; our artefact is a device- and protocol-level simulator that
+synthesises SCPI responses. The contribution lies in the method by which
+the model is built and validated, not in the model itself.
 
 %=====================================================================
 \section{Simulator Architecture}
@@ -278,14 +292,13 @@ x(t) = x_0 + y_0\,t + \tfrac{1}{2}\,D\,t^{2},
 where $x_0$ is the phase frozen at the moment of loss, since phase is
 continuous and does not jump to zero. The linear term dominates over
 minutes-to-hours; the quadratic ageing term is negligible there and
-becomes visible only over days (Fig.~\ref{fig:holdover}). We take $y_0$
-to be the device's own Frequency Error Estimate
-(\texttt{SYNC:FEE?})---the manual defines it as an Allan-variance-like
-figure over a $1000$~s interval---and $D$ to be the manual's
-$8\times10^{-14}$/day ageing specification. Because $y_0$ is read from
-the device, the accumulation rate is consistent with what the device
-reports, and a client can in principle predict its own holdover budget
-(Fig.~\ref{fig:fee}).
+becomes visible only over days. We take $y_0$ to be the device's own
+Frequency Error Estimate (\texttt{SYNC:FEE?})---the manual defines it as
+an Allan-variance-like figure over a $1000$~s interval---and $D$ to be
+the manual's $8\times10^{-14}$/day ageing specification. Because $y_0$
+is read from the device, the accumulation rate is consistent with what
+the device reports, and a client can in principle predict its own
+holdover budget from a single FEE query.
 
 \subsection{Deterministic measurement noise}
 A real instrument's temperature, voltage, and TINT readings are never
@@ -298,20 +311,20 @@ independent draw is not reproducible, which frustrates debugging. We
 therefore model each reading as a deterministic function of elapsed
 time,
 \begin{equation}
-v(t) = v_{\mathrm{base}} + A\, f(t),\qquad
-f(t)=\!\!\sum_{k}\! w_k \sin\!\big(2\pi \phi^{k} t/P + \varphi_k\big),
+v(t) = v_{\mathrm{base}} + A \sum_{k} w_k
+       \sin\!\left(\frac{2\pi\,\phi^{k}\,t}{P} + \varphi_k\right),
 \label{eq:noise}
 \end{equation}
 where the frequency ratios are powers of the golden ratio $\phi$, so
 that the composite pattern is quasi-periodic and does not visibly
 repeat. This yields both required properties: identical values for
-identical instants, and exact run-to-run repeatability
-(Fig.~\ref{fig:determinism}). Amplitudes $A$ are taken from observed
-ranges and the periods $P$ are separated by physical timescale---slow
-for temperature, which has thermal inertia, faster for electrical
-quantities.
+identical instants, and exact run-to-run repeatability. Amplitudes $A$
+are taken from observed ranges and the periods $P$ are separated by
+physical timescale---slow for temperature, which has thermal inertia,
+faster for electrical quantities.
 
 \subsection{Warm-up and servo states}
+\label{sec:warmup}
 From a cold start the temperature approaches its steady value
 exponentially,
 \begin{equation}
@@ -319,15 +332,29 @@ T(t) = T_\infty - (T_\infty - T_0)\,e^{-t/\tau},
 \label{eq:warmup}
 \end{equation}
 because heat loss scales with the temperature difference; a linear ramp
-would be unphysical, overshooting rather than asymptoting. The thermal
-rise is fast---of the order of a few minutes, consistent with the
-manual's ``less than two minutes to atomic lock''---whereas GNSS
-\emph{lock} is a separate and slower process of roughly twenty minutes.
-The device therefore advances through servo states
-(\texttt{SERV:STATE?}) from warm-up, to locking, to locked
+would be unphysical, overshooting rather than asymptoting. With
+$\tau\approx 90$~s the modelled board temperature rises quickly, on the
+order of a few minutes. The manual's ``less than two minutes to atomic
+lock'' does not contradict this even though \eqref{eq:warmup} has closed
+only about $73\%$ of its range at $t=2$~min: atomic lock is governed by
+the internally regulated temperature of the physics package, whose
+dedicated oven settles faster than the board-level PCB temperature we
+model, so ``atomic lock'' can be reached while the PCB is still
+approaching equilibrium. GNSS \emph{lock} is a separate and slower
+process of roughly twenty minutes. The device therefore advances through
+servo states (\texttt{SERV:STATE?}) from warm-up, to locking, to locked
 (Fig.~\ref{fig:warmup}); \texttt{SYNC:LOCKED?} alone reports only the
 last of these transitions and cannot distinguish ``still warming'' from
 ``warm but not yet locked''.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig04_warmup_ramp.pdf}
+\caption{Warm-up. The board temperature rises within a few minutes,
+while GNSS lock (servo state~6, hence \texttt{SYNC:LOCKED?}$=1$) is not
+reported until about twenty minutes; the two timescales are distinct.}
+\label{fig:warmup}
+\end{figure}
 
 \begin{table}[t]
 \caption{Traceability of model parameters}
@@ -340,11 +367,11 @@ last of these transitions and cannot distinguish ``still warming'' from
 \midrule
 Ageing $D$ & $8\times10^{-14}$/day & Manual, \S2.9 \\
 $y_0$ (FEE) & device-reported & Manual, \S3.6.10; recording \\
-Locked TINT & $\approx 0$, $\pm12$~ns jitter & Recordings \\
+Locked TINT & $0 \pm 12$~ns (jitter) & Recordings \\
 CSAC$-$PCB offset & $+1.32\,^\circ$C & Recordings (4 pairs) \\
 EFC scale & $\times 200$ (ppt/\%) & Recordings; Manual \S3.7 \\
 Phase threshold & $210$~ns & Manual, \S3.6.18 \\
-Thermal $\tau$ & $\approx 90$~s & Operator observation; \S1.1 \\
+Thermal $\tau$ & $\approx 90$~s & Operator obs.; \S1.1 \\
 Ambient $T_0$ & $25\,^\circ$C & \emph{Assumption (configurable)} \\
 \bottomrule
 \end{tabular}
@@ -373,8 +400,8 @@ correctly, locked TINT zero-mean and trend-free, temperature rising and
 bounded, repeated runs identical---and that writes its data to a
 versioned artefact stamped with the source-control revision. Because the
 model functions are pure, these measurements sweep hours or days of
-simulated time instantly. The figures in this paper are regenerated from
-those artefacts by a single command, so every reported result is
+simulated time instantly. The numerical results below are regenerated
+from those artefacts by a single command, so every reported figure is
 reproducible from the recorded data.
 
 \subsection{Reproduction of untuned behaviour}
@@ -384,12 +411,11 @@ was never tuned. Three such coincidences arose, none of them targets of
 the fitting process. First, after a multi-hour holdover the simulator
 returns the health status \texttt{0x14}; this is exactly the worked
 example given in the manual (\texttt{0x10}\,$\vert$\,\texttt{0x4}, i.e.\
-``in holdover'' combined with ``phase beyond $210$~ns''),
-Fig.~\ref{fig:health}. Second, the per-second growth rate of TINT in
-holdover equals the device's independently reported FEE. Third, the CSAC
-temperature tracks the PCB temperature at a constant offset that matches
-all four recorded pairs to within $0.07\,^\circ$C
-(Fig.~\ref{fig:csac}). We present these as corroborating evidence, not
+``in holdover'' combined with ``phase beyond $210$~ns''). Second, the
+per-second growth rate of TINT in holdover equals the device's
+independently reported FEE. Third, the CSAC temperature tracks the PCB
+temperature at a constant offset that matches all four recorded pairs to
+within $0.07\,^\circ$C. We present these as corroborating evidence, not
 proof; but a model built by fitting other quantities has no reason to
 reproduce them unless its underlying structure is right.
 
@@ -424,36 +450,94 @@ recordings. \\
 %=====================================================================
 \section{Results}
 \label{sec:results}
-All figures are produced by the two-stage measurement/plot pipeline of
+All results are produced by the two-stage measurement/plot pipeline of
 Section~\ref{sec:validation}: a measurement stage runs the model,
 asserts invariants, and logs a data artefact; a plotting stage reads
-that artefact. Fig.~\ref{fig:holdover} shows holdover accumulation from
-\eqref{eq:holdover}: the error crosses the $210$~ns health threshold at
-about $3.25$~hours for the device's reported FEE, and the quadratic
-ageing contribution (shaded) is negligible over this span.
-Fig.~\ref{fig:beforeafter} contrasts this with the project's earlier
-static behaviour, a constant $850$~ns, whose shaded difference is the
-error that a client would have been told to ignore.
-Fig.~\ref{fig:health} traces the health register through holdover,
-reaching the manual's \texttt{0x14}. Fig.~\ref{fig:warmup} shows the
-fast thermal rise against the slow arrival of GNSS lock, and
-Fig.~\ref{fig:csac} shows the temperature-offset fidelity check against
-the recorded pairs. Further figures produced by the same
-pipeline---deterministic measurement noise, run-to-run determinism, the
-EFC relation, the divergence of the main and filter time-interval loops
-in holdover, FEE sensitivity, and the emulated device's Allan-deviation
-signature---are available and selected per venue.
+that artefact.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig01_holdover_accumulation.pdf}
+\caption{Holdover time-error accumulation from \eqref{eq:holdover}. The
+shaded band is the quadratic (ageing) contribution; the $210$~ns health
+threshold is crossed at about $3.25$~hours.}
+\label{fig:holdover}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig02_before_after.pdf}
+\caption{Before/after. The earlier static model returned a constant
+$850$~ns in holdover; the shaded area is the error it concealed.}
+\label{fig:beforeafter}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig08_health_bits.pdf}
+\caption{Health-register evolution during holdover: \texttt{0x10} past
+$60$~s, \texttt{0x4} past $210$~ns, combining to the manual's
+\texttt{0x14}.}
+\label{fig:health}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig03_csac_pcb.pdf}
+\caption{Fidelity check: the model's fixed
+CSAC${}={}$PCB${}+1.32\,^\circ$C line against the four recorded device
+pairs.}
+\label{fig:csac}
+\end{figure}
+
+\emph{Holdover.} For the device's reported FEE
+($y_0\!\approx\!1.8\times10^{-11}$), the accumulated time error of
+\eqref{eq:holdover} reaches roughly $65$~ns after one hour and crosses
+the $210$~ns health threshold at about $3.25$~hours; after one day it is
+near $1.5\,\mu$s, of which the quadratic ageing term contributes only a
+few nanoseconds. The earlier static behaviour returned a constant
+$850$~ns throughout holdover (Fig.~\ref{fig:beforeafter}); the
+difference between that constant and \eqref{eq:holdover} is the error
+that a monitoring client would previously have been given no way to
+detect.
+
+\emph{Health.} During holdover the health register
+(Fig.~\ref{fig:health}) sets \texttt{0x10} once the holdover exceeds
+$60$~s and adds \texttt{0x4} once the phase offset passes $210$~ns,
+yielding the combined value \texttt{0x14}---the manual's own worked
+example---at about $3.25$~hours. Independently, in the first $200$~s
+after power-on the register carries \texttt{0x8} (``run-time
+$<200$~s''), clearing to \texttt{0x0} thereafter.
+
+\emph{Warm-up.} From an assumed $25\,^\circ$C ambient, the modelled PCB
+temperature reaches roughly $46\,^\circ$C within two minutes and settles
+near $52.8\,^\circ$C within about five minutes, while GNSS lock (servo
+state $6$, and hence \texttt{SYNC:LOCKED?}$=1$) is not reported until
+about twenty minutes (Fig.~\ref{fig:warmup}). The two timescales are
+distinct, and a client polling only \texttt{SYNC:LOCKED?} cannot
+distinguish the intervening ``locking'' state from the initial warm-up.
+
+\emph{Fidelity checks.} The CSAC temperature equals the PCB temperature
+plus $1.32\,^\circ$C, reproducing all four recorded device pairs to
+within $0.07\,^\circ$C (Fig.~\ref{fig:csac}); the EFControl absolute
+value equals the relative value scaled by $200$, matching every recorded
+pair exactly; the locked-loop TINT jitters within $0 \pm 12$~ns with no
+net trend, whereas the holdover TINT of the same query accumulates past
+$200$~ns over several hours, confirming that the two internal loops are
+modelled as physically distinct. Repeated independent runs of any
+measurement reproduce identical series (maximum difference $0$),
+confirming determinism.
 
 %=====================================================================
 \section{Limitations}
 The artefact is a digital model, not a shadow or a twin: it has no live
-link to any physical unit, and does not update as the device ages. The
-measurement noise is deterministic and does \emph{not} reproduce the
-device's spectral, Allan-deviation signature; this is a deliberate
-trade-off, since the intended purpose---testing client software---values
-repeatability over spectral realism, but it means the simulator must not
-be used to evaluate oscillator stability. Some recorded values were
-untimestamped, so certain behaviours are validated as ranges and
+link to any physical unit, and does not update as the device ages. As
+stated in Section~\ref{sec:models}, the measurement noise is
+deterministic by design and does not reproduce the device's spectral,
+Allan-deviation signature; consequently the simulator must not be used
+to evaluate oscillator stability, only to test client software against
+the device's interface and time-domain behaviour. Some recorded values
+were untimestamped, so certain behaviours are validated as ranges and
 relationships rather than as time-anchored points. Finally, validation
 rests on a single device instance and a limited set of recordings;
 broader hardware comparison remains future work.
