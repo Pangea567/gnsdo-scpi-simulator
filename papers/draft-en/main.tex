@@ -1,0 +1,337 @@
+%=====================================================================
+% Cerceveden bagimsiz ANA taslak (Ingilizce).
+% ELECO surumu papers/eleco/ altinda bundan turetilecek.
+% Derleme: Overleaf (IEEEtran hazir) veya `tectonic main.tex`.
+%=====================================================================
+\documentclass[conference]{IEEEtran}
+\usepackage{cite}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{url}
+\graphicspath{{figures/}}
+
+\begin{document}
+
+\title{A Physically Faithful Device Simulator for a\\
+Third-Party GNSS-Disciplined Rubidium Oscillator:\\
+Construction and Fidelity Validation from Limited Data}
+
+% Yazarlar ELECO surumunde doldurulacak.
+\author{\IEEEauthorblockN{[Yazar]}
+\IEEEauthorblockA{[Kurum]\\ [E-posta]}}
+
+\maketitle
+
+%---------------------------------------------------------------------
+\begin{abstract}
+Software that controls or monitors precision timing instruments is
+difficult to test, because the physical device is expensive, singular,
+and not always available. We present a physically faithful software
+\emph{simulator} of a commercial GNSS-disciplined rubidium oscillator
+(a Jackson Labs Low Noise Rubidium GNSDO) that answers the instrument's
+serial/SCPI interface indistinguishably from the real unit, so that
+client software can be developed and tested without hardware. In
+software-testing terms the simulator is a \emph{fake}: a working but
+simplified implementation used as a test double. Unlike a digital twin,
+it has no automated data link to any physical instance; by the standard
+taxonomy it is a \emph{digital model}. Our contribution is not the
+underlying clock model, which is textbook, but a repeatable method for
+building such a model of a \emph{third-party} device from only (i) the
+vendor manual and (ii) a small set of protocol recordings, and for
+validating its fidelity when access to the device is limited. Every
+model parameter is traced to a documented source; parameters with no
+source are marked as assumptions. We show that the resulting model
+reproduces device behaviours that were \emph{not} targeted during
+construction---most strikingly the manual's own worked health-status
+example---and we document systematic manual-versus-device discrepancies
+that a manual-only simulator would get wrong.
+\end{abstract}
+
+\begin{IEEEkeywords}
+device simulator, test double, digital model, GNSS-disciplined
+oscillator, holdover, SCPI, software testing.
+\end{IEEEkeywords}
+
+%---------------------------------------------------------------------
+\section{Introduction}
+Global Navigation Satellite System (GNSS) disciplined oscillators
+(GNSSDOs) provide traceable time and frequency to applications ranging
+from telecommunications to instrumentation. A GNSSDO combines the
+long-term accuracy of GNSS with the short-term stability of a local
+oscillator---here a rubidium (Rb) atomic reference. Any software that
+integrates such a device (monitoring dashboards, automated test
+equipment, logging and alarm systems) must be developed and tested
+against the device's command interface. This creates a practical
+problem: the physical instrument is costly, there is often only one, it
+must warm up and lock before it is usable, and it cannot be
+monopolised by a software team for days of testing.
+
+The natural answer is to replace the device, during development, with a
+software stand-in that speaks the same interface. The engineering
+question is \emph{how faithful} that stand-in must be, and---because the
+device is a third-party product whose firmware we cannot see and whose
+unit we cannot always access---\emph{how we can know} that it is
+faithful at all.
+
+This paper reports the construction and validation of such a stand-in
+for a commercial Low Noise Rubidium GNSDO. Concretely, our
+contributions are:
+\begin{itemize}
+\item A layered, extensible simulator that answers the device's
+serial/SCPI interface and reproduces its time-dependent physical
+behaviour (holdover error accumulation, measurement noise, warm-up),
+runnable over a virtual serial port so that unmodified client software
+connects to it as if to the real device.
+\item A repeatable \emph{construction method} for a third-party device:
+every observable value is derived either from the vendor manual or from
+a small set of protocol recordings, and any value lacking a source is
+explicitly labelled an assumption.
+\item A \emph{fidelity-validation method} suited to limited device
+access, based on reproducing behaviours that were not targeted during
+construction, and on cross-checking the manual against real recordings.
+\end{itemize}
+
+We are deliberately precise about what the artefact is
+(Section~\ref{sec:related}): it is a \emph{digital model} and, in
+software-testing terms, a \emph{fake}; it is \emph{not} a digital twin.
+
+%---------------------------------------------------------------------
+\section{Background}
+\label{sec:background}
+\subsection{The device}
+The reference device is a Jackson Labs Low Noise Rubidium
+GNSDO~\cite{jacksonlabs2015lnrb}. Its serial interface follows the SCPI
+convention (ASCII commands terminated by \texttt{CR}/\texttt{LF},
+case-insensitive, short and long forms). Two one-pulse-per-second (1PPS)
+signals coexist internally: one derived by the GNSS receiver (accurate
+in the long term, noisy second-to-second) and one produced by the Rb
+oscillator (quiet in the short term, drifting in the long term). A
+control loop steers the Rb oscillator to minimise the time interval
+between them.
+
+\subsection{TINT and holdover}
+The queryable quantity \texttt{SYNC:TINT?} reports this time interval
+(TINT), the device's fundamental error signal. While the device is
+locked, the closed loop drives TINT toward zero. When GNSS is lost, the
+loop opens: no correction is applied and the oscillator's small
+frequency error integrates into a growing \emph{time} error. This
+coasting regime is called \emph{holdover}, and modelling its error
+growth is the first behaviour we target.
+
+%---------------------------------------------------------------------
+\section{Related Work and Positioning}
+\label{sec:related}
+\subsection{Digital twins, shadows, and models}
+The term ``digital twin'' is widely misused. We adopt the taxonomy of
+Kritzinger~\emph{et~al.}~\cite{kritzinger2018dt} and the formalization
+of Barbie and Hasselbring~\cite{barbie2024dtp}, which distinguish, by
+the degree of automated data exchange with a specific physical
+instance: a \emph{digital model} (no automated link), a \emph{digital
+shadow} (automated one-way physical$\rightarrow$digital), and a
+\emph{digital twin} (automated bidirectional). Our simulator has no
+automated link to any physical unit---recordings were taken manually,
+once---so it is a \emph{digital model}.
+
+Barbie and Hasselbring further define a \emph{Digital Twin Prototype}
+(DTP): a software prototype whose emulated sensors are driven by
+existing recordings, usable for continuous-integration testing without
+the physical object~\cite{barbie2024dtp,barbie2023smartfarming}. Our
+purpose and architecture align closely with the DTP idea---including
+keeping the RS-232 protocol at the host layer so device drivers are
+unchanged. The crucial difference is access: a DTP assumes the device's
+\emph{own} firmware (``the configurations are equal''), whereas we
+reconstruct behaviour black-box, from outside the protocol boundary, for
+a device we did not build. Khedr~\emph{et~al.}~\cite{khedr2026sos}
+observe that digital-twin engineering still lacks practical guidance on
+formalising and verifying qualities such as \emph{substitutability} and
+\emph{fidelity}; these are exactly the qualities our validation method
+targets.
+
+\subsection{Test doubles}
+In software-testing terminology~\cite{meszaros2007xunit,fowler2007mocks}
+our artefact is a \emph{fake}: a working but simplified implementation,
+as opposed to a stub or mock that returns canned answers. Its earlier,
+constant-response version behaved like a stub; the work reported here
+turned it into a fake. Deriving a test double's behaviour from
+recordings of the real system parallels RICK~\cite{tiwari2023rick},
+which generates mocks from production traces; we do so by hand from
+device protocol recordings.
+
+\subsection{Oscillator and holdover modelling}
+Holdover and oscillator stability modelling is a mature field, with
+Kalman-filter, machine-learning, and quantization-noise refinements.
+We claim \emph{no} contribution there: we apply the textbook two-state
+clock model with parameters taken from the vendor manual. Our
+contribution is the construction-and-validation method around it.
+
+%---------------------------------------------------------------------
+\section{Simulator Architecture}
+The simulator is layered so that device physics is isolated from
+protocol handling:
+\begin{itemize}
+\item a serial server that owns a pseudo-terminal (created with
+\texttt{socat}) and moves bytes to/from lines;
+\item an SCPI parser that dispatches a command to a registered handler
+and returns \texttt{Command Error} for unknown commands, as the real
+device does;
+\item a device-state object holding the instrument's memory;
+\item a \texttt{models} package of pure functions encoding the physics,
+with no I/O and time passed as an argument.
+\end{itemize}
+The last point matters for validation: because the physics functions are
+pure and take elapsed time as a parameter, ``what would the device read
+after five hours?'' is answered in a test without waiting in real time.
+
+%---------------------------------------------------------------------
+\section{Physical Models}
+\label{sec:models}
+All numeric parameters are traced to the manual or to recordings; the
+only sourceless parameter (ambient start temperature) is flagged as an
+assumption.
+
+\subsection{Holdover error accumulation}
+Phase is the integral of frequency. With relative frequency error
+$y_0$ at the moment of GNSS loss and oscillator ageing $D$, the
+accumulated time error is
+\begin{equation}
+x(t) = x_0 + y_0\,t + \tfrac{1}{2} D\,t^2 ,
+\label{eq:holdover}
+\end{equation}
+where $x_0$ is the phase frozen at entry. Here $y_0$ is the device's
+Frequency Error Estimate (\texttt{SYNC:FEE?}) and $D$ is the
+$8\times10^{-14}$/day ageing figure from the manual. The quadratic term
+is negligible over hours and becomes visible only over days
+(Fig.~\ref{fig:holdover}).
+
+\subsection{Deterministic measurement noise}
+Sensor readings must not be constant, but noise is modelled as a
+function of time, not as a fresh random draw per query:
+$v(t) = \text{base} + \text{amp}\cdot f(t)$, where $f$ is a sum of
+sinusoids with golden-ratio-irrational frequency ratios. This gives two
+properties a random stream cannot: two queries at the same instant
+return the same value (physically necessary), and a run is exactly
+repeatable (debuggable). Amplitudes come from observed ranges;
+time-scales are separated physically (temperature wanders slowly,
+voltage quickly).
+
+\subsection{Warm-up and servo states}
+From a cold start, temperature approaches its steady value
+exponentially, $T(t)=T_\infty-(T_\infty-T_0)e^{-t/\tau}$, because heat
+loss scales with the temperature difference. The thermal rise is fast
+(a few minutes, consistent with the manual's ``$<2$~min to atomic
+lock''); GNSS \emph{lock} is a separate, slower process ($\sim$20~min).
+The device passes through servo states (\texttt{SERV:STATE?})
+warm-up~$\rightarrow$~locking~$\rightarrow$~locked, which
+\texttt{SYNC:LOCKED?} alone cannot distinguish
+(Fig.~\ref{fig:warmup}).
+
+%---------------------------------------------------------------------
+\section{Fidelity Validation}
+\label{sec:validation}
+With limited device access, exhaustive comparison against the real unit
+is impossible. We use three complementary checks.
+
+\subsection{Traceability}
+Every parameter is sourced (manual clause or recording); sourceless
+values are labelled assumptions and made configurable, so a wrong
+assumption is a one-line fix rather than a hidden constant.
+
+\subsection{Unintended-prediction reproduction}
+The strongest evidence that a model is right is that it reproduces an
+observation it was not tuned for. Three arose:
+(i) after a multi-hour holdover the simulator returns health status
+\texttt{0x14}, exactly the worked example in the manual
+(\texttt{0x10}\,$|$\,\texttt{0x4}); (ii) the per-second growth rate of
+TINT equals the device's declared FEE; (iii) CSAC temperature tracks
+PCB temperature at a fixed $+1.32\,^\circ$C offset seen across all
+recorded pairs. None were targeted.
+
+\subsection{Manual-versus-device discrepancies}
+Building from recordings revealed places where the manual alone is
+insufficient: TINT is signed and swings about zero (the manual's
+``0.2\,ns average'' is a mean, not an amplitude);
+\texttt{MEAS:CURR?} returns a temperature, not a current;
+\texttt{EFControl} absolute equals relative $\times 200$; the two
+satellite counters can disagree. Each is evidence that a faithful
+simulator must be aligned to real behaviour, not documentation alone.
+
+%---------------------------------------------------------------------
+\section{Results}
+\label{sec:results}
+% Sekiller experiments/ altindaki olcum-cizim boru hattindan uretiliyor.
+% Her sekil bir CSV veri eserinden cizilir; olcumler degismezleri
+% assert eder ve git commit ile loglanir (tam yeniden uretilebilirlik).
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig01_holdover_accumulation.pdf}
+\caption{Holdover time-error accumulation from \eqref{eq:holdover}. The
+shaded band is the quadratic (ageing) contribution; the $210$\,ns
+health threshold is crossed at $\sim$3.25\,h.}
+\label{fig:holdover}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig02_before_after.pdf}
+\caption{Before/after: the previous static model returned a constant
+$850$\,ns in holdover; the shaded area is the error it concealed.}
+\label{fig:beforeafter}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig08_health_bits.pdf}
+\caption{\texttt{SYNC:HEALTH?} bit evolution during holdover:
+\texttt{0x10} at $60$\,s, \texttt{0x4} added past $210$\,ns, yielding
+the manual's \texttt{0x14}.}
+\label{fig:health}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig04_warmup_ramp.pdf}
+\caption{Warm-up: temperature rises fast (a few minutes) while GNSS lock
+(state~6) arrives later ($\sim$20\,min); the two are distinct processes.}
+\label{fig:warmup}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig03_csac_pcb.pdf}
+\caption{Fidelity check: the model's fixed CSAC$=$PCB$+1.32\,^\circ$C
+line against the four recorded device pairs.}
+\label{fig:csac}
+\end{figure}
+
+Additional figures (deterministic measurement noise, determinism of
+repeated runs, EFC relation, two-loop TINT divergence, FEE sensitivity,
+Allan deviation of the emulated device) are produced by the same
+pipeline and selected per venue.
+
+%---------------------------------------------------------------------
+\section{Limitations}
+The artefact is a digital model, not a shadow or twin: there is no live
+link to a physical unit. The measurement noise is deterministic and
+does \emph{not} reproduce the device's spectral (Allan-deviation)
+signature; this is intentional, since the purpose is client-software
+testing, for which repeatability outweighs spectral realism. Some
+recorded values were untimestamped, so we validate ranges and
+relationships rather than time-anchored points.
+
+%---------------------------------------------------------------------
+\section{Conclusion and Future Work}
+We built a physically faithful, behaviourally validated simulator of a
+third-party GNSS-disciplined rubidium oscillator from only its manual
+and a handful of protocol recordings, and gave a method for validating
+fidelity under limited access. A natural next step toward a digital
+\emph{shadow} is to let the simulator ingest periodic device logs and
+self-calibrate, closing the one-way data path that a digital model, by
+definition, lacks.
+
+%---------------------------------------------------------------------
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}

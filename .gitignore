@@ -24,3 +24,13 @@ logs/
 
 # MCP sunucu yapilandirmasi (yerel arac ayari, repoya girmez)
 .mcp.json
+
+# LaTeX ara ciktilari
+*.aux
+*.bbl
+*.blg
+*.out
+*.toc
+*.synctex.gz
+papers/*/main.pdf
+papers/*/figures/*.pdf
