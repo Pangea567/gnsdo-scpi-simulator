@@ -104,24 +104,22 @@ Noise Rubidium GNSDO. Our contributions are:
 \item \textbf{A layered, physically grounded simulator}
 (Sections~\ref{sec:arch}--\ref{sec:models}) that answers the device's
 serial/SCPI interface and reproduces its time-dependent
-behaviour---holdover error accumulation, deterministic measurement
-noise, and warm-up---and that runs over a virtual serial port so that
-unmodified client software connects to it as to the real device.
+behaviour---holdover accumulation, deterministic measurement noise,
+warm-up---over a virtual serial port, so that unmodified client
+software connects to it as to the real device.
 \item \textbf{A construction method for a third-party device}
-(Section~\ref{sec:models}): every observable value is derived either
-from the vendor manual or from a small set of protocol recordings, and
-every value that has no such source is explicitly labelled an
-assumption and exposed as configuration.
+(Section~\ref{sec:models}): every observable is traced to the vendor
+manual or to a protocol recording, and every value without such a
+source is labelled an assumption and exposed as configuration.
 \item \textbf{A fidelity-validation method for limited access}
-(Section~\ref{sec:validation}). The setting is deliberately
-constrained---a third-party device, no firmware, intermittent access,
-and largely untimestamped recordings---so the exhaustive time-aligned
-hardware comparison assumed by most of the literature is impossible.
-In its place we combine a direct comparison against the recorded
-outputs we do have, automated physical-invariant tests, the
-reproduction of behaviours that were not tuned for, and a catalogue of
-manual-versus-device discrepancies that a documentation-only simulator
-would get wrong.
+(Section~\ref{sec:validation}). The constraints are severe---a
+third-party device, no firmware, intermittent access, largely
+untimestamped recordings---so the time-aligned hardware comparison most
+of the literature assumes is simply unavailable. In its place we
+combine direct comparison against the recordings we do have, automated
+physical-invariant tests, the reproduction of untuned behaviour, and a
+catalogue of manual-versus-device discrepancies a documentation-only
+simulator would get wrong.
 \end{itemize}
 
 We are deliberately precise about what the artefact is. By the
@@ -158,10 +156,10 @@ resolution of $10^{-10}$~s.
 While the device is locked, the closed loop drives TINT towards zero. If
 GNSS is lost the loop opens: no correction is applied, and the
 oscillator's residual frequency error integrates into a growing
-\emph{time} error. This coasting regime is called \emph{holdover}. Its
-error growth---and the resulting degradation of the device's reported
-health---is the first and most safety-relevant behaviour a client must
-handle, and the first we model.
+\emph{time} error. This coasting regime is called \emph{holdover}, and it is where a
+timing client is most exposed: the error grows without bound and the
+device's reported health degrades with it. It is the first behaviour we
+model.
 
 \subsection{Health status and warm-up}
 The device summarises its condition in a hexadecimal bit-mask
@@ -202,9 +200,9 @@ object~\cite{barbie2024dtp,barbie2023smartfarming}. Our purpose and
 architecture are close to the DTP idea, down to keeping the serial
 protocol at the host layer so that device drivers are unchanged. The
 decisive difference is one of access and provenance: a DTP presumes the
-device's \emph{own} firmware (``the configurations are equal''), whereas
-we reconstruct behaviour from outside the protocol boundary, black-box,
-for a device we did not design and cannot open. Khedr~\emph{et~al.}
+device's \emph{own} firmware (``the configurations are equal''); we have
+none of it, and reconstruct behaviour from outside the protocol
+boundary, black-box, for a device we did not design and cannot open. Khedr~\emph{et~al.}
 observe that digital-twin engineering still lacks practical guidance for
 formalising and verifying qualities such as \emph{substitutability} and
 \emph{fidelity}~\cite{khedr2026sos}; these are exactly the qualities our
@@ -377,11 +375,13 @@ Ambient $T_0$ & $25\,^\circ$C & \emph{Assumption (configurable)} \\
 %=====================================================================
 \section{Fidelity Validation}
 \label{sec:validation}
-The central methodological question of this work is how to argue that a
-simulator is faithful when the device it imitates is a third-party
-product available only intermittently, so that the exhaustive
-side-by-side comparison assumed by much of the literature is
-impossible. We use five complementary strategies.
+The central methodological problem of this work is stark: how can a
+simulator be shown faithful when the device it imitates is a
+third-party product available only in glimpses, so that the exhaustive
+side-by-side comparison most of the literature assumes is out of reach?
+We answer with five complementary strategies; none is conclusive alone,
+but together they leave little room for the model to be right by
+accident.
 
 \subsection{Direct comparison with recorded outputs}
 Where the recordings permit it, we compare the simulator's response to a
