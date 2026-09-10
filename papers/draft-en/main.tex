@@ -87,16 +87,16 @@ whose single unit is only intermittently available, \emph{how can that
 fidelity be established} without the exhaustive hardware comparison that
 the literature usually assumes?
 
-We use ``physically faithful'' in a deliberately purpose-relative
-sense. The simulator reproduces the device's time-domain behaviour and
-its documented relationships to the precision a client requires, but it
-does \emph{not} reproduce the device's spectral (Allan-deviation)
-signature. This is a conscious design choice rather than a shortcoming:
-the artefact exists to test client software, for which reproducibility
-and determinism are worth more than spectral realism, and for which a
-random-per-query noise source would in fact be a defect
-(Section~\ref{sec:models}). We state this here because it shapes every
-subsequent modelling decision.
+By ``physically faithful'' we mean faithful \emph{to a purpose}, and
+deliberately so. The simulator reproduces the device's time-domain
+behaviour and documented relationships to the precision a client needs;
+it does \emph{not} reproduce the device's spectral (Allan-deviation)
+signature. That is a design decision, not a deficiency: the artefact
+exists to test client software, and for that purpose determinism and
+repeatability matter more than spectral realism---indeed a fresh random
+draw on every query would be a defect, not a feature
+(Section~\ref{sec:models}). This single choice shapes every modelling
+decision that follows.
 
 This paper answers both questions for a commercial Jackson Labs Low
 Noise Rubidium GNSDO. Our contributions are:
@@ -575,16 +575,17 @@ broader hardware comparison remains future work.
 
 %=====================================================================
 \section{Conclusion and Future Work}
-We have built a physically grounded, behaviourally validated simulator
-of a third-party GNSS-disciplined rubidium oscillator from only its
-vendor manual and a small set of protocol recordings, and we have set
-out a method for arguing fidelity when access to the device is limited:
-trace every parameter, test physical invariants automatically, seek the
-reproduction of untuned behaviour, and document where the manual and the
-device disagree. A natural next step, and the one that would change the
-artefact's taxonomic status, is to let the simulator ingest periodic
-device logs and self-calibrate, establishing the automated one-way link
-that would make it a digital \emph{shadow}.
+From nothing but a vendor manual and a handful of protocol recordings,
+we have built a physically grounded, behaviourally validated simulator
+of a third-party GNSS-disciplined rubidium oscillator, and set out how
+to argue its fidelity when the device itself is barely available: trace
+every parameter to a source, test physical invariants automatically,
+seek behaviours the model reproduces but was never tuned for, and
+document where the manual and the device disagree. The natural next
+step---the one that would change the artefact's taxonomic status---is to
+let the simulator ingest periodic device logs and self-calibrate,
+forging the automated one-way link that would make it a digital
+\emph{shadow}.
 
 \subsection*{Availability}
 The simulator, the measurement/plot pipeline, and the recorded device
