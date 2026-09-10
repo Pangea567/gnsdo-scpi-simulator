@@ -25,28 +25,26 @@ Construction and Fidelity Validation from Limited Data}
 
 %---------------------------------------------------------------------
 \begin{abstract}
-Software that controls or monitors a precision timing instrument must be
-developed against the instrument's command interface, yet the physical
-device is typically expensive, singular, slow to reach a usable state,
-and unavailable for the extended periods that testing demands. A
-software stand-in that speaks the same interface removes this
-dependency, but raises two questions that are sharpened when the device
-is a third-party product whose firmware is inaccessible: how faithful
-must the stand-in be, and how can its fidelity be established at all. We
-report the construction and validation of such a stand-in for a
-commercial Low Noise Rubidium GNSS-disciplined oscillator. In the
-software-testing taxonomy the artefact is a \emph{fake}, and in the
-digital-twin taxonomy a \emph{digital model}; it is explicitly not a
-digital twin, having no automated link to any physical unit. Our
-contribution is not the underlying clock model, which is standard, but
-a repeatable method: every observable is traced to the vendor manual or
-to a small set of protocol recordings, every unsourced value is marked
-as an assumption, and fidelity is argued by direct comparison with recorded device
-outputs, by physical-invariant testing, by the reproduction of
-behaviours that were never tuned for, and by documented
-manual-versus-device discrepancies. The resulting
-model reproduces the manual's own worked health-status example without
-having been fitted to it.
+Testing software that drives a precision timing instrument is awkward in
+practice: the device is costly, often singular, slow to reach a usable
+state, and cannot be monopolised for the days of fault-injecting runs
+that thorough testing demands. The obvious remedy---a software stand-in
+that speaks the same interface---raises a question the literature rarely
+confronts: when the device is a third-party product whose firmware is
+inaccessible and whose single unit is only intermittently available, how
+can the stand-in's fidelity be established at all? We answer this for a
+commercial Low Noise Rubidium GNSS-disciplined oscillator. The artefact
+is, precisely, a \emph{fake} in the software-testing sense and a
+\emph{digital model} in the digital-twin sense; it is not a digital
+twin, and we are deliberate about the distinction. Its contribution is
+not the clock model, which is textbook, but a repeatable method for
+building such a model from only a vendor manual and a handful of
+protocol recordings, and for arguing its fidelity without the exhaustive
+hardware comparison the literature assumes: trace every parameter to a
+source, mark the rest as assumptions, compare directly against recorded
+outputs, test physical invariants automatically, and seek behaviours the
+model reproduces yet was never tuned for. Without ever being fitted to
+it, the model reproduces the manual's own worked health-status example.
 \end{abstract}
 
 \begin{IEEEkeywords}
