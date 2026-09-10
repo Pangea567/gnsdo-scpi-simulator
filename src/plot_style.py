@@ -18,6 +18,7 @@ hicbir ek ayar gerektirmeden calisir.
 
 from pathlib import Path
 
+import os
 import matplotlib
 matplotlib.use("Agg")  # dosyaya yazan, ekran gerektirmeyen arka uc
 import matplotlib.pyplot as plt
@@ -55,6 +56,15 @@ C_ACCENT = OKABE_ITO[1]   # turuncu -- esik / vurgu
 C_ALT = OKABE_ITO[3]      # yesil  -- ikincil egri
 
 FIGDIR = Path(__file__).resolve().parent.parent / "experiments" / "figures"
+
+# Figur etiket dili: PLOT_LANG=tr ile Turkce uretilir (varsayilan 'en').
+# Komut adlari (SYNC:TINT? gibi) L() DISINDA tutulur, cevrilmez.
+LANG = os.environ.get("PLOT_LANG", "en").lower()
+
+
+def L(en: str, tr: str) -> str:
+    """Aktif dile gore etiket dizesini secer."""
+    return tr if LANG == "tr" else en
 
 
 def apply_ieee_style():
@@ -107,8 +117,9 @@ def save(fig, name):
     olarak experiments/figures/ altina kaydeder. Ad uzantisiz verilir.
     """
     FIGDIR.mkdir(parents=True, exist_ok=True)
-    pdf = FIGDIR / f"{name}.pdf"
+    suffix = "_tr" if LANG == "tr" else ""
+    pdf = FIGDIR / f"{name}{suffix}.pdf"
     fig.savefig(pdf)
-    fig.savefig(FIGDIR / f"{name}.png", dpi=200)
+    fig.savefig(FIGDIR / f"{name}{suffix}.png", dpi=200)
     plt.close(fig)
     return pdf

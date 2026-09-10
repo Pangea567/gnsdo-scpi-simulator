@@ -1,0 +1,239 @@
+\documentclass[9pt,twocolumn,a4paper]{extarticle}
+
+% --- Paketler ---
+\usepackage[turkish]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{newtxtext,newtxmath} 
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{titlesec}
+\usepackage{caption}
+\usepackage{amsmath}
+\usepackage{indentfirst} 
+\usepackage{url}
+\usepackage{setspace}
+
+% --- Sayfa Yapısı Ayarları ---
+\geometry{
+    a4paper,
+    left=20mm,
+    right=20mm,
+    bottom=37mm,
+    top=25mm, 
+    columnsep=5mm
+}
+
+% Sayfa numaralarını kaldır
+\pagestyle{empty}
+
+% --- Boşluk Ayarları (Şekiller için Global) ---
+\setlength{\intextsep}{10pt} % [h] şekillerinin üstündeki ve altındaki boşluk (Metin-Şekil arası)
+\setlength{\textfloatsep}{10pt} % Sayfanın en üstündeki/altındaki şekiller için boşluk
+
+% --- Yazı Tipi ve Boyut Ayarları ---
+\setlength{\parindent}{4mm} 
+\renewcommand{\baselinestretch}{1.0} 
+
+% Başlık formatları
+\titleformat{\section}{\centering\bfseries\fontsize{10}{12}\selectfont}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\bfseries\fontsize{10}{12}\selectfont}{\thesubsection}{0.5em}{}
+\titlespacing*{\section}{0pt}{12pt}{6pt}
+\titlespacing*{\subsection}{0pt}{9pt}{6pt}
+
+% Şekil ve Çizelge Başlık Ayarları
+\DeclareCaptionLabelFormat{bold}{\textbf{#1 #2}}
+\captionsetup{
+    labelsep=colon, 
+    font={normalsize}, 
+    labelfont=bf, 
+    justification=centering, 
+    singlelinecheck=false
+}
+\captionsetup[table]{name=Çizelge, labelsep=period, position=top, skip=3pt}
+\captionsetup[figure]{name=Şekil, position=bottom, skip=4pt} % skip: Görsel ile yazı arasındaki mesafe
+
+% --- Belge Başlangıcı ---
+\begin{document}
+% Turkce babel '=' ve ':' karakterlerini kisayol yapar; keyval/graphics
+% ve komut argumanlarini bozmasin diye kapatiyoruz.
+\shorthandoff{=}
+\graphicspath{{figures/}}
+
+\twocolumn[
+  \begin{center}
+    \vspace*{5mm} 
+    {\fontsize{14}{16}\selectfont\bfseries GNSS ile Disipline Edilen Üçüncü-Taraf Bir Rubidyum Osilatörü için\\ Fiziksel Olarak Sadık Bir Cihaz Simülatörü: Sınırlı Veriyle İnşa ve Doğrulama \par}
+    \vspace{2mm}
+    {\fontsize{14}{16}\selectfont\bfseries A Physically Faithful Device Simulator for a Third-Party\\ GNSS-Disciplined Rubidium Oscillator \par}
+    \vspace{4mm}
+    {\fontsize{11}{13}\selectfont Ömer Faruk Karagöz \par}
+    \vspace{4mm}
+    {\fontsize{10}{12}\selectfont Bolum/Fakulte, Universite \par}
+    {\fontsize{10}{12}\selectfont ofkaragoz05@gmail.com \par}
+    \vspace{8mm}
+  \end{center}
+]
+
+\begin{center}
+    {\fontsize{10}{12}\selectfont\bfseries Özet \par}
+\end{center}
+\vspace{-10pt}
+\noindent \textbf{Hassas bir zamanlama cihazını denetleyen ya da izleyen yazılım, cihazın komut arayüzüne karşı geliştirilmelidir; ancak fiziksel cihaz pahalı, tek ve sınama süresince erişilmez olabilir. Aynı arayüzü konuşan bir yazılım vekili bu bağımlılığı kaldırır. Bu çalışmada, ticari bir Düşük Gürültülü Rubidyum GNSSDO cihazının, seri/SCPI arayüzüne gerçek birimden ayırt edilemeyecek biçimde yanıt veren, fiziksel olarak sadık bir simülatörü sunulmaktadır. Artefakt, yazılım testi terimiyle bir \textit{fake} (test ikizi), dijital ikiz taksonomisinde ise bir \textit{dijital model}dir; herhangi bir fiziksel örnekle otomatik bağı olmadığından dijital ikiz değildir. Katkımız, temeldeki saat modeli değil, üçüncü-taraf bir cihazın modelini yalnızca üretici kılavuzundan ve az sayıda protokol kaydından kurma ve erişim kısıtlıyken sadakatini doğrulama yöntemidir.}
+\vspace{-7pt}
+
+\begin{center}
+    {\fontsize{10}{12}\selectfont\bfseries Abstract \par}
+\end{center}
+\vspace{-0.5em}
+\noindent \textbf{Software that controls or monitors a precision timing instrument must be developed against the device's command interface, yet the physical device may be expensive, singular, and unavailable during testing. A software stand-in speaking the same interface removes this dependency. We present a physically faithful simulator of a commercial Low Noise Rubidium GNSSDO that answers the serial/SCPI interface indistinguishably from the real unit. In software-testing terms the artefact is a \textit{fake}; in the digital-twin taxonomy a \textit{digital model}; it is not a digital twin, having no automated link to any physical instance. Our contribution is not the underlying clock model but a method for building a model of a third-party device from only the vendor manual and a few protocol recordings, and for validating its fidelity under limited access.}
+
+\section{Giriş}
+Küresel Seyrüsefer Uydu Sistemi ile disipline edilen osilatörler (GNSSDO), telekomünikasyon, enerji, ölçme ve savunma sistemlerine izlenebilir zaman ve frekans sağlar. Bir GNSSDO, GNSS'in uzun vadeli doğruluğunu yerel bir osilatörün kısa vadeli kararlılığıyla birleştirir; bu çalışmadaki cihazda osilatör, bir yazılım kontrol döngüsüyle GNSS referansına sürülen bir rubidyum (Rb) atomik referanstır. Böyle bir cihaz üzerine kurulan her uygulama, cihazın seri komut arayüzüne karşı geliştirilmeli ve sınanmalıdır.
+
+Bu bağımlılık pratikte sorunludur. Cihaz pahalı ve çoğu zaman tektir; kullanılabilir değerler üretmeden önce ısınıp osilatörünü disipline etmesi on dakikalar sürer; ve kapsamlı sınamanın gerektirdiği günler süren tekrarlı koşular için bir yazılım ekibi tarafından tekelleştirilemez. Dahası, bir istemcinin en çok ele alması gereken davranışların bir kısmı (GNSS kaybı, holdover, sağlık bozulması) gerçek donanımda talep üzerine tetiklenmesi en zor olanlardır.
+
+Yerleşik çözüm, geliştirme sırasında cihazın yerine aynı arayüzü konuşan bir yazılım vekili koymaktır. Bu, sorunu iki soruya indirger: vekilin ne kadar sadık olması gerekir ve, cihaz firmware'i incelenemeyen ve tek birimi ancak aralıklı erişilebilen üçüncü-taraf bir ürün olduğunda, bu sadakat nasıl gösterilebilir?
+
+``Fiziksel olarak sadık'' ifadesini bilinçli olarak amaca-göreli anlamda kullanıyoruz: simülatör cihazın zaman-uzayı davranışını ve belgelenmiş ilişkilerini istemcinin gerektirdiği hassasiyette yeniden üretir, ancak cihazın spektral (Allan sapması) imzasını yeniden üretmez. Bu bir eksiklik değil, bilinçli bir tasarım tercihidir: artefakt istemci yazılımı sınamak için vardır ve bu amaç için tekrarlanabilirlik ve determinizm spektral gerçekçilikten daha değerlidir.
+
+Katkılarımız şunlardır: (i) cihazın seri/SCPI arayüzüne yanıt veren ve zaman-bağımlı davranışını yeniden üreten, sanal seri port üzerinden çalışan katmanlı bir simülatör; (ii) üçüncü-taraf bir cihaz için tekrarlanabilir bir kurma yöntemi; (iii) kısıtlı erişim için bir sadakat-doğrulama yöntemi. Artefaktın ne olduğu konusunda kesin oluyoruz: dijital ikiz taksonomisinde bir \textit{dijital model}dir, yazılım testi terimiyle bir \textit{fake}tir; dijital ikiz \textit{değildir}.
+
+\section{Arka Plan}
+Referans cihaz bir Jackson Labs Düşük Gürültülü Rubidyum GNSSDO'dur \cite{jl}. Seri arayüzü 115.200 baud, 8N1 ve SCPI uzlaşımını (büyük/küçük harf duyarsız, kısa ve uzun yazımlı komutlar) kullanır. Cihazın içinde iki adet saniyede-bir-darbe (1PPS) işareti bir arada bulunur: biri GNSS alıcısı tarafından üretilir (uzun vadede doğru, saniyeden saniyeye gürültülü), diğeri Rb osilatörü tarafından (kısa vadede çok sessiz, uzun vadede kayan). Bir kontrol döngüsü, Rb 1PPS'ini GNSS 1PPS'ine kilitler. İkisi arasındaki anlık fark, \textit{zaman-aralığı hatası} (TINT, \texttt{SYNC:TINT?}), döngünün hata işaretidir ve $10^{-10}$~s çözünürlükle raporlanır.
+
+Cihaz kilitliyken kapalı döngü TINT'i sıfıra çeker. GNSS kaybedilirse döngü açılır: düzeltme uygulanmaz ve osilatörün artık frekans hatası büyüyen bir \textit{zaman} hatasına integre olur. Bu serbest-koşma rejimine \textit{holdover} denir ve modellediğimiz ilk davranıştır. Cihaz durumunu onaltılık bir bit-maskesinde özetler (\texttt{SYNC:HEALTH?}); her bit bir arıza ya da geçici durumu kodlar. Soğuk başlangıçtan itibaren atomik referans iki dakikadan kısa sürede çalışma sıcaklığına ulaşır, ancak tam GNSS kilidi yirmi dakika mertebesindedir ve cihaz aradaki farklı servo durumlarından geçer.
+
+\section{İlgili Çalışmalar ve Konumlandırma}
+``Dijital ikiz'' terimi öylesine geniş kullanılır ki belirsizleşmiştir; geniş sentezler için bkz.\ \cite{tao,rasheed}. Kritzinger \emph{ve ark.}'nın \cite{kritzinger} ve Barbie ile Hasselbring'in \cite{barbie} sınıflandırmasını benimsiyoruz: belirli bir fiziksel örnekle \emph{otomatik} veri alışverişinin derecesine göre bir \emph{dijital model} (otomatik bağ yok), bir \emph{dijital gölge} (otomatik tek yönlü) ve bir \emph{dijital ikiz} (otomatik çift yönlü). Bizim artefaktımızın hiçbir otomatik bağı yoktur; parametreleri bir kez ve elle çıkarılmıştır, dolayısıyla tam olarak bir dijital modeldir. Barbie ve Hasselbring ayrıca bir \emph{Dijital İkiz Prototipi} (DTP) tanımlar: emüle edilen algılayıcıları önceki kayıtlarla sürülen, fiziksel nesne olmadan sürekli-tümleştirme testinde kullanılabilen bir yazılım prototipi \cite{barbie}. Amaç ve mimari bakımından DTP fikrine yakınız; belirleyici fark erişimdir: DTP cihazın \emph{kendi} firmware'ini varsayar, biz ise protokol sınırının dışından, kara-kutu olarak yeniden inşa ederiz. Khedr \emph{ve ark.}\ \cite{khedr}, dijital ikiz mühendisliğinin \emph{yerine geçebilirlik} ve \emph{sadakat} gibi nitelikleri biçimlendirip doğrulamak için hâlâ pratik rehberden yoksun olduğunu belirtir; doğrulama yöntemimiz tam da bu niteliklere yöneliktir.
+
+Yazılım testi terminolojisinde \cite{meszaros,fowler} artefakt bir \emph{fake}tir: sabit yanıtlar döndüren bir stub ya da mock'un aksine, çalışan ama basitleştirilmiş bir gerçekleştirim. Bir test ikizinin davranışını gerçek sistemin kayıtlarından türetmek, üretim izlerinden mock üreten RICK'in \cite{tiwari} ilkesidir; biz bunu protokol kayıtlarına elle uygularız. Osilatör kararlılığı ve holdover modellemesi olgun bir alandır; standart iki-durumlu saat modelini \cite{zucca} kılavuz parametreleriyle kullanıyor ve burada bir katkı iddia \emph{etmiyoruz}. Ayrıca çalışmamızı, radyo-frekans uydu işaretleri üreten GNSS \emph{işaret} simülatörlerinden ayırıyoruz; artefaktımız SCPI yanıtları üreten cihaz- ve protokol-düzeyi bir simülatördür.
+
+\section{Simülatör Mimarisi}
+Simülatör, cihaz fiziğini protokol işlemeden yalıtacak biçimde katmanlıdır: (a) \texttt{socat} ile bir sözde-terminal oluşturan ve bayt akışını satırlara çeviren bir \emph{seri sunucu} (istemci bu sanal portu gerçek bir \texttt{/dev/tty} gibi açar); (b) bir komutu kayıtlı işleyiciye yönlendiren, kısa/uzun formları çözen ve tanınmayan girdide gerçek cihaz gibi \texttt{Command Error} döndüren bir \emph{SCPI ayrıştırıcı}; (c) cihazın belleğini tutan ve tüm yanıtların türetildiği tek nokta olan bir \emph{cihaz-durumu} nesnesi; (d) fiziği kodlayan, giriş/çıkış yapmayan ve geçen süreyi argüman alan \emph{saf fonksiyonlardan} oluşan bir \texttt{models} paketi. Son nokta doğrulama açısından önemlidir: model fonksiyonları yalnızca geçen sürenin fonksiyonu olduğundan, ``cihaz beş saat holdover sonrası ne okurdu?'' sorusu bir birim testinde, beklemeden yanıtlanır.
+
+\section{Fiziksel Modeller}
+Aşağıdaki her sayısal parametre Çizelge~\ref{tab:params}'de bir kaynağa bağlanmıştır; belgeli kaynağı olmayan tek parametre (ortam başlangıç sıcaklığı) bir varsayım olarak işaretlenmiş ve yapılandırılabilir kılınmıştır.
+
+\textit{Holdover hata birikimi.} Faz, frekansın integralidir. GNSS kaybı anındaki bağıl frekans hatası $y_0$ ve osilatör yaşlanması $D$ ile, biriken zaman hatası
+\begin{equation}
+x(t) = x_0 + y_0\,t + \tfrac{1}{2}\,D\,t^{2},
+\label{eq:holdover}
+\end{equation}
+olur; $x_0$ kayıp anında donan fazdır (faz sürekli olduğundan sıfıra sıçramaz). $y_0$ olarak cihazın kendi Frekans Hata Tahmini'ni (\texttt{SYNC:FEE?}) ve $D$ olarak kılavuzun $8\times10^{-14}$/gün yaşlanma değerini alıyoruz. Doğrusal terim saatler mertebesinde baskındır; kuadratik terim yalnızca günler mertebesinde belirginleşir.
+
+\textit{Deterministik ölçüm gürültüsü.} Okumalar sabit olmamalıdır, ancak gürültüyü her sorguda bağımsız bir rastgele çekiliş olarak modellemek iki bakımdan yanlış olurdu: cihazın belirli bir anda belirli bir değeri vardır (aynı anda iki sorgu aynı değeri vermelidir) ve bağımsız çekiliş tekrarlanabilir değildir. Bu nedenle her okumayı geçen sürenin deterministik bir fonksiyonu olarak modelliyoruz,
+\begin{equation}
+v(t) = v_{\mathrm{taban}} + A \sum_{k} w_k
+       \sin\!\left(\frac{2\pi\,\phi^{k}\,t}{P} + \varphi_k\right),
+\label{eq:noise}
+\end{equation}
+frekans oranları altın oran $\phi$'nin kuvvetleridir, böylece desen yarı-periyodiktir ve gözle tekrarlamaz. Genlikler $A$ gözlenen aralıklardan alınır; periyotlar $P$ fiziksel zaman ölçeğine göre ayrılır (sıcaklık yavaş, elektriksel nicelikler hızlı).
+
+\textit{Isınma ve servo durumları.} Sıcaklık kararlı değerine üstel yaklaşır, $T(t) = T_\infty - (T_\infty - T_0)\,e^{-t/\tau}$, çünkü ısı kaybı sıcaklık farkıyla orantılıdır. $\tau\approx 90$~s ile ısınma hızlıdır (birkaç dakika); bu, kılavuzun ``iki dakikadan kısa sürede atomik kilit'' ifadesiyle uyumludur, zira atomik kilit fiziksel paketin iç-regüle sıcaklığıyla yönetilir ve bu, modellenen kart sıcaklığından daha hızlı oturur. GNSS \emph{kilidi} ise ayrı ve daha yavaş bir süreçtir (yaklaşık yirmi dakika, Şekil~\ref{fig:warmup}). Cihaz bu sırada servo durumlarından (\texttt{SERV:STATE?}) geçer; \texttt{SYNC:LOCKED?} tek başına yalnızca son geçişi bildirir ve ``ısınıyor'' ile ``ısındı ama kilitlenmedi'' durumlarını ayırt edemez.
+
+\begin{table}[t]
+\caption{Model parametrelerinin kaynak-izlenebilirliği}
+\label{tab:params}
+\centering
+\footnotesize
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Parametre} & \textbf{Değer} & \textbf{Kaynak} \\ \hline
+Yaşlanma $D$ & $8\times10^{-14}$/gün & Kılavuz \S2.9 \\ \hline
+$y_0$ (FEE) & cihazdan & Kılavuz \S3.6.10 \\ \hline
+Kilitli TINT & $0 \pm 12$~ns & Kayıtlar \\ \hline
+CSAC$-$PCB & $+1.32\,^\circ$C & Kayıtlar (4 çift) \\ \hline
+EFC ölçeği & $\times 200$ & Kayıtlar; \S3.7 \\ \hline
+Faz eşiği & $210$~ns & Kılavuz \S3.6.18 \\ \hline
+Isıl $\tau$ & $\approx 90$~s & Gözlem; \S1.1 \\ \hline
+Ortam $T_0$ & $25\,^\circ$C & \textit{Varsayım} \\ \hline
+\end{tabular}
+\end{table}
+
+\section{Sadakat Doğrulaması}
+Cihaz aralıklı erişilebilen üçüncü-taraf bir ürün olduğundan, literatürün çoğunun varsaydığı ayrıntılı zaman-hizalı donanım karşılaştırması olanaksızdır. Beş tamamlayıcı strateji kullanıyoruz.
+
+\textit{Kayıtlı çıktılarla doğrudan karşılaştırma.} Kayıtların izin verdiği yerde, simülatörün bir komuta yanıtını cihazın aynı komuta kayıtlı yanıtıyla doğrudan karşılaştırıyoruz (Çizelge~\ref{tab:fidelity}). Kimlik ve yapılandırma alanlarında eşleşme bayt-bayt tamdır; yapılandırılmış çok-satırlı yanıtlarda alan düzeni ve biçim eşleşir (bir istemci ayrıştırıcının bağlı olduğu şey budur); türetilmiş niceliklerde belgelenmiş ilişkiler yeniden üretilir; rastgele niceliklerde gözlenen aralık ve işaret yeniden üretilir. Bu, sadakati bir iddiadan ölçülen bir karşılaştırmaya dönüştürür.
+
+\begin{table}[t]
+\caption{Simülatör çıktısının kayıtlı cihaz çıktısıyla karşılaştırması}
+\label{tab:fidelity}
+\centering
+\footnotesize
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Sorgu} & \textbf{Cihaz değeri} & \textbf{Eşleşme} \\ \hline
+\texttt{*IDN?} & \textit{Jackson Labs, ... Rev 1.17} & tam \\ \hline
+\texttt{SYST:ID:SN?} & 122301668 & tam \\ \hline
+\texttt{CSAC:SN?} & 2209MX04906 & tam \\ \hline
+\texttt{CSAC:FW?} & V1.0.23 & tam \\ \hline
+eşik & 220 & tam \\ \hline
+\texttt{MEAS?} & 4 etiketli satır & biçim \\ \hline
+\texttt{DIAG?} EFC & mut $=200\times$bağıl & ilişki, 4/4 \\ \hline
+CSAC$-$PCB & $+1.32\,^\circ$C & ilişki, $\pm0.07$ \\ \hline
+\texttt{SYNC:FEE?} & $1.3$--$2.5\times10^{-11}$ & aralık \\ \hline
+\texttt{SYNC:TINT?} & işaretli, $\pm12$~ns & aralık \\ \hline
+\end{tabular}
+\end{table}
+
+\textit{İzlenebilirlik.} Her parametre belgeli bir kaynağa bağlıdır; kaynağı olmayan tek değer varsayım olarak işaretlenip yapılandırma olarak sunulur.
+
+\textit{Fiziksel değişmez testi.} Her davranış, sağlaması gereken fiziksel değişmezleri (holdover monoton ve doğru işaretli, kilitli TINT sıfır-ortalamalı ve trendsiz, sıcaklık artan ve sınırlı, tekrarlı koşular özdeş) \texttt{assert} eden bir otomatik ölçümle sınanır ve verisini sürüm-damgalı bir esere yazar. Model fonksiyonları saf olduğundan bu ölçümler saatlerce/günlerce süreyi anında tarar; bildirideki tüm sonuçlar bu eserlerden yeniden üretilebilir.
+
+\textit{Ayarlanmamış davranışın yeniden üretimi.} Bir modelin doğruluğunun en güçlü kanıtı, ayarlanmadığı bir gözlemi yeniden üretmesidir. En açık ikisi: holdover'da TINT'in saniyelik büyüme hızı cihazın bağımsız raporladığı FEE'ye eşittir; ve CSAC sıcaklığı PCB sıcaklığını, dört kayıtlı çiftin tümünde $0.07\,^\circ$C içinde sabit bir farkla izler. İkisi de fit edilmemiş, modelin yapısından çıkmıştır. Üçüncü, daha zayıf bir gözlem: çok-saatli holdover, kılavuzun kendi örnek değeri olan \texttt{0x14}'ü verir; ancak bu kısmen belgelenmiş bit kurallarını uygulamanın sonucudur, dolayısıyla ilk ikisinden daha az bağımsızdır.
+
+\textit{Kılavuz-cihaz ayrışmaları.} Kayıtlardan inşa etmek, kılavuzun tek başına yetersiz kaldığı noktaları açığa çıkardı: TINT işaretlidir ve sıfır etrafında salınır (kılavuzdaki ``0,2~ns ortalama'' bir genlik değil ortalamadır); \texttt{MEAS:CURR?} akım değil sıcaklık döndürür; \texttt{EFControl} mutlak değeri bağıl değerin $200$ katıdır; iki uydu sayacı çelişebilir.
+
+\section{Sonuçlar}
+Tüm sonuçlar iki-aşamalı ölçüm/çizim hattından üretilir. Cihazın raporladığı FEE ($y_0\!\approx\!1{,}8\times10^{-11}$) için \eqref{eq:holdover} birikimi bir saat sonra yaklaşık $65$~ns'ye ulaşır ve $210$~ns sağlık eşiğini yaklaşık $3{,}25$~saatte aşar; bir gün sonra $\sim\!1{,}5\,\mu$s'ye çıkar (Şekil~\ref{fig:holdover}). Önceki durağan davranış holdover boyunca sabit $850$~ns döndürüyordu; bu sabit ile \eqref{eq:holdover} arasındaki fark, bir izleme istemcisine daha önce gizlenen hatadır. Sağlık yazmacı (Şekil~\ref{fig:health}) holdover $60$~s'yi aşınca \texttt{0x10}, faz $210$~ns'yi aşınca \texttt{0x4} bitini kurar ve $\sim\!3{,}25$~saatte birleşik \texttt{0x14}'ü verir. Isınmada kart sıcaklığı iki dakikada yaklaşık $46\,^\circ$C'ye çıkıp beş dakikada $\sim\!52{,}8\,^\circ$C'ye oturur; GNSS kilidi ise ancak yirmi dakikada raporlanır (Şekil~\ref{fig:warmup}). Sadakat denetiminde CSAC sıcaklığı PCB sıcaklığına $+1{,}32\,^\circ$C ile bağlıdır ve dört kayıtlı çifti $0{,}07\,^\circ$C içinde yeniden üretir (Şekil~\ref{fig:csac}); \texttt{EFControl} mutlak değeri bağıl değerin tam $200$ katıdır; tekrarlı bağımsız koşular özdeş seriler üretir (determinizm).
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.95\columnwidth]{fig01_holdover_accumulation_tr.pdf}
+\caption{Holdover zaman-hatası birikimi; $210$~ns sağlık eşiği $\sim\!3{,}3$~saatte aşılır.}
+\label{fig:holdover}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.95\columnwidth]{fig08_health_bits_tr.pdf}
+\caption{Holdover boyunca \texttt{SYNC:HEALTH?} bit etkinliği; kılavuzun \texttt{0x14} birleşimine ulaşır.}
+\label{fig:health}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.95\columnwidth]{fig03_csac_pcb_tr.pdf}
+\caption{Sadakat denetimi: modelin sabit farkı ile dört kayıtlı cihaz çifti.}
+\label{fig:csac}
+\end{figure}
+
+\section{Sınırlamalar}
+Artefakt bir dijital modeldir; fiziksel bir birime canlı bağı yoktur ve cihaz yaşlandıkça güncellenmez. Ölçüm gürültüsü tasarım gereği deterministiktir ve cihazın spektral (Allan sapması) imzasını yeniden üretmez; dolayısıyla simülatör osilatör kararlılığını değerlendirmek için değil, yalnızca istemci yazılımı sınamak için kullanılmalıdır. Bazı kayıtlar zaman-damgasızdır, bu yüzden kimi davranışlar zaman-hizalı noktalar yerine aralık ve ilişki olarak doğrulanır. Son olarak doğrulama tek bir cihaz örneğine dayanır; daha geniş donanım karşılaştırması gelecek çalışmadır.
+
+\section{Sonuç}
+Üçüncü-taraf bir GNSS-disipline rubidyum osilatörünün fiziksel olarak temellendirilmiş, davranışsal olarak doğrulanmış bir simülatörünü yalnızca kılavuzu ve az sayıda protokol kaydından kurduk ve erişim kısıtlıyken sadakati savunmak için bir yöntem ortaya koyduk: her parametreyi izle, fiziksel değişmezleri otomatik sına, ayarlanmamış davranışın yeniden üretimini ara ve kılavuz ile cihazın ayrıştığı yerleri belgele. Doğal bir sonraki adım, simülatörün cihaz kayıtlarını düzenli alıp kendini kalibre etmesi ve böylece onu bir dijital \emph{gölgeye} taşıyacak otomatik tek-yönlü bağı kurmaktır. Kaynak kod, ölçüm/çizim hattı ve doğrulamada kullanılan kayıtlar \texttt{[DEPO LİNKİ]} adresinde mevcuttur.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.82\textwidth]{fig04_warmup_ramp_tr.pdf}
+\caption{Isınma: kart sıcaklığı birkaç dakikada yükselirken GNSS kilidi (servo durum 6) ancak yaklaşık yirmi dakikada gelir; iki süreç ayrıdır.}
+\label{fig:warmup}
+\end{figure*}
+
+\begin{thebibliography}{9}
+\footnotesize
+\bibitem{jl} Jackson Labs Technologies, ``Low Noise Rubidium GNSDO User Manual,'' Doküman 80200526, Rev. 1.3, 2015.
+\bibitem{kritzinger} W. Kritzinger, M. Karner, G. Traar, J. Henjes ve W. Sihn, ``Digital Twin in manufacturing: A categorical literature review and classification,'' \textit{IFAC-PapersOnLine}, cilt 51, sayı 11, ss. 1016--1022, 2018.
+\bibitem{barbie} A. Barbie ve W. Hasselbring, ``From Digital Twins to Digital Twin Prototypes: Concepts, Formalization, and Applications,'' \textit{arXiv:2401.07985}, 2024.
+\bibitem{khedr} M. T. Khedr, M. Xu, J. S. Fitzgerald ve P. G. Larsen, ``A System-of-Systems Case Study for the Verification of Composed Digital Twins,'' \textit{arXiv:2608.28498}, 2026.
+\bibitem{tao} F. Tao, H. Zhang, A. Liu ve A. Y. C. Nee, ``Digital Twin in Industry: State-of-the-Art,'' \textit{IEEE Trans. Ind. Informat.}, cilt 15, sayı 4, ss. 2405--2415, 2019.
+\bibitem{rasheed} A. Rasheed, O. San ve T. Kvamsdal, ``Digital Twin: Values, Challenges and Enablers From a Modeling Perspective,'' \textit{IEEE Access}, cilt 8, ss. 21980--22012, 2020.
+\bibitem{meszaros} G. Meszaros, \textit{xUnit Test Patterns: Refactoring Test Code}. Addison-Wesley, 2007.
+\bibitem{fowler} M. Fowler, ``Mocks Aren't Stubs,'' 2007. [Çevrimiçi]. Erişim: martinfowler.com/articles/mocksArentStubs.html
+\bibitem{tiwari} D. Tiwari, M. Monperrus ve B. Baudry, ``RICK: Generating Mocks from Production Data,'' \textit{arXiv:2302.04547}, 2023.
+\bibitem{zucca} C. Zucca ve P. Tavella, ``The clock model and its relationship with the Allan and related variances,'' \textit{IEEE Trans. Ultrason., Ferroelectr., Freq. Control}, cilt 52, sayı 2, ss. 289--296, 2005.
+\end{thebibliography}
+
+\end{document}
