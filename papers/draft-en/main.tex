@@ -18,8 +18,8 @@
 Third-Party GNSS-Disciplined Rubidium Oscillator:\\
 Construction and Fidelity Validation from Limited Data}
 
-\author{\IEEEauthorblockN{Omer Faruk Karagoz}
-\IEEEauthorblockA{[KURUM ADI BURAYA]\\ ofkaragoz05@gmail.com}}
+\author{\IEEEauthorblockN{Ömer Faruk Karagoz}
+\IEEEauthorblockA{[Tübitak-Bilgem-Ma3]\\ ofkaragoz05@gmail.com}}
 
 \maketitle
 
@@ -41,9 +41,10 @@ digital twin, having no automated link to any physical unit. Our
 contribution is not the underlying clock model, which is standard, but
 a repeatable method: every observable is traced to the vendor manual or
 to a small set of protocol recordings, every unsourced value is marked
-as an assumption, and fidelity is argued through physical invariants,
-through the reproduction of behaviours that were never tuned for, and
-through documented manual-versus-device discrepancies. The resulting
+as an assumption, and fidelity is argued by direct comparison with recorded device
+outputs, by physical-invariant testing, by the reproduction of
+behaviours that were never tuned for, and by documented
+manual-versus-device discrepancies. The resulting
 model reproduces the manual's own worked health-status example without
 having been fitted to it.
 \end{abstract}
@@ -112,11 +113,15 @@ from the vendor manual or from a small set of protocol recordings, and
 every value that has no such source is explicitly labelled an
 assumption and exposed as configuration.
 \item \textbf{A fidelity-validation method for limited access}
-(Section~\ref{sec:validation}): in the absence of exhaustive hardware
-comparison, fidelity is argued through automated physical-invariant
-tests, through the reproduction of behaviours that were not tuned for,
-and through a catalogue of manual-versus-device discrepancies that a
-documentation-only simulator would get wrong.
+(Section~\ref{sec:validation}). The setting is deliberately
+constrained---a third-party device, no firmware, intermittent access,
+and largely untimestamped recordings---so the exhaustive time-aligned
+hardware comparison assumed by most of the literature is impossible.
+In its place we combine a direct comparison against the recorded
+outputs we do have, automated physical-invariant tests, the
+reproduction of behaviours that were not tuned for, and a catalogue of
+manual-versus-device discrepancies that a documentation-only simulator
+would get wrong.
 \end{itemize}
 
 We are deliberately precise about what the artefact is. By the
@@ -305,11 +310,15 @@ v(t) = v_{\mathrm{base}} + A \sum_{k} w_k
 \end{equation}
 where the frequency ratios are powers of the golden ratio $\phi$, so
 that the composite pattern is quasi-periodic and does not visibly
-repeat. This yields both required properties: identical values for
-identical instants, and exact run-to-run repeatability. Amplitudes $A$
-are taken from observed ranges and the periods $P$ are separated by
-physical timescale---slow for temperature, which has thermal inertia,
-faster for electrical quantities.
+repeat. Three terms are used ($k=0,1,2$) with fixed weights
+$w_k=1,\tfrac12,\tfrac14$; the per-channel phase offsets $\varphi_k$
+are derived deterministically from the channel name, and the complete
+constants are given with the released source. This yields both required
+properties: identical values for identical instants, and exact
+run-to-run repeatability. Amplitudes $A$ are taken from observed ranges
+and the periods $P$ are separated by physical timescale---slow for
+temperature, which has thermal inertia, faster for electrical
+quantities.
 
 \subsection{Warm-up and servo states}
 \label{sec:warmup}
@@ -372,7 +381,46 @@ The central methodological question of this work is how to argue that a
 simulator is faithful when the device it imitates is a third-party
 product available only intermittently, so that the exhaustive
 side-by-side comparison assumed by much of the literature is
-impossible. We use four complementary strategies.
+impossible. We use five complementary strategies.
+
+\subsection{Direct comparison with recorded outputs}
+Where the recordings permit it, we compare the simulator's response to a
+command directly against the device's recorded response to the same
+command (Table~\ref{tab:fidelity}). For identity and configuration
+fields the match is exact, byte for byte; for structured multi-line
+replies the field layout and formatting match, which is what a client
+parser actually depends on; for derived quantities the documented
+relationships are reproduced (the electronic-frequency-control absolute
+value equals the relative value scaled by $200$ on all four recorded
+pairs, and the CSAC temperature exceeds the PCB temperature by
+$1.32\,^\circ$C to within $0.07\,^\circ$C); and for stochastic
+quantities the simulator reproduces the observed range and sign rather
+than a single value. This turns fidelity from an assertion into a
+measured, if partial, comparison.
+
+\begin{table}[t]
+\caption{Simulator output compared with recorded device output}
+\label{tab:fidelity}
+\centering
+\footnotesize
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{}p{0.28\columnwidth}p{0.40\columnwidth}p{0.20\columnwidth}@{}}
+\toprule
+\textbf{Query} & \textbf{Device value} & \textbf{Match} \\
+\midrule
+\texttt{*IDN?} & \emph{Jackson Labs, LN Rb GPSDO (PRE), Rev~1.17} & exact \\
+\texttt{SYST:ID:SN?} & \texttt{122301668} & exact \\
+\texttt{CSAC:SN?} & \texttt{2209MX04906} & exact \\
+\texttt{CSAC:FW?} & \texttt{V1.0.23} & exact \\
+threshold & \texttt{220} & exact \\
+\texttt{MEAS?} & 4 labelled lines & format \\
+\texttt{DIAG?} EFC & abs $=200\times$rel & relation, 4/4 \\
+CSAC$-$PCB & $+1.32\,^\circ$C & relation, $\pm0.07$ \\
+\texttt{SYNC:FEE?} & $1.3$--$2.5\times10^{-11}$ & range \\
+\texttt{SYNC:TINT?} & signed, $\pm12$~ns & range/sign \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \subsection{Traceability of parameters}
 Every parameter is tied to a documentary source---a manual clause or a
@@ -396,16 +444,19 @@ reproducible from the recorded data.
 The strongest available evidence that a model is correct, short of full
 hardware comparison, is that it reproduces an observation for which it
 was never tuned. Three such coincidences arose, none of them targets of
-the fitting process. First, after a multi-hour holdover the simulator
-returns the health status \texttt{0x14}; this is exactly the worked
-example given in the manual (\texttt{0x10}\,$\vert$\,\texttt{0x4}, i.e.\
-``in holdover'' combined with ``phase beyond $210$~ns''). Second, the
-per-second growth rate of TINT in holdover equals the device's
-independently reported FEE. Third, the CSAC temperature tracks the PCB
-temperature at a constant offset that matches all four recorded pairs to
-within $0.07\,^\circ$C. We present these as corroborating evidence, not
-proof; but a model built by fitting other quantities has no reason to
-reproduce them unless its underlying structure is right.
+the fitting process. The clearest of these is that the per-second growth rate of TINT in
+holdover equals the device's independently reported FEE, and that the
+CSAC temperature tracks the PCB temperature at a constant offset
+matching all four recorded pairs to within $0.07\,^\circ$C---neither
+relation was fitted; both emerge from the model's structure. A third,
+weaker, observation is that a multi-hour holdover yields the health
+status \texttt{0x14}, the manual's own worked example
+(\texttt{0x10}\,$\vert$\,\texttt{0x4}); we note that this follows in
+part from implementing the documented bit rules and is therefore less
+independent than the first two. We present these as corroborating
+evidence, not proof; but a model built by fitting other quantities has
+no reason to reproduce the first two unless its underlying structure is
+right.
 
 \subsection{Documented manual-versus-device discrepancies}
 Building from recordings, rather than from the manual alone, exposed
@@ -534,6 +585,11 @@ device disagree. A natural next step, and the one that would change the
 artefact's taxonomic status, is to let the simulator ingest periodic
 device logs and self-calibrate, establishing the automated one-way link
 that would make it a digital \emph{shadow}.
+
+\subsection*{Availability}
+The simulator, the measurement/plot pipeline, and the recorded device
+outputs used for validation are available at
+\texttt{[DEPO LINKI BURAYA]}.
 
 %---------------------------------------------------------------------
 \bibliographystyle{IEEEtran}
