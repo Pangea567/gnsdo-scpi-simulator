@@ -10,7 +10,7 @@
 \usepackage{caption}
 \usepackage{amsmath}
 \usepackage{booktabs}
-\usepackage{array} % REV: çizelge sütunlarını sola hizalamak için
+\usepackage{array}
 \usepackage{siunitx}
 \usepackage{graphicx}
 \usepackage{pgfplots}
@@ -21,8 +21,8 @@
 \usepackage{enumitem}
 \usepackage{balance}
 
-\pgfplotsset{compat=1.18}
-\sisetup{detect-all}
+\pgfplotsset{compat=1.18,/pgf/number format/use comma}
+\sisetup{detect-all,output-decimal-marker={,}}
 \urlstyle{same}
 
 % ELECO: ikinci ve sonraki sayfalar üst 2.5 cm; ilk sayfada başlık
@@ -85,20 +85,6 @@
   {\endlist}
 \makeatother
 
-% NOTE: Önceki taslakta üçüncü yazar "Batuhan Canlı" iken e-posta
-% "ahmet.canli@tubitak.gov.tr" olarak verilmiştir. Gönderim öncesi doğrulayın.
-
-% REV (aaa.v2): aaa.tex üzerinde yalnızca gerekli düzeltmeler yapılmıştır;
-% değişen yerler "% REV" ile işaretlidir. Özet:
-%  - Kılavuzdaki CSAC = rubidyum MAC ve GPSDO/GNSDO eş anlamlılığı eklendi.
-%  - "zaman aralığı farkı" -> "zaman aralığı farkı" (kılavuz ve cihaz
-%    çıktısı: "time interval difference").
-%  - Zorlanmış holdover kapsamı, |y_h| için süre aralığı, *IDN? metni ve
-%    veri kümesi tanımı eklendi / düzeltildi.
-%  - Kılavuz-kayıt bulguları ve doğruluk boyutları için iki çizelge eklendi.
-%  - Determinizm ve sınırlamaların kapsamı netleştirildi; şekil etiketleri
-%    ve Çizelge 1 sütun genişlikleri düzeltildi.
-
 \begin{document}
 \selectlanguage{turkish}
 \shorthandoff{=}
@@ -151,7 +137,7 @@ Bu çalışmada, üreticinin \emph{Global Navigation System Disciplined Oscillat
 
 Çalışmanın temel katkıları şunlardır:
 \begin{itemize}
-    \item Gerçek seri aygıtla aynı erişim biçimini sağlayan sanal seri port, SCPI ayrıştırıcı, tekil cihaz-durumu modeli ve zamana bağlı davranış katmanlarından oluşan modüler bir mimari;
+    \item Gerçek seri aygıtla aynı erişim biçimini sağlayan sanal seri port, SCPI ayrıştırıcı, tek bir cihaz-durumu modeli ve zamana bağlı davranış katmanlarından oluşan modüler bir mimari;
     \item holdover, ısınma, kilitlenme, sağlık bayrakları ve ölçüm değişkenleri için tekrarlanabilir davranış modelleri;
     \item donanıma sınırlı erişim koşullarında uygulanabilen, kaynak izlenebilirliği, kayıt karşılaştırması, ilişki kontrolleri ve fiziksel değişmez testlerini birleştiren doğrulama yaklaşımı.
 \end{itemize}
@@ -159,8 +145,6 @@ Bu çalışmada, üreticinin \emph{Global Navigation System Disciplined Oscillat
 \section{Arka Plan ve İlgili Çalışmalar}
 \subsection{Referans Cihaz ve Komut Arayüzü}
 Referans cihaz Jackson Labs Technologies Low Noise Rubidium GNSDO'dur \cite{jlt2015}. Üretici, ürün adında GNSDO kısaltmasını kullanmaktadır; bu nedenle makalede ürün adı için GNSDO, genel teknoloji sınıfı için ise GNSS ile disipline edilen osilatör ifadesi kullanılmaktadır.
-% REV: kılavuz §1.1'deki eş anlamlılık notu; CSAC etiketli komutların
-% bu cihazda neyi ifade ettiğini açıklar.
 Kılavuz ayrıca GPS, GNSS, GNSDO ve GPSDO terimlerini eş anlamlı kullanmakta; komut ve ekran çıktılarında geçen CSAC ifadesinin geriye dönük uyumluluk nedeniyle rubidyum MAC (\emph{Miniature Atomic Clock}) osilatörü ile eş anlamlı olduğunu belirtmektedir \cite{jlt2015}. Bu nedenle makalede geçen CSAC etiketli komut ve ölçümler, referans cihazdaki rubidyum osilatörüne aittir. Üretici kılavuzuna göre cihazın RS-232 seri arayüzünün fabrika ayarı 115200 baud hız, 8 veri biti, parite yok, 1 stop biti ve akış kontrolü yok biçimindedir; bu yapı kısaca 8N1 olarak gösterilmektedir. Komut arayüzü SCPI sözdizimini kullanır; SCPI standardı programlanabilir ölçüm cihazları için donanım arayüzünden bağımsız bir komut dili tanımlar \cite{scpi1999}.
 
 Cihazda rubidyum osilatörü GNSS veya harici saniyede bir darbe (\emph{one pulse per second}, 1PPS) referansına kilitleyen ve filtre osilatörünü rubidyum referansına kilitleyen iki ayrı servo döngüsü bulunmaktadır \cite{jlt2015}. \texttt{SYNC:TINT?} komutu, seçili döngü için \emph{Time Interval} (TINT) olarak adlandırılan 1PPS faz farkını raporlar. \texttt{SYNC:FEEstimate?} komutu ise üreticinin 1000~s ölçüm aralığında Allan varyansına benzer bir büyüklük olarak tanımladığı \emph{Frequency Error Estimate} (FEE; frekans hata kestirimi) değerini döndürür. \texttt{SYNC:HEALTH?} komutu çalışma süresi, holdover ve faz farkı gibi koşullara bağlı sağlık bayraklarını onaltılık bir bit alanı olarak verir. Tanısal komutlarda kullanılan \emph{Electronic Frequency Control} (EFC; elektronik frekans kontrolü) değerleri de iç referans osilatörüne uygulanan kontrol büyüklüğünü ifade eder \cite{jlt2015}.
@@ -171,13 +155,13 @@ Yazılım testi literatüründe \emph{test double}, gerçek bir bağımlılığ�
 Üretim gözlemlerinden gerçekçi test ikameleri üretme fikri de yazılım testi literatüründe incelenmiştir. Tiwari ve arkadaşları, üretim etkileşimlerini gözleyerek gerçekçi mock ve stub davranışları üretmenin uygulanabilirliğini göstermiştir \cite{tiwari2024}. Donanım tarafında Morita ve arkadaşları, gerçek makine olmadan yazılım doğrulaması yapabilmek için donanım ve hata davranışlarını simüle eden bir test ortamı geliştirmiştir \cite{morita2017}. Bu çalışmalar, gerçek donanımın erişilebilirliğinin sınırlı olduğu durumlarda gözlenebilir davranışın ikame edilmesinin yazılım geliştirme açısından pratik değerini desteklemektedir.
 
 \subsection{Simülasyon Doğrulaması}
-Bir simülasyon modelinin yalnızca çalışması, modelin kullanım amacı için yeterince doğru olduğunu göstermez. Sargent; kavramsal model geçerliliği, uygulama doğrulaması, veri geçerliliği ve operasyonel geçerliliği ayrı değerlendirme alanları olarak ele almakta ve modelin amaçlanan kullanım bağlamında doğrulanmasını önermektedir \cite{sargent2013}. Bu çalışmada doğrudan zaman hizalı ve kapsamlı bir donanım karşılaştırması bulunmadığından, doğrulama tek bir metriğe indirgenmemiş; birbirini tamamlayan kanıt türleri birlikte kullanılmıştır. % REV: kanıtlar aynı kayıt kümesine dayandığından "bağımsız" yerine
+Bir simülasyon modelinin yalnızca çalışması, modelin kullanım amacı için yeterince doğru olduğunu göstermez. Sargent; kavramsal model geçerliliği, uygulama doğrulaması, veri geçerliliği ve operasyonel geçerliliği ayrı değerlendirme alanları olarak ele almakta ve modelin amaçlanan kullanım bağlamında doğrulanmasını önermektedir \cite{sargent2013}. Bu çalışmada doğrudan zaman hizalı ve kapsamlı bir donanım karşılaştırması bulunmadığından, doğrulama tek bir metriğe indirgenmemiş; birbirini tamamlayan kanıt türleri birlikte kullanılmıştır.
 
 \subsection{Saat ve Holdover Modellemesi}
 Saat fazı ve frekans hatası arasındaki ilişki klasik saat modellerinin temelidir. Zucca ve Tavella, saat hatasını stokastik diferansiyel denklemlerle ifade ederek frekans süreçleri ile Allan varyansı arasındaki ilişkiyi ayrıntılı biçimde incelemiştir \cite{zucca2005}. Bu çalışmanın amacı osilatörün tam stokastik spektrumunu modellemek değildir. Bunun yerine, istemci testleri için gerekli zaman alanı davranışları daha düşük karmaşıklıkta ve deterministik biçimde temsil edilmektedir.
 
 \section{Tasarım Hedefleri ve Kapsam}
-\label{sec:goals} % REV: Çizelge tab:dims için
+\label{sec:goals}
 Simülatörün temel hedefi, gerçek cihazla çalışan istemci yazılımında değişiklik gerektirmeden aynı bağlantı ve komut modelini sunmaktır. Bu amaçla aşağıdaki doğruluk boyutları esas alınmıştır:
 \begin{enumerate}
     \item \textbf{Arayüz doğruluğu:} Komut adları, kısa/uzun SCPI biçimleri, satır sonlandırma ve çok satırlı yanıtların biçimi;
@@ -201,7 +185,7 @@ Simülatör dört katmandan oluşmaktadır:
 Davranış modellerinin geçen süreyi doğrudan parametre olarak alması, saatler süren gerçek zamanı beklemeden uzun holdover veya ilk açılış senaryolarının birim testinde hızlandırılmış biçimde sınanabilmesini sağlar.
 
 \section{Davranış Modelleri}
-\subsection{Holdover Sırasında Zaman Aralığı Farkı} % REV: kılavuz terimi
+\subsection{Holdover Sırasında Zaman Aralığı Farkı}
 GNSS referansı kaybedildiğinde servo döngüsü referansa göre düzeltme yapamaz ve yerel osilatörün artık frekans hatası faz hatasına dönüşür. Kısa ve orta süreli istemci testleri için birinci dereceden yaklaşım kullanılmıştır:
 \begin{equation}
     x(t)=x_0+y_h t,
@@ -210,7 +194,6 @@ GNSS referansı kaybedildiğinde servo döngüsü referansa göre düzeltme yapa
 burada $x(t)$ zaman aralığı farkı, $x_0$ holdover başlangıcındaki faz farkı ve $y_h$ etkin artık fraksiyonel frekans hatasıdır.
 
 Üretici kılavuzu \texttt{SYNC:FEEstimate?} değerini 1000~s aralığında Allan varyansına benzer bir büyüklük olarak tanımladığından, bu değer doğrudan işaretli fiziksel frekans sapması olarak yorumlanmamıştır. Simülatörde $|y_h|$ için kaydedilmiş FEE büyüklükleri başlangıç referansı olarak kullanılmakta; büyüklük ve işaret, senaryo yapılandırmasından ayarlanabilen açık bir model parametresi olarak tutulmaktadır. Bu yaklaşım, kaynak tarafından desteklenmeyen bir fiziksel yorumu modele gömmek yerine varsayımı görünür kılar.
-% REV: modellenen gözlenebilir büyüklüğün kapsamı (kılavuz §3.6.2).
 Kılavuza göre \texttt{SYNC:HOLD:INIT} ile başlatılan zorlanmış holdover sırasında GNSS sinyali alınmaya devam ettiğinden cihaz, 1PPS çıkışı ile GNSS 1PPS sinyali arasındaki zaman aralığı farkını raporlamayı sürdürür \cite{jlt2015}. Denklem~\ref{eq:holdover} bu gözlenebilir büyüklüğe karşılık gelir; referans sinyalinin fiziksel olarak kaybolduğu durumda raporlanan değerler kayıtlarla doğrulanmamıştır.
 
 Önceki sürümde kullanılan ikinci dereceden yaşlanma terimi bu çalışmadan çıkarılmıştır. Üretici kılavuzundaki $8\times10^{-14}$ değeri yaşlanma katsayısı değil, belirli bir ortalama süresindeki Allan sapması performansını ifade etmektedir; bu nedenle bu değerin $D$ yaşlanma katsayısı olarak kullanılması izlenebilir değildir.
@@ -245,19 +228,18 @@ Model parametreleri dört kaynak sınıfından biriyle ilişkilendirilmiştir: �
 \centering
 \fontsize{9}{10.8}\selectfont
 \setlength{\tabcolsep}{3pt}
-% REV: dar ilk sütundaki kötü hecelemeyi önlemek için genişlikler ve hizalama
 \begin{tabular}{>{\raggedright\arraybackslash}p{0.33\columnwidth}>{\raggedright\arraybackslash}p{0.25\columnwidth}>{\raggedright\arraybackslash}p{0.33\columnwidth}}
 \toprule
 \textbf{Parametre / ilişki} & \textbf{Değer} & \textbf{Kaynak ve durum} \\
 \midrule
 Seri arayüz & 115200, 8N1 & Kılavuz, doğrudan \\
-Sağlık faz koşulu & $|TINT|>210$ ns & Kılavuz, doğrudan \\
+Sağlık faz koşulu & $|\mathrm{TINT}|>210$ ns & Kılavuz, doğrudan \\
 Ani faz hizalama (jam-sync) eşiği & 220 ns varsayılan & Kılavuz, doğrudan \\
 Holdover bayrağı & $t>60$ s & Kılavuz, doğrudan \\
 İlk çalışma bayrağı & $t<200$ s & Kılavuz, doğrudan \\
-$|y_h|$ başlangıç aralığı & $1.3$--$2.5\times10^{-11}$ & Kayıt + model eşleme varsayımı \\
+$|y_h|$ başlangıç aralığı & $1{,}3$--$2{,}5\times10^{-11}$ & Kayıt + model eşleme varsayımı \\
 Kilitli TINT değişimi & yaklaşık $\pm12$ ns & Kayıt \\
-CSAC--PCB sıcaklık farkı & $+1.32\,^{\circ}$C & Kayıtlar (4 çift) \\
+CSAC--PCB sıcaklık farkı & $+1{,}32\,^{\circ}$C & Kayıtlar (4 çift) \\
 EFC mutlak/bağıl ilişki & $\times200$ & Kayıtlar \\
 $\uptau$ & yaklaşık 90 s & Operatör gözlemi / model parametresi \\
 $T_0$ & $25\,^{\circ}$C & Varsayım, yapılandırılabilir \\
@@ -267,7 +249,6 @@ $T_0$ & $25\,^{\circ}$C & Varsayım, yapılandırılabilir \\
 
 Bu tablo aynı zamanda modelin kanıt düzeyini sınırlayan noktaları açıkça göstermektedir. Özellikle FEE değerinden etkin holdover eğimine yapılan eşleme ve termal zaman sabiti, doğrudan üretici spesifikasyonu olarak sunulmamaktadır.
 
-% REV: önceki taslaktaki kılavuz-cihaz uyumsuzlukları kataloğu kısa biçimde geri eklendi.
 Kılavuz ve kayıtların birlikte kullanılması, yalnızca kılavuza dayanan bir modelde gözden kaçabilecek noktaları da ortaya çıkarmıştır (Çizelge~\ref{tab:findings}). Uydu sayılarındaki durum ise bilinçli olarak taklit edilmemiş, istemci testlerinde tutarlı bir durum sunmak için modelde sınırlandırılmıştır.
 
 \begin{table}[t]
@@ -280,7 +261,7 @@ Kılavuz ve kayıtların birlikte kullanılması, yalnızca kılavuza dayanan bi
 \toprule
 \textbf{Konu} & \textbf{Kılavuz} & \textbf{Kayıt ve model} \\
 \midrule
-TINT & $<0.2$ ns ortalama faz doğruluğu & İşaretli, yaklaşık $\pm12$ ns; 0.2 ns ortalama kabul edildi \\
+TINT & $<0{,}2$ ns ortalama faz doğruluğu & İşaretli, yaklaşık $\pm12$ ns; 0,2 ns ortalama kabul edildi \\
 \texttt{MEAS:CURR?} & Eski komut; akım yerine sıcaklık & Kayıtta sıcaklık; model de sıcaklık döndürür \\
 EFC & Bağıl (\%) ve mutlak (ppt) & Mutlak $=200\times$ bağıl (4/4) \\
 Uydu sayısı & İzlenen ve görünür ayrı & İzlenen (20) $>$ görünür (19); modelde sınırlandı \\
@@ -293,11 +274,10 @@ Doğrulama, kullanım amacına göre dört tamamlayıcı yöntemle yürütülmü
 
 \subsection{Komut ve Yanıt Karşılaştırması}
 Kaydedilmiş gerçek cihaz çıktıları ile simülatör yanıtları aynı komutlar için karşılaştırılmıştır. Kimlik, seri numarası ve sabit yapılandırma alanlarında tam metin eşleşmesi; çok satırlı komutlarda alan sırası, etiketler ve satır yapısı kontrol edilmiştir.
-% REV: veri kümesinin kapsamı açıkça belirtildi.
-Karşılaştırmada kullanılan kayıtlar, cihazın büyük bölümünde GNSS'e kilitli olduğu ve alıcının konum ölçümünün (\emph{survey}) sürdüğü yaklaşık 40 dakikalık tek bir oturumda alınmıştır; kayıtların bir kısmı zaman damgası içermemektedir.
+Karşılaştırmada kullanılan kayıtlar, oturumun büyük bölümünde cihazın GNSS'e kilitli olduğu ve alıcının konum ölçümünün (\emph{survey}) sürdüğü yaklaşık 40 dakikalık tek bir oturumda alınmıştır; kayıtların bir kısmı zaman damgası içermemektedir.
 
 \subsection{İlişki Tutarlılığı}
-Tek tek değerlerin yanı sıra değişkenler arası ilişkiler doğrulanmıştır. Örneğin kaydedilmiş dört örnekte EFC mutlak değeri bağıl değerin 200 katı olarak gözlenmiş, CSAC sıcaklığı ise PCB sıcaklığından yaklaşık \SI{1.32}{\celsius} yüksek ölçülmüştür. Simülatör bu ilişkileri ayrı sabit yanıtlar yerine ortak durum üzerinden üretmektedir.
+Tek tek değerlerin yanı sıra değişkenler arası ilişkiler doğrulanmıştır. Örneğin kaydedilmiş dört ölçümde EFC mutlak değeri bağıl değerin 200 katı olarak gözlenmiş, CSAC sıcaklığı ise PCB sıcaklığından yaklaşık \SI{1.32}{\celsius} yüksek ölçülmüştür. Simülatör bu ilişkileri ayrı sabit yanıtlar yerine ortak durum üzerinden üretmektedir.
 
 \subsection{Fiziksel ve Mantıksal Değişmezler}
 Model için otomatik test edilen başlıca değişmezler; sıcaklığın kararlı değere sınırlı yaklaşması, aynı başlangıç koşullarında aynı serinin üretilmesi, holdover süresinin monoton artması, sağlık bayraklarının koşullarla tutarlı olması ve özet/tekil sorguların aynı cihaz durumunu yansıtmasıdır.
@@ -319,14 +299,14 @@ Uzun süreli durumlar gerçek zaman beklemeden hızlandırılmış olarak taranm
 \toprule
 \textbf{Sorgu} & \textbf{Kayıt / beklenen ilişki} & \textbf{Sonuç} \\
 \midrule
-\texttt{*IDN?} & Jackson Labs, LN Rb GPSDO (PRE), Firmware Rev 1.17 & Tam \\ % REV: kayıttaki metinle birebir
+\texttt{*IDN?} & Jackson Labs, LN Rb GPSDO (PRE), Firmware Rev 1.17 & Tam \\
 \texttt{SYST:ID:SN?} & 122301668 & Tam \\
 \texttt{CSAC:SN?} & 2209MX04906 & Tam \\
 \texttt{CSAC:FW?} & V1.0.23 & Tam \\
 \texttt{MEAS?} & dört etiketli satır & Biçim tam \\
-\texttt{DIAG?} & $EFC_{abs}=200\,EFC_{rel}$ & 4/4 \\
-CSAC--PCB & $+1.32\,^{\circ}$C & $\pm0.07\,^{\circ}$C \\
-\texttt{SYNC:FEE?} & $1.3$--$2.5\times10^{-11}$ & Aralık \\
+\texttt{DIAG?} & $\mathrm{EFC}_{\mathrm{abs}}=200\,\mathrm{EFC}_{\mathrm{rel}}$ & 4/4 \\
+CSAC--PCB & $+1{,}32\,^{\circ}$C & $\pm0{,}07\,^{\circ}$C \\
+\texttt{SYNC:FEE?} & $1{,}3$--$2{,}5\times10^{-11}$ & Aralık \\
 \texttt{SYNC:TINT?} & işaretli, yaklaşık $\pm12$ ns & Aralık/işaret \\
 \bottomrule
 \end{tabular}
@@ -335,8 +315,7 @@ CSAC--PCB & $+1.32\,^{\circ}$C & $\pm0.07\,^{\circ}$C \\
 Kimlik ve yapılandırma alanlarında tam eşleşme elde edilmiştir. Türetilmiş ölçümlerde ise sabit değer kopyalamak yerine gözlenen ilişkilerin korunması tercih edilmiştir. Bu yaklaşım, simülatörün farklı komutlara verdiği yanıtların aynı iç durumla tutarlı kalmasını sağlamaktadır.
 
 \subsection{Holdover Davranışı}
-Örnek bir $|y_h|=1.8\times10^{-11}$ değeri için Denklem~\ref{eq:holdover}, bir saat sonunda yaklaşık 64.8~ns ve bir gün sonunda yaklaşık \SI{1.56}{\micro\second} zaman aralığı farkı üretmektedir. 210~ns sağlık koşulu yaklaşık 3.24~saatte aşılmaktadır. Kaydedilen FEE aralığı ($1.3$--$2.5\times10^{-11}$) kullanıldığında bu süre yaklaşık 2.3--4.5~saat arasında değişmektedir. Şekil~\ref{fig:holdover} bu davranışı göstermektedir.
-% REV: yukarıda tek değer yerine FEE aralığına karşılık gelen süre aralığı verildi.
+Örnek bir $|y_h|=1{,}8\times10^{-11}$ değeri için Denklem~\ref{eq:holdover}, bir saat sonunda yaklaşık 64,8~ns ve bir gün sonunda yaklaşık \SI{1.56}{\micro\second} zaman aralığı farkı üretmektedir. 210~ns sağlık koşulu yaklaşık 3,24~saatte aşılmaktadır. Kaydedilen FEE aralığı ($1{,}3$--$2{,}5\times10^{-11}$) kullanıldığında bu süre yaklaşık 2,3--4,5~saat arasında değişmektedir. Şekil~\ref{fig:holdover} bu davranışı göstermektedir.
 
 \begin{figure}[t]
 \centering
@@ -355,11 +334,11 @@ Kimlik ve yapılandırma alanlarında tam eşleşme elde edilmiştir. Türetilmi
 \addplot[thick,domain=0:12,samples=2] {64.8*x};
 \addplot[dashed,domain=0:12,samples=2] {210};
 \addplot[only marks,mark=*] coordinates {(3.24074,210)};
-\node[font=\scriptsize,anchor=north west] at (axis cs:3.4,195) {3.24 saat}; % REV: etiket çizginin üstünden alındı
+\node[font=\scriptsize,anchor=north west] at (axis cs:3.4,195) {3,24 saat};
 \node[font=\scriptsize,anchor=south east] at (axis cs:11.8,210) {210 ns sağlık koşulu};
 \end{axis}
 \end{tikzpicture}
-\caption{$|y_h|=1.8\times10^{-11}$ için doğrusal holdover zaman aralığı farkı}
+\caption{$|y_h|=1{,}8\times10^{-11}$ için doğrusal holdover zaman aralığı farkı}
 \label{fig:holdover}
 \end{figure}
 
@@ -369,7 +348,7 @@ Bu hesap bir metrolojik holdover performans garantisi değildir; yalnızca simü
 Holdover 60~s'yi aştığında \texttt{0x10} bayrağı etkinleşir. Faz farkı 210~ns'yi aştığında \texttt{0x4} eklenir ve birleşik durum \texttt{0x14} olur. Güç verildikten sonraki ilk 200~s için \texttt{0x8} bayrağı ayrıca modellenmektedir. Bu kurallar üretici kılavuzundaki sağlık bitleriyle doğrudan uyumludur \cite{jlt2015}.
 
 \subsection{Isınma ve Kilitlenme}
-Denklem~\ref{eq:thermal}'deki varsayılan parametrelerle PCB sıcaklığı yaklaşık birkaç dakika içinde kararlı değere yaklaşırken, GNSS kilit durumu daha yavaş ilerlemekte ve modelde yaklaşık 20 dakikalık zaman ölçeğinde etkinleşmektedir. Şekil~\ref{fig:warmup} sıcaklık modeli ile kilit geçişinin farklı zaman ölçeklerini göstermektedir.
+Denklem~\ref{eq:thermal}'teki varsayılan parametrelerle PCB sıcaklığı birkaç dakika içinde kararlı değere yaklaşırken, GNSS kilit durumu daha yavaş ilerlemekte ve modelde yaklaşık 20 dakikalık zaman ölçeğinde etkinleşmektedir. Şekil~\ref{fig:warmup} sıcaklık modeli ile kilit geçişinin farklı zaman ölçeklerini göstermektedir.
 
 \begin{figure}[t]
 \centering
@@ -387,15 +366,13 @@ Denklem~\ref{eq:thermal}'deki varsayılan parametrelerle PCB sıcaklığı yakla
 ]
 \addplot[thick,domain=0:25,samples=120] {52.8-(52.8-25)*exp(-x*60/90)};
 \addplot[dashed] coordinates {(20,24) (20,55)};
-\node[font=\scriptsize,anchor=south,rotate=90] at (axis cs:19.4,38) {yaklaşık GNSS kilidi}; % REV: etiket görünür konuma taşındı
+\node[font=\scriptsize,anchor=south,rotate=90] at (axis cs:19.4,38) {yaklaşık GNSS kilidi};
 \end{axis}
 \end{tikzpicture}
 \caption{Birinci dereceden PCB sıcaklık modeli ve yaklaşık GNSS kilit zaman ölçeği}
 \label{fig:warmup}
 \end{figure}
 
-% REV: Bölüm 3'teki doğruluk boyutları sonuçlarla kapatıldı; determinizm
-% iddiasının kapsamı (model düzeyi / seri arayüz) netleştirildi.
 \subsection{Doğruluk Boyutlarına Göre Özet}
 Çizelge~\ref{tab:dims}, Bölüm~\ref{sec:goals}'te tanımlanan doğruluk boyutlarının hangi kanıtla ve hangi sınırlarla karşılandığını özetlemektedir. Model fonksiyonları geçen süre parametre olarak verilerek tekrar çalıştırıldığında aynı başlangıç koşulları için üretilen serilerin maksimum farkı sıfırdır. Seri arayüz üzerinden yürütülen testlerde ise yanıtlar sorgunun geliş anına bağlı olduğundan, tam tekrar için test zamanının kontrol edilmesi gerekir.
 
@@ -419,7 +396,7 @@ Tekrar & Model çalıştırmaları & Model: fark 0; seri arayüz: sorgu anına b
 \end{table}
 
 \section{Sınırlamalar}
-Simülatörün yüksek doğruluk iddiası istemci yazılımının gözlemlediği arayüz, durum ilişkileri ve zaman alanı davranışlarıyla sınırlıdır. Faz gürültüsü, Allan sapması ve osilatörün ayrıntılı stokastik karakteri modellenmemektedir. Ölçüm değişimleri test tekrar edilebilirliği için bilinçli olarak deterministiktir; bu nedenle simülatör osilatör kararlılığının metrolojik değerlendirilmesinde kullanılamaz. Değişimler $\pm A$ ile sınırlı olduğundan, gerçek cihazda seyrek görülebilen büyük sapmalar ve bunlara bağlı eşik aşımları üretilmez. Holdover'dan dönüş ve ani faz hizalama (\emph{jam-sync}) davranışı da modellenmemiştir. % REV: iki sınırlama eklendi
+Simülatörün yüksek doğruluk iddiası istemci yazılımının gözlemlediği arayüz, durum ilişkileri ve zaman alanı davranışlarıyla sınırlıdır. Faz gürültüsü, Allan sapması ve osilatörün ayrıntılı stokastik karakteri modellenmemektedir. Ölçüm değişimleri test tekrar edilebilirliği için bilinçli olarak deterministiktir; bu nedenle simülatör osilatör kararlılığının metrolojik değerlendirilmesinde kullanılamaz. Değişimler $\pm A$ ile sınırlı olduğundan, gerçek cihazda seyrek görülebilen büyük sapmalar ve bunlara bağlı eşik aşımları üretilmez. Holdover'dan dönüş ve ani faz hizalama (\emph{jam-sync}) davranışı da modellenmemiştir.
 
 Doğrulama tek bir fiziksel cihaz örneği ve sınırlı kayıt kümesiyle yapılmıştır. Bazı kayıtlarda zaman damgası bulunmadığından tüm davranışlar zaman hizalı gerçek/simülatör eğrileriyle karşılaştırılamamıştır. Ayrıca FEE değerinden etkin holdover eğimine yapılan eşleme üretici kılavuzunun doğrudan tanımladığı bir fiziksel ilişki değildir ve model parametresi olarak açıkça tutulmaktadır. Termal zaman sabiti de üretici spesifikasyonu değil, gözleme dayalı bir parametredir.
 
@@ -430,7 +407,7 @@ Bu çalışmada erişimi kısıtlı bir hassas zamanlama cihazı için seri/SCPI
 Çalışmanın temel sonucu, sınırlı donanım erişiminde doğruluğun tek bir ``gerçeğe benzerlik'' iddiasıyla değil; parametre kaynaklarının izlenebilirliği, kaydedilmiş yanıtlarla karşılaştırma, değişkenler arası ilişkilerin korunması ve otomatik değişmez testlerinin birlikte kullanılmasıyla daha savunulabilir hale getirilebilmesidir. Gelecek çalışmalarda zaman damgalı ve daha geniş bir cihaz kayıt kümesi toplanması, birden fazla fiziksel örnek üzerinde cihazlar arası varyasyonun ölçülmesi, model parametrelerinin otomatik kestirimi ve simülatörün sürekli entegrasyon ve sürekli teslim süreçlerindeki regresyon testlerine sistematik olarak dahil edilmesi planlanmaktadır.
 
 \section{Erişilebilirlik}
-Simülatör, ölçüm/çizim ardışık düzeni ve doğrulamada kullanılan kaydedilmiş cihaz çıktıları \url{https://github.com/Pangea67/gnsdo-scpi-simulator} adresinde sunulmaktadır.
+Simülatör, ölçüm/çizim ardışık düzeni ve doğrulamada kullanılan kaydedilmiş cihaz çıktıları \url{https://github.com/Pangea67/gnsdo-scpi-simulator/tree/develop} adresinde sunulmaktadır.
 
 \section{Kaynaklar}
 \begin{thebibliography}{99}
