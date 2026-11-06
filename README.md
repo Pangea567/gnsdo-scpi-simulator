@@ -1,8 +1,3 @@
-> ELECO review revision: the current holdover implementation is linear,
-> x(t) = x0 + y_h*t. The old ageing interpretation of 8e-14 is withdrawn.
-> Historical descriptions below are superseded for this paper by
-> [the reproduction guide](papers/eleco/REPRODUCIBILITY.md).
-
 # GNSDO SCPI Cihaz Simülatörü
 
 **Low Noise Rubidium GNSDO** (GPS/GNSS ile disipline edilen Rubidyum
@@ -118,8 +113,9 @@ parametre olarak alırlar. Bu sayede "5 saat geçmiş olsaydı" sorusu testte
 gerçek zamanda beklemeden sorulabilir.
 
 Kullanılan sayıların tamamı ya cihaz kılavuzundan ya da gerçek cihaz
-kayıtlarından gelir. Her kararın gerekçesi
-[docs/tasarim-kararlari.md](docs/tasarim-kararlari.md) içindedir.
+kayıtlarından gelir; kılavuz değerlerinin bölüm numaralarıyla listesi
+[docs/cihaz-referansi.md](docs/cihaz-referansi.md) içindedir. Her modelin
+neden öyle kurulduğu ilgili modülün başındaki açıklamada yazılıdır.
 
 ### 1. Holdover hata birikimi
 
@@ -127,18 +123,26 @@ GPS kaybolunca kontrol döngüsü açılır, düzeltme gelmez ve osilatörün k�
 frekans hatası zamanla **zaman** hatasına dönüşür:
 
 ```
-x(t) = x₀ + y₀·t + (D/2)·t²
+x(t) = x₀ + y_h·t          (x ve t saniye, y_h boyutsuz)
 ```
 
 | Terim | Anlamı | Kaynak |
 |---|---|---|
 | `x₀` | kayıp anında donan faz hatası | anlık TINT okuması |
-| `y₀` | kayıp anındaki frekans hatası | FEE, kılavuz §3.6.10 |
-| `D` | Rubidyum yaşlanma hızı (8E-14/gün) | kılavuz §2.9 |
+| `y_h` | holdover boyunca geçerli, işaretli etkin frekans hatası | açık model varsayımı; büyüklüğü kayıtlı FEE değerlerinden ölçeklenir |
 
-Sonuç: 1 saatte ~65 ns, ~3 saatte 210 ns'lik sağlık eşiği (`HEALTH 0x4`),
-1 günde ~1.5 µs. Kuadratik terim saatler mertebesinde görünmez, günler
-mertebesinde devreye girer.
+`y_h = 1.8e-11` ile: 1 saatte 64.8 ns, 3.24 saatte 210 ns'lik sağlık eşiği
+(`HEALTH 0x4`), 1 günde ~1.56 µs.
+
+Model **doğrusaldır**; ikinci dereceden bir yaşlanma terimi içermez.
+Kılavuz §2.9'daki `8E-14` değeri bir **Allan sapması** performans
+rakamıdır — yaşlanma katsayısı değildir, birimi de uyuşmaz — ve bu modelde
+kullanılmaz. Ayrıntılı türetme `src/gnsdo_simulator/models/holdover.py`
+dosyasının başındadır.
+
+`y_h`'yi senaryo dosyasından açıkça vermek için `sync.holdover_frequency_error`
+anahtarı kullanılır; verilmezse girişteki FEE büyüklüğü pozitif eğim olarak
+eşlenir ve bu eşleme ölçülmüş bir fiziksel ilişki değil, model varsayımıdır.
 
 ### 2. Deterministik ölçüm gürültüsü
 
@@ -390,7 +394,7 @@ gnsdo-scpi-simulator/
 │   └── hardware-error.yaml
 ├── docs/
 │   ├── komut-aciklamalari.md    # her komutun sade açıklaması
-│   ├── tasarim-kararlari.md     # modelleme kararları ve gerekçeleri
+│   ├── cihaz-referansi.md       # kılavuz değerleri, HEALTH/SERVo tabloları
 │   ├── gercek-cihaz-ciktilari.md# gerçek cihaz komut kayıtları
 │   └── kaynaklar/               # kayıtların orijinal dosyası
 ├── scripts/
@@ -432,10 +436,11 @@ bölümünde. Burada **kasıtlı olarak modellenmeyenler** ve nedenleri var:
   `GPS:SAT:TRAC:COUN?` (20), `GPS:SAT:VIS:COUN?`ten (19) büyük çıkıyor.
   Simülatörde takip edilen uydu sayısı görünürü aşamaz — tutarlı olmak,
   bir ölçüm artefaktını yeniden üretmekten daha değerli. (Gerekçe:
-  `docs/tasarim-kararlari.md`, K-10.)
+  `src/gnsdo_simulator/config_loader.py` içindeki açıklama.)
 - **Zaman hızlandırma yoktur.** Simülatör gerçek zamanda çalışır; holdover
   eşiğine ulaşmak gerçekten saatler alır. Hızlandırma ihtiyacı bir *test*
-  ihtiyacıdır ve test katmanında çözülür (K-2).
+  ihtiyacıdır ve test katmanında çözülür: model fonksiyonları geçen süreyi
+  parametre olarak aldığı için uzun senaryolar testte beklenmeden sınanır.
 
 ## Yol haritası
 
@@ -459,12 +464,14 @@ olarak anlamlı** bir modele taşıma çalışması:
 | Belge | İçerik |
 |---|---|
 | [docs/komut-aciklamalari.md](docs/komut-aciklamalari.md) | Her SCPI komutunun sade açıklaması |
-| [docs/tasarim-kararlari.md](docs/tasarim-kararlari.md) | Modelleme kararları, gerekçeleri ve düzeltilen hatalar |
+| [docs/cihaz-referansi.md](docs/cihaz-referansi.md) | Kılavuzdan alınan değerler, `SYNC:HEALTH?` bit haritası, `SERVo:STATe?` durum makinesi |
 | [docs/gercek-cihaz-ciktilari.md](docs/gercek-cihaz-ciktilari.md) | Gerçek cihazdan alınmış komut girdi/çıktı kayıtları |
 
-`tasarim-kararlari.md` özellikle önemli: her modelin **neden öyle
-kurulduğunu**, hangi kılavuz maddesine ya da hangi gerçek ölçüme
-dayandığını ve yol boyunca düzeltilen hataları kaydeder.
+Bir modelin **neden öyle kurulduğunu** arıyorsan ilgili modülün
+başındaki açıklamaya bak: `models/holdover.py` ve `models/warmup.py`
+türetmeyi, varsayımları ve her sayının kaynak sınıfını kendi içinde
+anlatır. Bir sayının hangi kılavuz maddesinden geldiğini arıyorsan
+`docs/cihaz-referansi.md`.
 
 ## Lisans
 

@@ -13,9 +13,8 @@ Simulatorun davranis kararlarinin buyuk kismi DOGRUDAN bu kayitlara
 dayaniyor. Kilavuz cihazin ne YAPMASI gerektigini anlatir; bu kayitlar
 GERCEKTE ne yaptigini gosterir -- ve ikisi her zaman ortusmuyor.
 
-Bu belgeden cikan ve modeli degistiren bulgular `tasarim-kararlari.md`
-icindeki **5.7 Gercek Cihaz Kayitlariyla Hizalama Turu** bolumunde, her
-biri gerekcesiyle listelenmistir. Ozetle:
+Bu belgeden cikan ve modeli degistiren bulgular, ilgili modulun
+basindaki aciklamalarda gerekcesiyle yazilidir. Ozetle:
 
 | Bulgu | Etkisi |
 |---|---|

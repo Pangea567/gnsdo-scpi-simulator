@@ -7,10 +7,10 @@ Sonraki şablon düzenlemesi model ve deney verilerini değiştirmez. Etiketteki
 PDF ilk hakem revizyonudur; güncel `main.tex` dosyasının biçim değişiklikleri
 [biçim notlarında](FORMAT.md) açıklanmıştır.
 
-Bu revizyonun giriş dosyası `main.tex` dosyasıdır. Aynı klasördeki diğer
-`.tex` dosyaları ve `draft-en/` eski taslaklardır; revize sonuçların kaynağı
-olarak kullanılmamalıdır. Önceki kodda bulunan ikinci dereceden yaşlanma
-terimi kaldırılmıştır. `8e-14` Allan sapması değeri yaşlanma katsayısı değildir.
+Bu revizyonun giriş dosyası `main.tex` dosyasıdır. `draft-en/` altındaki
+İngilizce taslak eskidir; revize sonuçların kaynağı olarak kullanılmamalıdır.
+Önceki kodda bulunan ikinci dereceden yaşlanma terimi kaldırılmıştır.
+`8e-14` Allan sapması değeri yaşlanma katsayısı değildir.
 
 ## Sürüm ve sonuç bağlantısı
 

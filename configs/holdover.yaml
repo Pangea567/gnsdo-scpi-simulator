@@ -22,10 +22,33 @@ sync:
   locked: false
   holdover: true
 
-  # Linear model: x(t) = x0 + y_h*t (x,t in seconds).
-  # FEE is an observed magnitude, not a measured signed frequency offset.
-  # y_h below is an explicit positive model assumption based on that scale.
-  # Set a negative value to exercise negative holdover error.
+  # --- HOLDOVER HATA BIRIKIMI MODELI ---
+  # (formul ve gerekceler: models/holdover.py)
+  #
+  #     x(t) = x0 + y_h*t          (x ve t saniye, y_h boyutsuz)
+  #
+  # Model DOGRUSALDIR. Ikinci dereceden yaslanma terimi ve eski
+  # `drift_per_day` ayari KALDIRILDI: kilavuz §2.9'daki 8E-14 bir Allan
+  # sapmasi rakamidir, yaslanma katsayisi degildir.
+  #
+  # freq_error_estimate: cihazin SYNC:FEE? ile raporladigi deger.
+  #   Kayitlardaki uc olcumun ortalamasi (1.31E-11, 2.49E-11, 1.59E-11
+  #   -> 1.80E-11). Tek ornegi secmek yerine ortalama, gozlenen
+  #   araligin ortasina oturur.
+  #
+  # holdover_frequency_error (y_h): holdover boyunca gecerli, ISARETLI
+  #   etkin frekans hatasi. FEE bir BUYUKLUK referansidir (kilavuz onu
+  #   1000 s Allan varyansina benzer bir olcu olarak tanimliyor), yani
+  #   isaretli frekans sapmasi degil -- bu yuzden y_h'yi burada ACIKCA
+  #   veriyoruz. Verilmezse girise ait FEE pozitif egim olarak eslenir;
+  #   o eslesme OLCULMUS bir fiziksel iliski degil, model varsayimidir.
+  #   Negatif deger vererek ters yonde birikim denenebilir.
+  #   Bu degerle 210 ns'lik saglik esigine (§3.6.18, HEALTH 0x4)
+  #   yaklasik 3.24 SAATTE ulasilir.
+  #
+  # locked_tint: kilitliyken TINT'in ORTALAMA degeri. Kapali kontrol
+  #   dongusu TINT'i sifira cektigi icin bu SIFIRDIR; anlik okuma
+  #   sifirin etrafinda +/-12 ns salinir.
   freq_error_estimate: 1.8e-11
   holdover_frequency_error: 1.8e-11
   locked_tint: 0.0
