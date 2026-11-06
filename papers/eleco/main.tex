@@ -34,8 +34,8 @@
 \DeclareMathSizes{9}{9}{7}{7}
 \newcommand{\affilmark}{\textsuperscript{\fontsize{7}{7}\selectfont 1}}
 
-\pgfplotsset{compat=1.18}
-\sisetup{detect-all}
+\pgfplotsset{compat=1.18,/pgf/number format/use comma}
+\sisetup{detect-all,output-decimal-marker={,}}
 \urlstyle{same}
 
 % ELECO: ikinci ve sonraki sayfalar üst 2.5 cm; ilk sayfada başlık
@@ -129,7 +129,7 @@
   \vspace{9pt}
   {\fontsize{10}{10.8}\selectfont
   \affilmark TÜBİTAK BİLGEM MA3, Türkiye\\
-  ofkaragoz05@gmail.com, omer.yildiz@tubitak.gov.tr, ahmet.canli@tubitak.gov.tr\par}
+  omer.karagoz@std.bogazici.edu.tr, omer.yildiz@tubitak.gov.tr, ahmet.canli@tubitak.gov.tr\par}
   \vspace{18pt}
 \end{center}
 ]
@@ -139,7 +139,7 @@
 \end{center}
 \vspace{-6pt}
 {\fontsize{9}{10.8}\selectfont\itshape
-\noindent Hassas zamanlama donanımına bağımlı istemci yazılımlarının geliştirilmesi, cihazın maliyeti, sınırlı erişilebilirliği ve uzun durum geçiş süreleri nedeniyle güçleşebilir. Bu çalışmada, ticari bir düşük gürültülü rubidyum Küresel Navigasyon Sistemi Disiplinli Osilatörü (Global Navigation System Disciplined Oscillator, GNSDO) için yüksek doğruluklu davranışsal bir simülatör sunulmaktadır. Simülatör, cihazın seri arayüzünü, Programlanabilir Cihazlar için Standart Komutlar (Standard Commands for Programmable Instruments, SCPI) protokolünü, durum geçişlerini ve istemci tarafından gözlenebilen zamana bağlı davranışlarını yeniden üretmektedir. Model, üretici kılavuzuna, sınırlı cihaz kayıtlarına ve doğrudan gözlemlere dayanmaktadır. Holdover sırasında zaman aralığı hatası, ısınma ve kilitlenme geçişleri, sağlık bayrakları ve ölçüm değişimleri modellenmiştir. Doğrulama, ağırlıkla kilitli duruma ait sınırlı kayıtlarla arayüz ve ilişki karşılaştırmasına dayanır. Holdover ve ısınma eğrileri model çıktılarıdır; bu geçişler zaman hizalı donanım ölçümleriyle doğrulanmamıştır. Otomatik model testleri ve seri port üzerinden ayrı bir izleme istemcisiyle uçtan uca test, yazılımın çalışmasını sınar. Sonuçlar, simülatörün gerçek donanıma sürekli erişim gerektirmeden tekrarlanabilir bir test ortamı sağlayabildiğini göstermektedir.\par}
+\noindent Hassas zamanlama donanımına bağımlı istemci yazılımlarının geliştirilmesi, cihazın maliyeti, sınırlı erişilebilirliği ve uzun durum geçiş süreleri nedeniyle güçleşebilir. Bu çalışmada, ticari düşük gürültülü rubidyum Küresel Navigasyon Sistemi Disiplinli Osilatörü (Global Navigation System Disciplined Oscillator, GNSDO) için yüksek doğruluklu davranışsal bir simülatör sunulmaktadır. Simülatör, cihazın seri arayüzünü, Programlanabilir Cihazlar için Standart Komutlar (Standard Commands for Programmable Instruments, SCPI) protokolünü, durum geçişlerini ve istemciden gözlenebilen zamana bağlı davranışlarını yeniden üretmektedir. Model, üretici kılavuzuna, sınırlı cihaz kayıtlarına ve doğrudan gözlemlere dayanmaktadır. Holdover sırasında zaman aralığı hatası, ısınma ve kilitlenme geçişleri, sağlık bayrakları ve ölçüm değişimleri modellenmiştir. Doğrulama, ağırlıkla kilitli duruma ait sınırlı kayıtlarla arayüz ve ilişki karşılaştırmasına dayanır. Holdover ve ısınma eğrileri model çıktılarıdır; zaman hizalı donanım ölçümleriyle doğrulanmamıştır. Otomatik model testleri ve ayrı bir seri izleme istemcisiyle uçtan uca test, yazılımın çalışmasını sınar. Simülatör, gerçek donanıma sürekli erişim gerektirmeden tekrarlanabilir bir test ortamı sağlayabilmektedir.\par}
 
 \vspace{9pt}
 \begin{center}
@@ -147,7 +147,7 @@
 \end{center}
 \vspace{-6pt}
 {\selectlanguage{english}\fontsize{9}{10.8}\selectfont\itshape
-\noindent Developing client software for precision timing hardware is difficult because of device costs, limited availability, and long state transition times. This paper presents a high-fidelity behavioral simulator for a commercial low-noise rubidium Global Navigation System Disciplined Oscillator (GNSDO). The simulator reproduces the device's serial interface, Standard Commands for Programmable Instruments (SCPI) protocol, state transitions, and time-dependent behavior observable by client software. The model uses the vendor manual, limited device recordings, and direct observations. Time-interval error during holdover, warm-up and lock transitions, health flags, and measurement variations are modeled. Hardware comparison is limited to recorded responses and relationships, mainly in the locked state. Holdover and warm-up curves are model outputs, not time-aligned hardware validation. Automated model tests and an end-to-end test with a separate serial monitoring client verify software behavior. The results show that the simulator can provide a repeatable test environment without requiring continuous access to the physical device.\par}
+\noindent Developing client software for precision timing hardware is difficult because of device costs, limited availability, and long state transition times. This paper presents a high-fidelity behavioral simulator for a commercial low-noise rubidium Global Navigation System Disciplined Oscillator (GNSDO). The simulator reproduces the device's serial interface, Standard Commands for Programmable Instruments (SCPI) protocol, state transitions, and time-dependent behavior observable by client software. The model uses the vendor manual, limited device recordings, and direct observations. Time-interval error during holdover, warm-up and lock transitions, health flags, and measurement variations are modeled. Hardware comparison is limited to recorded responses and relationships, mainly in the locked state. Holdover and warm-up curves are model outputs, not time-aligned hardware validation. Automated model tests and an end-to-end test with a separate serial client verify software behavior. The simulator can provide a repeatable test environment without continuous access to the physical device.\par}
 \selectlanguage{turkish}
 
 \section{Giriş}
@@ -272,9 +272,9 @@ Sağlık faz koşulu & $|TINT|>210$ ns & Kılavuz, doğrudan \\
 Ani faz hizalama (jam-sync) eşiği & 220 ns varsayılan & Kılavuz, doğrudan \\
 Holdover bayrağı & $t>60$ s & Kılavuz, doğrudan \\
 İlk çalışma bayrağı & $t_u<200$ s & Kılavuz, doğrudan \\
-$|y_h|$ başlangıç aralığı & $1.3$--$2.5\times10^{-11}$ & Kayıt + model eşleme varsayımı \\
+$|y_h|$ başlangıç aralığı & $1{,}3$--$2{,}5\times10^{-11}$ & Kayıt + model eşleme varsayımı \\
 Kilitli TINT model sınırı & $\pm12$ ns & 5 kayıtla ölçek seçimi \\
-CSAC--PCB sıcaklık farkı & $+1.32\,^{\circ}$C & Kayıtlar (4 çift) \\
+CSAC--PCB sıcaklık farkı & $+1{,}32\,^{\circ}$C & Kayıtlar (4 çift) \\
 EFC mutlak/bağıl ilişki & $a=200r$ & Kayıtlar \\
 $\uptau$ & yaklaşık 90 s & Operatör gözlemi / model parametresi \\
 $T_0$ & $25\,^{\circ}$C & Varsayım, yapılandırılabilir \\
@@ -291,7 +291,7 @@ Donanım karşılaştırması ile yazılımın model denklemlerine uygunluğu ay
 Kaydedilmiş gerçek cihaz çıktıları ile simülatör yanıtları aynı komutlar için karşılaştırılmıştır. Kimlik, seri numarası ve sabit yapılandırma alanlarında tam metin eşleşmesi; çok satırlı komutlarda alan sırası, etiketler ve satır yapısı kontrol edilmiştir.
 
 \subsection{İlişki Tutarlılığı}
-Tek tek değerlerin yanı sıra değişkenler arası ilişkiler doğrulanmıştır. Dört EFC çiftinde $a=200r$ bulunmuştur: $r$ yüzde olarak raporlanan sayısal değer, $a$ ise ppt ($10^{-12}$) cinsinden sayısal değerdir. Örneğin $r=-0.410000$ (\%) için $a=-82$ (ppt); katsayı $200$'ün birimi ppt/\%'dir. Dört sıcaklık çiftinde CSAC--PCB farkı 1.2612--1.3881~$^{\circ}$C aralığındadır; modeldeki 1.32~$^{\circ}$C ofsetin kayıtlara göre en büyük mutlak farkı 0.0681~$^{\circ}$C'dir. Bu, zaman hizalı ölçüm hatası veya cihaz doğruluğu değildir. Simülatör bu ilişkileri ayrı sabit yanıtlar yerine ortak durum üzerinden üretmektedir.
+Tek tek değerlerin yanı sıra değişkenler arası ilişkiler doğrulanmıştır. Dört EFC çiftinde $a=200r$ bulunmuştur: $r$ yüzde olarak raporlanan sayısal değer, $a$ ise ppt ($10^{-12}$) cinsinden sayısal değerdir. Örneğin $r=-0{,}410000$ (\%) için $a=-82$ (ppt); katsayı $200$'ün birimi ppt/\%'dir. Dört sıcaklık çiftinde CSAC--PCB farkı 1{,}2612--1{,}3881~$^{\circ}$C aralığındadır; modeldeki 1{,}32~$^{\circ}$C ofsetin kayıtlara göre en büyük mutlak farkı 0{,}0681~$^{\circ}$C'dir. Bu, zaman hizalı ölçüm hatası veya cihaz doğruluğu değildir. Simülatör bu ilişkileri ayrı sabit yanıtlar yerine ortak durum üzerinden üretmektedir.
 
 \subsection{Fiziksel ve Mantıksal Değişmezler}
 Model için otomatik test edilen başlıca değişmezler; sıcaklığın kararlı değere sınırlı yaklaşması, aynı başlangıç koşullarında aynı serinin üretilmesi, holdover süresinin monoton artması, sağlık bayraklarının koşullarla tutarlı olması ve özet/tekil sorguların aynı cihaz durumunu yansıtmasıdır.
@@ -319,9 +319,9 @@ Model fonksiyonlarına geçen süre verilerek uzun süreli senaryolar beklemeden
 \texttt{CSAC:FW?} & V1.0.23 & Tam \\
 \texttt{MEAS?} & dört etiketli satır & Biçim tam \\
 \texttt{DIAG?} & $a=200r$ (ppt/\%) & 4/4 \\
-CSAC--PCB & $+1.32\,^{\circ}$C ofset & En çok 0.0681~$^{\circ}$C fark \\
-\texttt{SYNC:FEE?} & $1.3$--$2.5\times10^{-11}$ & Aralık \\
-\texttt{SYNC:TINT?} & 5 kayıt: $[-11.79,11.33]$ ns & Gözlenen aralık \\
+CSAC--PCB & $+1{,}32\,^{\circ}$C ofset & En çok 0{,}0681~$^{\circ}$C fark \\
+\texttt{SYNC:FEE?} & $1{,}3$--$2{,}5\times10^{-11}$ & Aralık \\
+\texttt{SYNC:TINT?} & 5 kayıt: $[-11{,}79;\ 11{,}33]$ ns & Gözlenen aralık \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -329,7 +329,7 @@ CSAC--PCB & $+1.32\,^{\circ}$C ofset & En çok 0.0681~$^{\circ}$C fark \\
 Çizelgedeki tam eşleşmeler yalnızca listelenen sabit alanlara aittir. Beş TINT örneği zaman serisi veya hata referansı değildir; yaklaşık $\pm12$~ns model değişim sınırını gerekçelendirir, $\pm12$~ns ölçüm doğruluğu iddiası oluşturmaz. Kaynakta kilitli ortalama faz doğruluğu için verilen değer de bu anlık değişim aralığıyla aynı ölçüt değildir.
 
 \subsection{Holdover Davranışı}
-Örnek bir $|y_h|=1.8\times10^{-11}$ değeri için Denklem~\ref{eq:holdover}, $x_0=0$ koşulunda bir saat sonunda 64.8~ns ve bir gün sonunda yaklaşık \SI{1.56}{\micro\second} zaman aralığı hatası üretmektedir. 210~ns sağlık koşulu yaklaşık 3.24~saatte aşılmaktadır. Şekil~\ref{fig:holdover}, revize kodun saf holdover fonksiyonundan üretilmiştir; ölçüm değişimi eklenmemiştir. Grafikte saat, hesapta $t=3600h$ ile saniye kullanılır.
+Örnek bir $|y_h|=1{,}8\times10^{-11}$ değeri için Denklem~\ref{eq:holdover}, $x_0=0$ koşulunda bir saat sonunda 64{,}8~ns ve bir gün sonunda yaklaşık \SI{1.56}{\micro\second} zaman aralığı hatası üretmektedir. 210~ns sağlık koşulu yaklaşık 3{,}24~saatte aşılmaktadır. Şekil~\ref{fig:holdover}, revize kodun saf holdover fonksiyonundan üretilmiştir; ölçüm değişimi eklenmemiştir. Grafikte saat, hesapta $t=3600h$ ile saniye kullanılır.
 
 \begin{figure}[t]
 \centering
@@ -348,11 +348,11 @@ CSAC--PCB & $+1.32\,^{\circ}$C ofset & En çok 0.0681~$^{\circ}$C fark \\
 \addplot[thick] table[x=hours,y=tint_ns,col sep=comma] {data/holdover.csv};
 \addplot[dashed,domain=0:12,samples=2] {210};
 \addplot[only marks,mark=*] coordinates {(3.24074,210)};
-\node[font=\scriptsize,anchor=south west] at (axis cs:3.35,210) {3.24 saat};
+\node[font=\scriptsize,anchor=south west] at (axis cs:3.35,210) {3,24 saat};
 \node[font=\scriptsize,anchor=south east] at (axis cs:11.8,210) {210 ns sağlık koşulu};
 \end{axis}
 \end{tikzpicture}
-\caption{Model çıktısı: $x_0=0$, $y_h=1.8\times10^{-11}$ için holdover eğrisi; donanım ölçümü değildir}
+\caption{Model çıktısı: $x_0=0$, $y_h=1{,}8\times10^{-11}$ için holdover eğrisi; donanım ölçümü değildir}
 \label{fig:holdover}
 \end{figure}
 
