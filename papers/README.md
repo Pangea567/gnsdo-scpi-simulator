@@ -10,7 +10,7 @@ papers/
 │   ├── main.tex
 │   ├── references.bib
 │   └── figures/      # experiments/figures'tan kopyalanan PDF'ler
-├── eleco/            # (sonra) ELECO şablonuna uyarlanmış sürüm
+├── eleco/            # Türkçe ELECO sürümü; giriş dosyası main.tex
 └── sync_figures.sh   # experiments/figures/*.pdf -> her bildirinin figures/
 ```
 
@@ -24,9 +24,31 @@ yüklenebilir hale gelirler.
 ```
 
 ## Derleme
-Yerelde LaTeX yok; **Overleaf** önerilir (IEEEtran hazır gelir).
-Yerel derleme: `./papers/build.sh draft-en` (tectonic ile; tek binary,
-paketleri ilk calistirmada indirir). tectonic ~/.local/bin altinda.
+Yerel derleme için `tectonic` komutunun PATH üzerinde bulunması yeterlidir.
+Bu ortamda Tectonic 0.15.0 kuruludur; ayrıca TeX Live kurulumu gerekmez.
+Gerekli LaTeX paketleri ve yazı tipleri Tectonic tarafından gerektiğinde
+indirilip önbelleğe alınır; ilk derlemede internet bağlantısı gerekebilir.
+
+Bu klasörden:
+
+```bash
+./build.sh eleco       # eleco/main.pdf
+./build.sh draft-en    # draft-en/main.pdf (varsayılan)
+```
+
+Depo kökünden aynı komutlar `./papers/build.sh eleco` ve
+`./papers/build.sh draft-en` şeklinde çalıştırılır. Betik, grafik klasörlerini
+oluşturup `experiments/figures/*.pdf` dosyalarını kopyalar ve ardından
+`main.tex` dosyasını kaynakçasıyla birlikte derler. ELECO'nun `main.tex`
+dosyasındaki grafikler doğrudan TikZ/PGFPlots ile çizilir.
+
+Overleaf için ilgili bildiri klasörünü (`main.tex`, `references.bib`,
+varsa `figures/` ve ELECO için `data/` CSV dosyaları) yükleyebilirsiniz. Diğer `.tex` dosyaları önceki taslaklardır;
+derleme betiği giriş dosyası olarak `main.tex` kullanır.
+
+ELECO hakem revizyonunun kod sürümü, testleri ve grafik verileri için
+[yeniden üretim kılavuzuna](eleco/REPRODUCIBILITY.md) bakın. İngilizce taslak
+ve diğer ELECO `.tex` dosyaları bu revizyonun bilimsel güncellemelerini içermez.
 
 ## Dil
 Ana taslak İngilizce (ilerleyiş kolaylığı). ELECO sürümünde dil/şablon

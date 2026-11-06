@@ -119,7 +119,7 @@
 \end{center}
 \vspace{-6pt}
 {\fontsize{9}{10.8}\selectfont\itshape
-\noindent Hassas zamanlama donanımına bağımlı istemci yazılımlarının geliştirilmesi, cihazın pahalı, sınırlı sayıda veya belirli çalışma durumlarına ulaşmak için uzun süre gerektiren bir donanım olması nedeniyle güçleşebilir. Bu çalışmada, ticari bir düşük gürültülü rubidyum Küresel Navigasyon Sistemi Disiplinli Osilatörü (\emph{Global Navigation System Disciplined Oscillator}, GNSDO) için yüksek doğruluklu davranışsal bir simülatör sunulmaktadır. Simülatör, cihazın seri arayüzünü, Programlanabilir Cihazlar için Standart Komutlar (\emph{Standard Commands for Programmable Instruments}, SCPI) protokolünü, durum geçişlerini ve istemci tarafından gözlenebilen zamana bağlı davranışlarını yeniden üretmektedir. Model, üretici kılavuzu, sınırlı cihaz kayıtları ve doğrudan gözlemler kullanılarak oluşturulmuştur. Holdover sırasında zaman aralığı hatası, ısınma ve kilitlenme geçişleri, sağlık bayrakları ve ölçüm değişimleri modellenmiştir. Doğrulama; kaydedilmiş yanıtlarla karşılaştırma, parametre izlenebilirliği, değişkenler arası ilişkiler ve otomatik değişmez testleriyle gerçekleştirilmiştir. Sonuçlar, simülatörün gerçek donanıma sürekli erişim gerektirmeden tekrarlanabilir bir test ortamı sağlayabildiğini göstermektedir.\par}
+\noindent Hassas zamanlama donanımına bağımlı istemci yazılımlarının geliştirilmesi, cihazın pahalı, sınırlı sayıda veya belirli çalışma durumlarına ulaşmak için uzun süre gerektiren bir donanım olması nedeniyle güçleşebilir. Bu çalışmada, ticari bir düşük gürültülü rubidyum Küresel Navigasyon Sistemi Disiplinli Osilatörü (\emph{Global Navigation System Disciplined Oscillator}, GNSDO) için yüksek doğruluklu davranışsal bir simülatör sunulmaktadır. Simülatör, cihazın seri arayüzünü, Programlanabilir Cihazlar için Standart Komutlar (\emph{Standard Commands for Programmable Instruments}, SCPI) protokolünü, durum geçişlerini ve istemci tarafından gözlenebilen zamana bağlı davranışlarını yeniden üretmektedir. Model, üretici kılavuzu, sınırlı cihaz kayıtları ve doğrudan gözlemler kullanılarak oluşturulmuştur. Holdover sırasında zaman aralığı hatası, ısınma ve kilitlenme geçişleri, sağlık bayrakları ve ölçüm değişimleri modellenmiştir. Doğrulama, ağırlıkla kilitli duruma ait sınırlı kayıtlarla arayüz ve ilişki karşılaştırmasına dayanır. Holdover ve ısınma eğrileri model çıktılarıdır; bu geçişler zaman hizalı donanım ölçümleriyle doğrulanmamıştır. Otomatik model testleri ve seri port üzerinden ayrı bir izleme istemcisiyle uçtan uca test, yazılımın çalışmasını sınar. Sonuçlar, simülatörün gerçek donanıma sürekli erişim gerektirmeden tekrarlanabilir bir test ortamı sağlayabildiğini göstermektedir.\par}
 
 \vspace{9pt}
 \begin{center}
@@ -127,7 +127,7 @@
 \end{center}
 \vspace{-6pt}
 {\selectlanguage{english}\fontsize{9}{10.8}\selectfont\itshape
-\noindent Developing client software that depends on precision timing hardware can be difficult when the device is expensive, available only in limited numbers, or requires long periods to reach specific operating states. This paper presents a high-fidelity behavioral simulator for a commercial low-noise rubidium Global Navigation System Disciplined Oscillator (GNSDO). The simulator reproduces the device's serial interface, Standard Commands for Programmable Instruments (SCPI) protocol, state transitions, and time-dependent behavior observable by client software. The model was constructed from the vendor manual, a limited set of device recordings, and direct observations. Time-interval error during holdover, warm-up and lock transitions, health flags, and measurement variations are modeled. Validation is performed through comparison with recorded responses, parameter traceability, relationships among variables, and automated invariant tests. The results show that the simulator can provide a repeatable test environment without requiring continuous access to the physical device.\par}
+\noindent Developing client software that depends on precision timing hardware can be difficult when the device is expensive, available only in limited numbers, or requires long periods to reach specific operating states. This paper presents a high-fidelity behavioral simulator for a commercial low-noise rubidium Global Navigation System Disciplined Oscillator (GNSDO). The simulator reproduces the device's serial interface, Standard Commands for Programmable Instruments (SCPI) protocol, state transitions, and time-dependent behavior observable by client software. The model was constructed from the vendor manual, a limited set of device recordings, and direct observations. Time-interval error during holdover, warm-up and lock transitions, health flags, and measurement variations are modeled. Hardware comparison is limited to recorded responses and relationships, mainly in the locked state. Holdover and warm-up curves are model outputs, not time-aligned hardware validation. Automated model tests and an end-to-end test with a separate serial monitoring client verify software behavior. The results show that the simulator can provide a repeatable test environment without requiring continuous access to the physical device.\par}
 \selectlanguage{turkish}
 
 \section{Giriş}
@@ -135,7 +135,7 @@ Küresel Navigasyon Uydu Sistemi (\emph{Global Navigation Satellite System}, GNS
 
 Bu tür bir cihaza bağımlı istemci yazılımlarının geliştirilmesinde fiziksel erişim önemli bir darboğaz oluşturabilir. Donanımın pahalı veya sınırlı sayıda olması, aynı cihazın birden fazla geliştirici ya da sürekli entegrasyon ortamı tarafından eşzamanlı kullanılamaması ve GNSS kaybı, referans kaybı sonrasındaki serbest çalışma (\emph{holdover}) veya ilk açılış gibi durumların kontrollü olarak tekrar edilmesinin zaman alması test kapsamını sınırlar. Gerçek donanımın test ortamında bulunmaması veya kullanımının zor olması, yazılım testinde alternatif uygulamalar ve donanım simülatörleri kullanılmasının temel gerekçelerinden biridir \cite{meszaros2007,morita2017}.
 
-Bu çalışmada, üreticinin \emph{Global Navigation System Disciplined Oscillator} (GNSDO) olarak adlandırdığı Jackson Labs Low Noise Rubidium cihazı için, istemci yazılımının gördüğü seri protokolü ve zamana bağlı davranışı yeniden üreten bir \emph{high-fidelity behavioral simulator} geliştirilmiştir. Buradaki ``high-fidelity'' ifadesi, simülatörün kullanım amacına göre tanımlanmıştır: hedef, cihazın faz gürültüsü veya Allan sapması gibi metrolojik özelliklerini yeniden üretmek değil; istemci yazılımının gözlemlediği komut/yanıt biçimini, tutarlı cihaz durumunu ve ilgili zaman alanı davranışlarını yeterli doğrulukta yeniden üretmektir. Simülasyon doğrulamasında modelin geçerliliğinin kullanım amacıyla birlikte ele alınması gerektiği literatürde de vurgulanmaktadır \cite{sargent2013}.
+Bu çalışmada, üreticinin \emph{Global Navigation System Disciplined Oscillator} (GNSDO) olarak adlandırdığı Jackson Labs Low Noise Rubidium cihazı için, istemci yazılımının gördüğü seri protokolü ve zamana bağlı davranışı yeniden üreten bir \emph{high-fidelity behavioral simulator} geliştirilmiştir. Buradaki ``high-fidelity'' ifadesi bir tasarım hedefidir; deneysel destek, incelenen komut/yanıt biçimleri ve kayıtlardaki değişken ilişkileriyle sınırlıdır. Zaman alanı modelleri istemci senaryoları üretir; fiziksel cihazın geçici rejimlerini veya metrolojik doğruluğunu nicel olarak yeniden ürettiği gösterilmemiştir. Simülasyon doğrulamasında modelin geçerliliğinin kullanım amacıyla birlikte ele alınması gerektiği literatürde de vurgulanmaktadır \cite{sargent2013}.
 
 Çalışmanın temel katkıları şunlardır:
 \begin{itemize}
@@ -146,17 +146,15 @@ Bu çalışmada, üreticinin \emph{Global Navigation System Disciplined Oscillat
 
 \section{Arka Plan ve İlgili Çalışmalar}
 \subsection{Referans Cihaz ve Komut Arayüzü}
-Referans cihaz Jackson Labs Technologies Low Noise Rubidium GNSDO'dur \cite{jlt2015}. Üretici, ürün adında GNSDO kısaltmasını kullanmaktadır; bu nedenle makalede ürün adı için GNSDO, genel teknoloji sınıfı için ise GNSS ile disipline edilen osilatör ifadesi kullanılmaktadır. Üretici kılavuzuna göre cihazın RS-232 seri arayüzünün fabrika ayarı 115200 baud hız, 8 veri biti, parite yok, 1 stop biti ve akış kontrolü yok biçimindedir; bu yapı kısaca 8N1 olarak gösterilmektedir. Komut arayüzü SCPI sözdizimini kullanır; SCPI standardı programlanabilir ölçüm cihazları için donanım arayüzünden bağımsız bir komut dili tanımlar \cite{scpi1999}.
+Referans cihaz Jackson Labs Technologies Low Noise Rubidium GNSDO'dur \cite{jlt2015}. Cihazın kimlik yanıtındaki GPSDO, Küresel Konumlama Sistemi ile Disipline Edilen Osilatör (\emph{Global Positioning System Disciplined Oscillator}) anlamındadır. Komut adlarındaki CSAC, çip ölçekli atomik saat (\emph{Chip-Scale Atomic Clock}) kısaltmasıdır; bu arayüz adı, incelenen rubidyum varyantının tüm CSAC donanım özelliklerini taşıdığı anlamına gelmez. Üretici, ürün adında GNSDO kısaltmasını kullanmaktadır; bu nedenle makalede ürün adı için GNSDO, genel teknoloji sınıfı için ise GNSS ile disipline edilen osilatör ifadesi kullanılmaktadır. Üretici kılavuzuna göre cihazın RS-232 seri arayüzünün fabrika ayarı 115200 baud hız, 8 veri biti, parite yok, 1 stop biti ve akış kontrolü yok biçimindedir; bu yapı kısaca 8N1 olarak gösterilmektedir. Komut arayüzü SCPI sözdizimini kullanır; SCPI standardı programlanabilir ölçüm cihazları için donanım arayüzünden bağımsız bir komut dili tanımlar \cite{scpi1999}.
 
 Cihazda rubidyum osilatörü GNSS veya harici saniyede bir darbe (\emph{one pulse per second}, 1PPS) referansına kilitleyen ve filtre osilatörünü rubidyum referansına kilitleyen iki ayrı servo döngüsü bulunmaktadır \cite{jlt2015}. \texttt{SYNC:TINT?} komutu, seçili döngü için \emph{Time Interval} (TINT) olarak adlandırılan 1PPS faz farkını raporlar. \texttt{SYNC:FEEstimate?} komutu ise üreticinin 1000~s ölçüm aralığında Allan varyansına benzer bir büyüklük olarak tanımladığı \emph{Frequency Error Estimate} (FEE; frekans hata kestirimi) değerini döndürür. \texttt{SYNC:HEALTH?} komutu çalışma süresi, holdover ve faz farkı gibi koşullara bağlı sağlık bayraklarını onaltılık bir bit alanı olarak verir. Tanısal komutlarda kullanılan \emph{Electronic Frequency Control} (EFC; elektronik frekans kontrolü) değerleri de iç referans osilatörüne uygulanan kontrol büyüklüğünü ifade eder \cite{jlt2015}.
 
 \subsection{Davranışsal Simülasyon ve Test Amaçlı Donanım İkamesi}
-Yazılım testi literatüründe \emph{test double}, gerçek bir bağımlılığın test ortamında kullanılamadığı, çok yavaş olduğu veya test maliyetini artırdığı durumlarda onun yerine kullanılan test bileşenlerini tanımlayan genel bir terimdir. Meszaros'un sınıflandırmasında, gerçek bileşenin işlevini daha basit fakat çalışan bir uygulamayla sağlayan test ikamesi \emph{Fake Object} olarak adlandırılır \cite{meszaros2007}. Bu çalışmanın teknik odağı test ikamesi taksonomisinden çok davranışsal simülasyon olduğundan, devamında ``simülatör'' terimi kullanılmaktadır.
-
-Üretim gözlemlerinden gerçekçi test ikameleri üretme fikri de yazılım testi literatüründe incelenmiştir. Tiwari ve arkadaşları, üretim etkileşimlerini gözleyerek gerçekçi mock ve stub davranışları üretmenin uygulanabilirliğini göstermiştir \cite{tiwari2024}. Donanım tarafında Morita ve arkadaşları, gerçek makine olmadan yazılım doğrulaması yapabilmek için donanım ve hata davranışlarını simüle eden bir test ortamı geliştirmiştir \cite{morita2017}. Bu çalışmalar, gerçek donanımın erişilebilirliğinin sınırlı olduğu durumlarda gözlenebilir davranışın ikame edilmesinin yazılım geliştirme açısından pratik değerini desteklemektedir.
+Meszaros'un \emph{Fake Object} sınıfı, gerçek bağımlılığın yerine geçen basitleştirilmiş çalışan uygulamaları kapsar \cite{meszaros2007}. Üretim kayıtlarından test ikamesi oluşturma \cite{tiwari2024} ve donanım arızalarını simüle ederek istemci testi yapma \cite{morita2017}, bu yaklaşımın ilgili örnekleridir. Burada amaç, üçüncü taraf cihazın firmware'ine erişmeden gözlenebilir seri davranışı yeniden kurmaktır.
 
 \subsection{Simülasyon Doğrulaması}
-Bir simülasyon modelinin yalnızca çalışması, modelin kullanım amacı için yeterince doğru olduğunu göstermez. Sargent; kavramsal model geçerliliği, uygulama doğrulaması, veri geçerliliği ve operasyonel geçerliliği ayrı değerlendirme alanları olarak ele almakta ve modelin amaçlanan kullanım bağlamında doğrulanmasını önermektedir \cite{sargent2013}. Bu çalışmada doğrudan zaman hizalı ve kapsamlı bir donanım karşılaştırması bulunmadığından, doğrulama tek bir metriğe indirgenmemiş; bağımsız kanıt türleri birlikte kullanılmıştır.
+Sargent, kavramsal model, uygulama, veri ve operasyonel geçerliliği ayırır; doğrulama kullanım amacına bağlıdır \cite{sargent2013}. Burada kayıt karşılaştırmaları, parametre izlenebilirliği ve yazılım testleri ayrı kanıt türleri olarak raporlanmıştır.
 
 \subsection{Saat ve Holdover Modellemesi}
 Saat fazı ve frekans hatası arasındaki ilişki klasik saat modellerinin temelidir. Zucca ve Tavella, saat hatasını stokastik diferansiyel denklemlerle ifade ederek frekans süreçleri ile Allan varyansı arasındaki ilişkiyi ayrıntılı biçimde incelemiştir \cite{zucca2005}. Bu çalışmanın amacı osilatörün tam stokastik spektrumunu modellemek değildir. Bunun yerine, istemci testleri için gerekli zaman alanı davranışları daha düşük karmaşıklıkta ve deterministik biçimde temsil edilmektedir.
@@ -166,12 +164,30 @@ Simülatörün temel hedefi, gerçek cihazla çalışan istemci yazılımında d
 \begin{enumerate}
     \item \textbf{Arayüz doğruluğu:} Komut adları, kısa/uzun SCPI biçimleri, satır sonlandırma ve çok satırlı yanıtların biçimi;
     \item \textbf{Durum tutarlılığı:} Özet sorgular ile tekil sorguların aynı cihaz durumundan türetilmesi;
-    \item \textbf{Zamansal doğruluk:} Isınma, kilitlenme, holdover ve sağlık geçişlerinin gerçek cihazla aynı mertebede ilerlemesi;
+    \item \textbf{Zamansal davranış hedefi:} Kılavuz ve açık varsayımlara dayalı ısınma, kilitlenme, holdover ve sağlık geçişlerinin üretilebilmesi;
     \item \textbf{İlişkisel doğruluk:} Birbirine bağlı ölçümlerin kayıtlarda ve kılavuzda gözlenen ilişkileri koruması;
     \item \textbf{Tekrarlanabilirlik:} Aynı başlangıç koşulları altında aynı test çalışmasının aynı çıktıları üretmesi.
 \end{enumerate}
 
-Spektral faz gürültüsü, Allan sapması eğrisinin tam yeniden üretimi ve cihazlar arası üretim varyasyonu bu çalışmanın kapsamı dışındadır.
+Spektral faz gürültüsü, Allan sapması ve cihazlar arası varyasyon kapsam dışıdır. Kayıtlı \texttt{HELP?} listesindeki 66 cihaz sorgusunun 50'si desteklenir; \texttt{HELP?} sayım dışında tutulmuştur. Bu sayı işlev kapsamıdır; tüm kısa/uzun yazım birleşimlerinin veya ayar komutlarının doğruluğunu göstermez. Desteklenmeyen 16 sorgu ve etkileri Çizelge~\ref{tab:unsupported}'te verilmiştir.
+
+\begin{table}[t]
+\caption{Desteklenmeyen sorgular ve istemciye etkileri}
+\label{tab:unsupported}
+\centering
+\fontsize{9}{10.8}\selectfont
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{p{0.46\columnwidth}p{0.46\columnwidth}}
+\toprule
+\textbf{Sorgu grubu} & \textbf{Kapsam sınırı} \\
+\midrule
+\texttt{MAC:} altında \texttt{RS232?}, \texttt{STEER?}, \texttt{STATUS?}, \texttt{MODE?}, \texttt{DDSCENTER?}, \texttt{TECCONTROL?}, \texttt{TCXO?}, \texttt{SIGNAL?}, \texttt{HEATPACKAGE?}, \texttt{TEMPERATURE?}, \texttt{SN?}, \texttt{FWREV?}, \texttt{LIFETIME?} (13)
+ & MAC alt sorgularını kullanan modül izleme/tanı istemcileri çalışmaz. DDS merkezi dışında karşılık gelen alanlar \texttt{CSAC:*} sorgularıyla; DDS merkezi ise toplu \texttt{CSAC?}/\texttt{MAC?} yanıtıyla okunabilir. \\
+\texttt{DIAG:ROSC:EFC:} altında \texttt{REL:CSAC?}, \texttt{REL:FILTER?}, \texttt{ABS:FILTER?} (3)
+ & Döngüye özel bağıl kontrol ve filtre mutlak kontrol izlemesi eksiktir; genel EFC sorguları bu işlevlerin tamamının yerini tutmaz. \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \section{Simülatör Mimarisi}
 Simülatör dört katmandan oluşmaktadır:
@@ -191,29 +207,29 @@ GNSS referansı kaybedildiğinde servo döngüsü referansa göre düzeltme yapa
     x(t)=x_0+y_h t,
     \label{eq:holdover}
 \end{equation}
-burada $x(t)$ zaman aralığı hatası, $x_0$ holdover başlangıcındaki faz farkı ve $y_h$ etkin artık fraksiyonel frekans hatasıdır.
+burada $t$ holdover başlangıcından geçen süre (s), $x(t)$ ve $x_0$ sırasıyla zaman aralığı hatası ve başlangıç faz farkı (s), $y_h$ ise işaretli, boyutsuz etkin fraksiyonel frekans hatasıdır.
 
 Üretici kılavuzu \texttt{SYNC:FEEstimate?} değerini 1000~s aralığında Allan varyansına benzer bir büyüklük olarak tanımladığından, bu değer doğrudan işaretli fiziksel frekans sapması olarak yorumlanmamıştır. Simülatörde $|y_h|$ için kaydedilmiş FEE büyüklükleri başlangıç referansı olarak kullanılmakta; işaret ve ölçekleme açık bir model parametresi olarak tutulmaktadır. Bu yaklaşım, kaynak tarafından desteklenmeyen bir fiziksel yorumu modele gömmek yerine varsayımı görünür kılar.
 
-Önceki sürümde kullanılan ikinci dereceden yaşlanma terimi bu çalışmadan çıkarılmıştır. Üretici kılavuzundaki $8\times10^{-14}$ değeri yaşlanma katsayısı değil, belirli bir ortalama süresindeki Allan sapması performansını ifade etmektedir; bu nedenle bu değerin $D$ yaşlanma katsayısı olarak kullanılması izlenebilir değildir.
+Bu çalışmanın sabitlenmiş kod sürümünde ikinci dereceden yaşlanma terimi kullanılmaz. Kılavuzdaki $8\times10^{-14}$ Allan sapması değerinden yaşlanma katsayısı çıkarılmamıştır. \texttt{holdover\_frequency\_error} parametresi $y_h$ değerini açıkça belirler; ayarlanmazsa girişteki FEE pozitif eğim olarak eşlenir ve bu eşleme bir model varsayımıdır. Kod sürümü ve yeniden üretim yöntemi Bölüm~\ref{sec:availability}'te verilmiştir.
 
 \subsection{Deterministik Ölçüm Değişimi}
 Gerçek cihazda sıcaklık, TINT ve benzeri büyüklükler tamamen sabit değildir. Ancak her sorguda bağımsız rastgele sayı üretmek hem sorgu sıklığına bağlı yapay değişim oluşturur hem de regresyon testlerinin tekrar üretilebilirliğini bozar. Bu nedenle gözlenebilir küçük değişimler zamanın deterministik bir fonksiyonu olarak modellenmiştir:
 \begin{equation}
- v(t)=v_0+A\frac{\sum_{k=0}^{2}w_k\sin\!\left(2\pi r_k t/P+\upvarphi_k\right)}{\sum_{k=0}^{2}w_k},
+ v(t_u)=v_0+A\frac{\sum_{k=0}^{2}w_k\sin\!\left(2\pi r_k t_u/P+\upvarphi_k\right)}{\sum_{k=0}^{2}w_k},
  \label{eq:variation}
 \end{equation}
-burada $v_0$ nominal değer, $A$ izin verilen maksimum sapma, $w_k\in\{1,1/2,1/4\}$ ağırlıklar, $r_k\in\{1,\upphi,\upphi^2\}$ birbirine tam kat olmayan frekans oranları ve $\upvarphi_k$ kanal bazlı sabit faz ofsetleridir. Normalizasyon sayesinde değişim $\pm A$ aralığıyla sınırlı kalır. Bu yapı fiziksel gürültünün spektral modeli olarak değil, istemci testleri için zaman-tutarlı ve tekrarlanabilir küçük değişim üretmek amacıyla kullanılmaktadır.
+Burada $t_u$ simülatör başlangıcından geçen süre (s), $v(t_u)$ çıktı, $v_0$ nominal değer ve $A$ sapma sınırıdır; son üç büyüklük aynı kanal birimindedir (TINT için s, sıcaklık için $^{\circ}$C). $P$ temel periyot (s), $k=0,1,2$ bileşen indisi, $w_k=(1,1/2,1/4)$ boyutsuz ağırlıklar ve $r_k=(1,\upphi,\upphi^2)$ boyutsuz frekans oranlarıdır. $\upphi=(1+\sqrt{5})/2$ altın oran, $\upvarphi_k=r_k\theta_c$ radyan cinsinden sabit fazdır; $\theta_c$ kanal adından deterministik üretilir. Normalizasyon sayesinde değişim $\pm A$ aralığıyla sınırlı kalır. Bu yapı fiziksel gürültünün spektral modeli olarak değil, istemci testleri için zaman-tutarlı ve tekrarlanabilir küçük değişim üretmek amacıyla kullanılmaktadır.
 
 \subsection{Isınma ve Kilitlenme}
 Baskılı devre kartı (\emph{printed circuit board}, PCB) sıcaklığı için birinci dereceden termal yaklaşım kullanılmıştır:
 \begin{equation}
- T(t)=T_{\infty}-\left(T_{\infty}-T_0\right)e^{-t/\uptau},
+ T(t_w)=T_{\infty}-\left(T_{\infty}-T_0\right)e^{-t_w/\uptau},
  \label{eq:thermal}
 \end{equation}
-burada $T_0$ başlangıç sıcaklığı, $T_{\infty}$ kararlı durum sıcaklığı ve $\uptau$ deneysel termal zaman sabitidir. Varsayılan parametreler, eldeki gözlem ve kayıtlarla uyumlu olacak şekilde $T_0=\SI{25}{\celsius}$, $T_{\infty}\approx\SI{52.8}{\celsius}$ ve $\uptau\approx\SI{90}{s}$ olarak seçilmiştir. $T_0$ ortam koşuluna bağlı olduğu için yapılandırılabilir tutulmuştur; $\uptau$ üretici spesifikasyonu değil, gözlemsel bir model parametresidir.
+burada $t_w$ soğuk açılıştan geçen süre (s), $T_0$ başlangıç sıcaklığı, $T_{\infty}$ kararlı sıcaklık ($^{\circ}$C) ve $\uptau$ termal zaman sabitidir (s). Varsayılan parametreler, eldeki gözlem ve kayıtlarla uyumlu olacak şekilde $T_0=\SI{25}{\celsius}$, $T_{\infty}\approx\SI{52.8}{\celsius}$ ve $\uptau\approx\SI{90}{s}$ olarak seçilmiştir. $T_0$ ortam koşuluna bağlı olduğu için yapılandırılabilir tutulmuştur; $\uptau$ üretici spesifikasyonu değil, gözlemsel bir model parametresidir.
 
-Üretici kılavuzu, GNSS anteni bağlıyken tam kilit göstergesinin güç verildikten sonra tipik olarak 20 dakikadan kısa sürede oluştuğunu belirtmektedir \cite{jlt2015}. Servo durumları bu zaman ölçeğini koruyacak şekilde ısınma, kilitlenme ve kilitli durumlara ayrılmıştır. Kılavuzdaki ``2 dakikadan kısa sürede atomik kilit'' ifadesi, çip ölçekli atomik saat (\emph{Chip-Scale Atomic Clock}, CSAC) kullanılan belirli varyanta ait olduğundan referans rubidyum cihazının genel ısınma süresi olarak kullanılmamıştır.
+Üretici kılavuzu, GNSS anteni bağlıyken tam kilit göstergesinin güç verildikten sonra tipik olarak 20 dakikadan kısa sürede oluştuğunu belirtmektedir \cite{jlt2015}. Servo durumları bu zaman ölçeğini koruyacak şekilde ısınma, kilitlenme ve kilitli durumlara ayrılmıştır. Kılavuzdaki ``2 dakikadan kısa sürede atomik kilit'' ifadesi, CSAC kullanılan belirli varyanta ait olduğundan referans rubidyum cihazının doğrulanmış ısınma süresi olarak alınmamıştır. Kodun 120~s atomik kilit geçişi de bu cihaz için ölçülmüş sonuç değil, senaryo varsayımıdır.
 
 \subsection{Sağlık Durumu}
 \texttt{SYNC:HEALTH?} için sağlık bayrakları üretici kılavuzundaki koşullara göre oluşturulmaktadır. Modelde özellikle aşağıdaki kurallar uygulanmaktadır: çalışma süresi 200~s'den küçükse \texttt{0x8}; holdover süresi 60~s'yi aşarsa \texttt{0x10}; referansa göre faz farkı 210~ns'yi aşarsa \texttt{0x4}. Bayraklar bit düzeyinde mantıksal VEYA işlemiyle birleştirilir. Örneğin uzun holdover sırasında faz farkının 210~ns'yi aşması \texttt{0x14} sonucunu üretir. Sağlık bayrağındaki 210~ns koşulu ile \texttt{SYNC:TINT:THR} komutunun 220~ns varsayılan ani faz hizalama (\emph{jam-sync}) eşiği ayrı kavramlardır ve modelde birbirine karıştırılmamıştır \cite{jlt2015}.
@@ -235,11 +251,11 @@ Seri arayüz & 115200, 8N1 & Kılavuz, doğrudan \\
 Sağlık faz koşulu & $|TINT|>210$ ns & Kılavuz, doğrudan \\
 Ani faz hizalama (jam-sync) eşiği & 220 ns varsayılan & Kılavuz, doğrudan \\
 Holdover bayrağı & $t>60$ s & Kılavuz, doğrudan \\
-İlk çalışma bayrağı & $t<200$ s & Kılavuz, doğrudan \\
+İlk çalışma bayrağı & $t_u<200$ s & Kılavuz, doğrudan \\
 $|y_h|$ başlangıç aralığı & $1.3$--$2.5\times10^{-11}$ & Kayıt + model eşleme varsayımı \\
-Kilitli TINT değişimi & yaklaşık $\pm12$ ns & Kayıt \\
+Kilitli TINT model sınırı & $\pm12$ ns & 5 kayıtla ölçek seçimi \\
 CSAC--PCB sıcaklık farkı & $+1.32\,^{\circ}$C & Kayıtlar (4 çift) \\
-EFC mutlak/bağıl ilişki & $\times200$ & Kayıtlar \\
+EFC mutlak/bağıl ilişki & $a=200r$ & Kayıtlar \\
 $\uptau$ & yaklaşık 90 s & Operatör gözlemi / model parametresi \\
 $T_0$ & $25\,^{\circ}$C & Varsayım, yapılandırılabilir \\
 \bottomrule
@@ -249,19 +265,19 @@ $T_0$ & $25\,^{\circ}$C & Varsayım, yapılandırılabilir \\
 Bu tablo aynı zamanda modelin kanıt düzeyini sınırlayan noktaları açıkça göstermektedir. Özellikle FEE değerinden etkin holdover eğimine yapılan eşleme ve termal zaman sabiti, doğrudan üretici spesifikasyonu olarak sunulmamaktadır.
 
 \section{Doğrulama Yöntemi}
-Doğrulama, kullanım amacına göre dört tamamlayıcı yöntemle yürütülmüştür.
+Donanım karşılaştırması ile yazılımın model denklemlerine uygunluğu ayrı değerlendirilmiştir. Kayıtlarda bazı saat/tarih yanıtları vardır; ancak sorguların tamamını zaman hizalı bir holdover veya soğuk açılış serisine bağlayacak zaman damgaları bulunmamaktadır.
 
 \subsection{Komut ve Yanıt Karşılaştırması}
 Kaydedilmiş gerçek cihaz çıktıları ile simülatör yanıtları aynı komutlar için karşılaştırılmıştır. Kimlik, seri numarası ve sabit yapılandırma alanlarında tam metin eşleşmesi; çok satırlı komutlarda alan sırası, etiketler ve satır yapısı kontrol edilmiştir.
 
 \subsection{İlişki Tutarlılığı}
-Tek tek değerlerin yanı sıra değişkenler arası ilişkiler doğrulanmıştır. Örneğin kaydedilmiş dört örnekte EFC mutlak değeri bağıl değerin 200 katı olarak gözlenmiş, CSAC sıcaklığı ise PCB sıcaklığından yaklaşık \SI{1.32}{\celsius} yüksek ölçülmüştür. Simülatör bu ilişkileri ayrı sabit yanıtlar yerine ortak durum üzerinden üretmektedir.
+Tek tek değerlerin yanı sıra değişkenler arası ilişkiler doğrulanmıştır. Dört EFC çiftinde $a=200r$ bulunmuştur: $r$ yüzde olarak raporlanan sayısal değer, $a$ ise ppt ($10^{-12}$) cinsinden sayısal değerdir. Örneğin $r=-0.410000$ (\%) için $a=-82$ (ppt); katsayı $200$'ün birimi ppt/\%'dir. Dört sıcaklık çiftinde CSAC--PCB farkı 1.2612--1.3881~$^{\circ}$C aralığındadır; modeldeki 1.32~$^{\circ}$C ofsetin kayıtlara göre en büyük mutlak farkı 0.0681~$^{\circ}$C'dir. Bu, zaman hizalı ölçüm hatası veya cihaz doğruluğu değildir. Simülatör bu ilişkileri ayrı sabit yanıtlar yerine ortak durum üzerinden üretmektedir.
 
 \subsection{Fiziksel ve Mantıksal Değişmezler}
 Model için otomatik test edilen başlıca değişmezler; sıcaklığın kararlı değere sınırlı yaklaşması, aynı başlangıç koşullarında aynı serinin üretilmesi, holdover süresinin monoton artması, sağlık bayraklarının koşullarla tutarlı olması ve özet/tekil sorguların aynı cihaz durumunu yansıtmasıdır.
 
 \subsection{Zamansal Davranış Kontrolü}
-Uzun süreli durumlar gerçek zaman beklemeden hızlandırılmış olarak taranmıştır. Böylece 20 dakikalık kilitlenme zaman ölçeği, saatler süren holdover ve sağlık eşiği geçişleri birim testleri içinde değerlendirilebilmektedir.
+Model fonksiyonlarına geçen süre verilerek uzun süreli senaryolar beklemeden sınanmıştır. Bu testler denklem ve eşiklerin kodda doğru uygulanmasını kontrol eder. Holdover eğimi, ısınma zaman sabiti, kilitlenme anı ve donanımın sağlık geçiş gecikmeleri zaman hizalı gerçek cihaz verisiyle nicel olarak doğrulanmamıştır; sıcaklığın birkaç dakikada yükselmesi yalnızca nitel operatör gözlemidir.
 
 \section{Sonuçlar}
 \subsection{Arayüz ve İlişki Doğruluğu}
@@ -277,23 +293,23 @@ Uzun süreli durumlar gerçek zaman beklemeden hızlandırılmış olarak taranm
 \toprule
 \textbf{Sorgu} & \textbf{Kayıt / beklenen ilişki} & \textbf{Sonuç} \\
 \midrule
-\texttt{*IDN?} & Jackson Labs, LN Rb GNSDO (PRE), Rev 1.17 & Tam \\
+\texttt{*IDN?} & Jackson Labs, LN Rb GPSDO (PRE), Firmware Rev 1.17 & Tam \\
 \texttt{SYST:ID:SN?} & 122301668 & Tam \\
 \texttt{CSAC:SN?} & 2209MX04906 & Tam \\
 \texttt{CSAC:FW?} & V1.0.23 & Tam \\
 \texttt{MEAS?} & dört etiketli satır & Biçim tam \\
-\texttt{DIAG?} & $EFC_{abs}=200\,EFC_{rel}$ & 4/4 \\
-CSAC--PCB & $+1.32\,^{\circ}$C & $\pm0.07\,^{\circ}$C \\
+\texttt{DIAG?} & $a=200r$ (ppt/\%) & 4/4 \\
+CSAC--PCB & $+1.32\,^{\circ}$C ofset & En çok 0.0681~$^{\circ}$C fark \\
 \texttt{SYNC:FEE?} & $1.3$--$2.5\times10^{-11}$ & Aralık \\
-\texttt{SYNC:TINT?} & işaretli, yaklaşık $\pm12$ ns & Aralık/işaret \\
+\texttt{SYNC:TINT?} & 5 kayıt: $[-11.79,11.33]$ ns & Gözlenen aralık \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Kimlik ve yapılandırma alanlarında tam eşleşme elde edilmiştir. Türetilmiş ölçümlerde ise sabit değer kopyalamak yerine gözlenen ilişkilerin korunması tercih edilmiştir. Bu yaklaşım, simülatörün farklı komutlara verdiği yanıtların aynı iç durumla tutarlı kalmasını sağlamaktadır.
+Çizelgedeki tam eşleşmeler yalnızca listelenen sabit alanlara aittir. Beş TINT örneği zaman serisi veya hata referansı değildir; yaklaşık $\pm12$~ns model değişim sınırını gerekçelendirir, $\pm12$~ns ölçüm doğruluğu iddiası oluşturmaz. Kaynakta kilitli ortalama faz doğruluğu için verilen değer de bu anlık değişim aralığıyla aynı ölçüt değildir.
 
 \subsection{Holdover Davranışı}
-Örnek bir $|y_h|=1.8\times10^{-11}$ değeri için Denklem~\ref{eq:holdover}, bir saat sonunda yaklaşık 64.8~ns ve bir gün sonunda yaklaşık \SI{1.56}{\micro\second} zaman aralığı hatası üretmektedir. 210~ns sağlık koşulu yaklaşık 3.24~saatte aşılmaktadır. Şekil~\ref{fig:holdover} bu davranışı göstermektedir.
+Örnek bir $|y_h|=1.8\times10^{-11}$ değeri için Denklem~\ref{eq:holdover}, $x_0=0$ koşulunda bir saat sonunda 64.8~ns ve bir gün sonunda yaklaşık \SI{1.56}{\micro\second} zaman aralığı hatası üretmektedir. 210~ns sağlık koşulu yaklaşık 3.24~saatte aşılmaktadır. Şekil~\ref{fig:holdover}, revize kodun saf holdover fonksiyonundan üretilmiştir; ölçüm değişimi eklenmemiştir. Grafikte saat, hesapta $t=3600h$ ile saniye kullanılır.
 
 \begin{figure}[t]
 \centering
@@ -309,14 +325,14 @@ Kimlik ve yapılandırma alanlarında tam eşleşme elde edilmiştir. Türetilmi
  tick label style={font=\scriptsize},
  label style={font=\small},
 ]
-\addplot[thick,domain=0:12,samples=2] {64.8*x};
+\addplot[thick] table[x=hours,y=tint_ns,col sep=comma] {data/holdover.csv};
 \addplot[dashed,domain=0:12,samples=2] {210};
 \addplot[only marks,mark=*] coordinates {(3.24074,210)};
 \node[font=\scriptsize,anchor=south west] at (axis cs:3.35,210) {3.24 saat};
 \node[font=\scriptsize,anchor=south east] at (axis cs:11.8,210) {210 ns sağlık koşulu};
 \end{axis}
 \end{tikzpicture}
-\caption{$|y_h|=1.8\times10^{-11}$ için doğrusal holdover zaman aralığı hatası}
+\caption{Model çıktısı: $x_0=0$, $y_h=1.8\times10^{-11}$ için holdover eğrisi; donanım ölçümü değildir}
 \label{fig:holdover}
 \end{figure}
 
@@ -326,7 +342,7 @@ Bu hesap bir metrolojik holdover performans garantisi değildir; yalnızca simü
 Holdover 60~s'yi aştığında \texttt{0x10} bayrağı etkinleşir. Faz farkı 210~ns'yi aştığında \texttt{0x4} eklenir ve birleşik durum \texttt{0x14} olur. Güç verildikten sonraki ilk 200~s için \texttt{0x8} bayrağı ayrıca modellenmektedir. Bu kurallar üretici kılavuzundaki sağlık bitleriyle doğrudan uyumludur \cite{jlt2015}.
 
 \subsection{Isınma ve Kilitlenme}
-Denklem~\ref{eq:thermal}'deki varsayılan parametrelerle PCB sıcaklığı yaklaşık birkaç dakika içinde kararlı değere yaklaşırken, GNSS kilit durumu daha yavaş ilerlemekte ve modelde yaklaşık 20 dakikalık zaman ölçeğinde etkinleşmektedir. Şekil~\ref{fig:warmup} sıcaklık modeli ile kilit geçişinin farklı zaman ölçeklerini göstermektedir.
+Denklem~\ref{eq:thermal}'deki varsayılan parametrelerle PCB sıcaklığı yaklaşık birkaç dakika içinde kararlı değere yaklaşırken, GNSS kilit durumu daha yavaş ilerlemekte ve modelde yaklaşık 20 dakikalık zaman ölçeğinde etkinleşmektedir. Şekil~\ref{fig:warmup} saf \texttt{thermal\_ramp} fonksiyonundan üretilmiştir; ölçüm değişimi eklenmemiştir. Yatay eksendeki dakika değeri hesapta $t_w=60m$ ile saniyeye çevrilir; kesikli çizgi ölçülmüş kilitlenme anı değildir.
 
 \begin{figure}[t]
 \centering
@@ -342,30 +358,33 @@ Denklem~\ref{eq:thermal}'deki varsayılan parametrelerle PCB sıcaklığı yakla
  tick label style={font=\scriptsize},
  label style={font=\small},
 ]
-\addplot[thick,domain=0:25,samples=120] {52.8-(52.8-25)*exp(-x*60/90)};
+\addplot[thick] table[x=minutes,y=pcb_c,col sep=comma] {data/warmup.csv};
 \addplot[dashed] coordinates {(20,24) (20,55)};
-\node[font=\scriptsize,anchor=south east,rotate=90] at (axis cs:19.7,26) {yaklaşık GNSS kilidi};
 \end{axis}
 \end{tikzpicture}
-\caption{Birinci dereceden PCB sıcaklık modeli ve yaklaşık GNSS kilit zaman ölçeği}
+\caption{Model çıktısı: PCB ısınması ve 20~dk senaryo kilit eşiği; donanım zaman serisi değildir}
 \label{fig:warmup}
 \end{figure}
 
-Modelin tekrarlanan çalıştırmalarında aynı başlangıç koşulları için üretilen serilerin maksimum farkı sıfırdır. Bu özellik, zamana bağlı testlerin regresyon ortamında deterministik olarak tekrar edilmesini sağlar.
+Saf model fonksiyonları aynı geçen süre ve parametrelerle aynı sonucu verir. Gerçek zamanlı seri sorguların örnekleme anları değişebileceğinden bu özellik, farklı canlı koşuların bayt düzeyinde eşitliği anlamına gelmez.
+
+\subsection{Seri İstemciyle Uçtan Uca Örnek}
+Revizyon için hazırlanan küçük Python/pySerial izleme istemcisi, simülatör modüllerini içe aktarmadan ayrı süreçte çalıştırılmıştır. \texttt{socat} iki sanal seri portu bağlamış; istemci 115200 baud, 8N1 ve CR/LF ile kimlik, kilit, holdover, TINT ve sağlık sorgularını ayrıştırmıştır. Normal durumda kilit 1 iken \texttt{SYNC:HOLD:INIT} sonrasında kilit 0 ve holdover alarmı 1 olmuş; gerçek zamanda 62~s bekleme sonunda \texttt{0x10} süre bayrağı görülmüştür. \texttt{SYNC:HOLD:REC:INIT} sonrasında kilit 1'e dönmüş ve holdover alarmı temizlenmiştir. İlk 200~s için ayrıca \texttt{0x8} bulunduğundan sağlık alanının tamamı yerine ilgili bit sınanmıştır. Koşu kaydı ve istemci kaynak kodu sürümle birlikte sunulmuştur. Bu test seri taşıma, komut ayrıştırma ve alarm akışını gösterir; mevcut bir saha uygulamasıyla veya fiziksel cihazla yapılmış kabul testi değildir.
 
 \section{Sınırlamalar}
-Simülatörün yüksek doğruluk iddiası istemci yazılımının gözlemlediği arayüz, durum ilişkileri ve zaman alanı davranışlarıyla sınırlıdır. Faz gürültüsü, Allan sapması ve osilatörün ayrıntılı stokastik karakteri modellenmemektedir. Ölçüm değişimleri test tekrar edilebilirliği için bilinçli olarak deterministiktir; bu nedenle simülatör osilatör kararlılığının metrolojik değerlendirilmesinde kullanılamaz.
+Yüksek doğruluk hedefinin kanıtı, incelenen arayüz alanları ve kayıtlı ilişkilerle sınırlıdır; tüm 66 sorgu, geçici rejimler veya fiziksel faz doğruluğu için genellenemez. Faz gürültüsü, Allan sapması ve osilatörün ayrıntılı stokastik karakteri modellenmemektedir. Ölçüm değişimleri test tekrar edilebilirliği için bilinçli olarak deterministiktir; bu nedenle simülatör osilatör kararlılığının metrolojik değerlendirilmesinde kullanılamaz.
 
 Doğrulama tek bir fiziksel cihaz örneği ve sınırlı kayıt kümesiyle yapılmıştır. Bazı kayıtlarda zaman damgası bulunmadığından tüm davranışlar zaman hizalı gerçek/simülatör eğrileriyle karşılaştırılamamıştır. Ayrıca FEE değerinden etkin holdover eğimine yapılan eşleme üretici kılavuzunun doğrudan tanımladığı bir fiziksel ilişki değildir ve model parametresi olarak açıkça tutulmaktadır. Termal zaman sabiti de üretici spesifikasyonu değil, gözleme dayalı bir parametredir.
 
 \balance
 \section{Sonuç ve Gelecek Çalışmalar}
-Bu çalışmada erişimi kısıtlı bir hassas zamanlama cihazı için seri/SCPI arayüzünü, tutarlı cihaz durumunu ve istemci açısından önemli zamana bağlı davranışları yeniden üreten yüksek doğruluklu davranışsal bir simülatör geliştirilmiştir. Simülatör, gerçek donanımın sürekli olarak test ortamında bulunmasına gerek kalmadan istemci yazılımının aynı komut arayüzü üzerinden çalıştırılmasına ve uzun süreli durumların tekrarlanabilir biçimde sınanmasına olanak vermektedir.
+Bu çalışmada seri/SCPI arayüzünün desteklenen bölümünü, ortak cihaz durumunu ve açık varsayımlara dayalı zamansal senaryoları üreten bir simülatör geliştirilmiştir. Simülatör, gerçek donanımın sürekli olarak test ortamında bulunmasına gerek kalmadan istemci yazılımının aynı komut arayüzü üzerinden çalıştırılmasına ve uzun süreli durumların tekrarlanabilir biçimde sınanmasına olanak vermektedir.
 
-Çalışmanın temel sonucu, sınırlı donanım erişiminde doğruluğun tek bir ``gerçeğe benzerlik'' iddiasıyla değil; parametre kaynaklarının izlenebilirliği, kaydedilmiş yanıtlarla karşılaştırma, değişkenler arası ilişkilerin korunması ve otomatik değişmez testlerinin birlikte kullanılmasıyla daha savunulabilir hale getirilebilmesidir. Gelecek çalışmalarda zaman damgalı ve daha geniş bir cihaz kayıt kümesi toplanması, birden fazla fiziksel örnek üzerinde cihazlar arası varyasyonun ölçülmesi, model parametrelerinin otomatik kestirimi ve simülatörün sürekli entegrasyon ve sürekli teslim süreçlerindeki regresyon testlerine sistematik olarak dahil edilmesi planlanmaktadır.
+Sınırlı kayıtlar arayüz ve ilişki kontrollerini destekler; zamansal donanım doğrulamasının yerini tutmaz. Gelecek çalışma, zaman damgalı holdover/soğuk açılış kayıtları ve mevcut saha istemcileriyle karşılaştırmalı testlerdir.
 
-\section{Erişilebilirlik}
-Simülatör, ölçüm/çizim ardışık düzeni ve doğrulamada kullanılan kaydedilmiş cihaz çıktıları \url{https://github.com/Pangea67/gnsdo-scpi-simulator} adresinde sunulmaktadır.
+\section{Erişilebilirlik ve Kod Sürümü}
+\label{sec:availability}
+Bu revizyonun kodu, bildirisi ve kanıt dosyaları \url{https://github.com/Pangea567/gnsdo-scpi-simulator} deposu için \texttt{eleco-2026-review-v1} etiketiyle sabitlenmiştir; hareketli \texttt{develop} dalı sonuçların sürüm tanımı değildir. \texttt{papers/eleco/generate\_evidence.py}, Şekil~\ref{fig:holdover}--\ref{fig:warmup} verilerini doğrudan model kodundan üretir. \texttt{data/manifest.json} kaynak commit kimliğini, dosya SHA-256 özetlerini ve parametreleri içerir. Eski \texttt{experiments/data} çıktıları bu iki şeklin kaynağı değildir. Yeniden üretim komutları ve 66 sorgunun tekil listesi \texttt{papers/eleco/REPRODUCIBILITY.md} üzerinden izlenebilir.
 
 \section{Kaynaklar}
 \begin{thebibliography}{99}

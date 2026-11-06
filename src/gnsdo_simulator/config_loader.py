@@ -110,17 +110,18 @@ def apply_config_to_state(state: DeviceState, config: dict) -> None:
     # holdover varsayilan degerle baslar, config'teki deger yok
     # sayilirdi.
     if "freq_error_estimate" in sync:
-        # y0 -- kayip anindaki bagil frekans hatasi. Kilavuz §3.6.10:
-        # FEE, "frekans hata tahmini". Holdover'da hatanin ne HIZLA
-        # birikecegini belirleyen ana parametre budur.
+        # Reported FEE magnitude; its mapping to holdover slope is an
+        # assumption, overridable with holdover_frequency_error.
         state.freq_error_estimate = float(sync["freq_error_estimate"])
     if "locked_tint" in sync:
         # Kilitliyken TINT. Kapali dongu bunu sifira cektigi icin
         # kucuk ve sabittir; ayrica holdover'a girerken x0 olur.
         state.locked_tint_seconds = float(sync["locked_tint"])
     if "drift_per_day" in sync:
-        # D -- Rubidyum yaslanma hizi (gun basina). Kilavuz §2.9.
-        state.rb_drift_per_day = float(sync["drift_per_day"])
+        raise ValueError("sync.drift_per_day was removed: use the linear "
+                         "model with sync.holdover_frequency_error")
+    if "holdover_frequency_error" in sync:
+        state.holdover_frequency_error = float(sync["holdover_frequency_error"])
 
     if "holdover" in sync:
         # Holdover'a girisi ARTIK dogrudan burada kurmuyoruz --

@@ -47,12 +47,12 @@ tanimliyor:
        -- GNSS kaybindan sonra ~100 saniye bu durumda kalir
     6  Kilitli, GNSS aktif
 
-Zaman esikleri de kilavuzdan:
-    0 -> 2 : 120 saniye  (§1.1 "less than 2 minutes warmup time to
-             atomic lock" -- atomik kilit saglandi, artik GNSS'e
-             kilitlenme egitimi basliyor)
-    2 -> 6 : 1200 saniye (§2.5 "will typically happen in less than
-             20 minutes after power-on with a GNSS antenna connected")
+Zaman esikleri:
+    0 -> 2 : 120 s, senaryo varsayimi. Kilavuzdaki <2 dakika atomik
+             kilit ifadesi CSAC varyantina aittir; incelenen rubidyum
+             cihazi icin olculmus bir gecis suresi degildir.
+    2 -> 6 : 1200 s, kilavuzdaki tipik <20 dakika ifadesinden secilen
+             senaryo esigi; zaman hizali donanim dogrulamasi yoktur.
 
 DURUM 5 NICIN ONEMLI:
   GNSS sinyali kesildiginde cihaz aninda "holdover" demez. Faz halen
@@ -76,9 +76,7 @@ SERVO_STATE_LOCKING = 2
 SERVO_STATE_HOLDOVER_PHASE_LOCKED = 5
 SERVO_STATE_LOCKED = 6
 
-# Kilavuz §1.1: "less than 2 minutes warmup time to atomic lock".
-# Bu sure dolunca atomik kilit saglanmis sayilir ve cihaz GNSS'e
-# kilitlenme egitimine (durum 2) gecer.
+# Scenario assumption, not a measured lock time for this Rb variant.
 ATOMIC_LOCK_SECONDS = 120.0
 
 # Kilavuz §2.5: kilit gostergesi "typically ... in less than 20
@@ -89,18 +87,9 @@ GNSS_LOCK_SECONDS = 1200.0
 # 100s after GNSS lock is lost".
 HOLDOVER_PHASE_LOCKED_SECONDS = 100.0
 
-# Isil zaman sabiti (saniye). Cihazin kararli sicakliga yaklasma hizi.
-#
-# DUZELTILDI (cihazi calistiran kisinin gozlemi): sicaklik HIZLI yukselir
-# -- birkac dakikada 40-50 C'ye ulasir. Eski deger (600 s) yanlisti;
-# kilavuzun 20 DAKIKALIK KILIT suresinden secilmisti, ama o GNSS'e
-# kilitlenme suresidir, SICAKLIK degil. Kilavuz §1.1 de bunu dogruluyor:
-# "less than 2 minutes warmup time to atomic lock" -- atomik paket 2
-# dakikada calisma sicakligina ulasir, yani isinma hizlidir.
-#
-# 90 s ile: 1 dk'da ~38 C, 2 dk'da ~46 C, 3 dk'da ~49 C, 5 dk'da ~52 C.
-# Isinma (hizli, ~dakikalar) ile GNSS kilidi (yavas, ~20 dk) AYRI
-# sureclerdir; ikincisi servo durum makinesinde ayrica tutulur.
+# Thermal time constant in seconds. Selected using qualitative operator
+# observations (warming over minutes), not fitted to a timestamped series.
+# The CSAC-specific atomic-lock specification does not validate this value.
 THERMAL_TIME_CONSTANT_SECONDS = 90.0
 
 # Cihazin acilis anindaki ortam sicakligi varsayimi (C).

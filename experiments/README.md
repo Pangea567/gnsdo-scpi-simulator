@@ -1,3 +1,8 @@
+> ELECO review revision: holdover now uses x(t) = x0 + y_h*t.
+> The previous interpretation of 8e-14 as ageing is withdrawn. Older
+> derivations/results below are historical, not evidence for this revision.
+> Reproduction and scope: papers/eleco/REPRODUCIBILITY.md.
+
 # experiments/ — Bildiri sekillerini ureten script'ler
 
 Her sekil, TEK BASINA calisan ve sekli YENIDEN URETEN bir script'ten

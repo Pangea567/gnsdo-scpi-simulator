@@ -211,7 +211,7 @@ def test_holdover_scenario_loads_model_parameters():
     # DUZELTILDI: taban artik SIFIR -- gercek cihazda TINT sifirin
     # etrafinda salinir, sabit pozitif offseti yoktur
     assert state.locked_tint_seconds == 0.0
-    assert state.rb_drift_per_day == 8.0e-14  # D, kilavuz §2.9
+    assert state.holdover_frequency_error == 1.8e-11  # explicit y_h
 
 
 def test_holdover_entry_tint_frozen_from_locked_value():
@@ -359,3 +359,17 @@ def test_normal_scenario_satellite_counts_consistent():
         assert (
             state.gnss_satellites_tracking <= state.gnss_satellites_visible
         ), f"{senaryo}: tracking > visible"
+
+
+def test_explicit_signed_holdover_offset_and_removed_drift():
+    from datetime import datetime, timedelta
+    from gnsdo_simulator.config_loader import apply_config_to_state
+    from gnsdo_simulator.device_state import DeviceState, current_tint_seconds
+
+    state = DeviceState(noise_scale=0.0)
+    apply_config_to_state(state, {"sync": {
+        "holdover_frequency_error": -1.8e-11, "holdover": True}})
+    start = state.holdover_started_at
+    assert current_tint_seconds(state, start + timedelta(hours=1)) == pytest.approx(-64.8e-9)
+    with pytest.raises(ValueError, match="drift_per_day"):
+        apply_config_to_state(DeviceState(), {"sync": {"drift_per_day": 8e-14}})

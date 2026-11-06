@@ -1,3 +1,8 @@
+> ELECO review revision: the current holdover implementation is linear,
+> x(t) = x0 + y_h*t. The old ageing interpretation of 8e-14 is withdrawn.
+> Historical descriptions below are superseded for this paper by
+> [the reproduction guide](papers/eleco/REPRODUCIBILITY.md).
+
 # GNSDO SCPI Cihaz Simülatörü
 
 **Low Noise Rubidium GNSDO** (GPS/GNSS ile disipline edilen Rubidyum

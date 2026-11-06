@@ -22,36 +22,13 @@ sync:
   locked: false
   holdover: true
 
-  # --- HOLDOVER HATA BIRIKIMI MODELI ---
-  # (formul ve gerekceler: docs/tasarim-kararlari.md, models/holdover.py)
-  #
-  #     x(t) = x0 + y0*t + (D/2)*t^2
-  #
-  # freq_error_estimate (y0): kayip anindaki bagil frekans hatasi.
-  #   Kilavuz §3.6.10'daki FEE degeri. Hatanin ne HIZLA birikecegini
-  #   belirleyen ana parametre.
-  #   Deger, GERCEK cihaz kayitlarindaki uc olcumun ORTALAMASI
-  #   (1.31E-11, 2.49E-11, 1.59E-11 -> 1.80E-11). Tek bir ornegi
-  #   secmek yerine ortalamayi almak gozlenen araligin ortasina oturur.
-  #   Bu degerle 210 ns'lik saglik esigine (§3.6.18, HEALTH 0x4)
-  #   yaklasik 3 SAATTE ulasilir.
-  #   NOT: FEE calisirken de oynar; birikim hesabi holdover'a GIRERKEN
-  #   dondurulan degeri kullanir (gecmiste biriken hata sonradan
-  #   degismemeli).
-  #
-  # locked_tint: kilitliyken TINT'in ORTALAMA degeri. Kapali kontrol
-  #   dongusu TINT'i sifira cektigi icin bu SIFIRDIR; anlik okuma
-  #   sifirin etrafinda +/-12 ns salinir (jitter).
-  #   DUZELTILDI: eskiden 1.2e-08 idi. Gercek cihaz kayitlari TINT'in
-  #   artı ve eksi deger aldigini gosterdi (-7.873E-09, -1.179E-08,
-  #   1.133E-08 ...) -- yani sabit pozitif bir offset YOK.
-  #
-  # drift_per_day (D): Rubidyum osilatorun yaslanma hizi. Kilavuz
-  #   §2.9: kilitliyken ADEV "8E-014 per day"e yaklasiyor. Bu terim
-  #   saatler mertebesinde gorunmez, GUNLER mertebesinde belirginlesir.
+  # Linear model: x(t) = x0 + y_h*t (x,t in seconds).
+  # FEE is an observed magnitude, not a measured signed frequency offset.
+  # y_h below is an explicit positive model assumption based on that scale.
+  # Set a negative value to exercise negative holdover error.
   freq_error_estimate: 1.8e-11
+  holdover_frequency_error: 1.8e-11
   locked_tint: 0.0
-  drift_per_day: 8.0e-14
 
 measure:
   # PCB sicakligi. GERCEK cihaz kayitlarinda kararli durumda
