@@ -24,10 +24,12 @@ yüklenebilir hale gelirler.
 ```
 
 ## Derleme
-Yerel derleme için `tectonic` komutunun PATH üzerinde bulunması yeterlidir.
+Yerel derleme için `tectonic` komutunun PATH üzerinde bulunması gerekir.
 Bu ortamda Tectonic 0.15.0 kuruludur; ayrıca TeX Live kurulumu gerekmez.
-Gerekli LaTeX paketleri ve yazı tipleri Tectonic tarafından gerektiğinde
+Gerekli LaTeX paketleri ve TeX yazı tipleri Tectonic tarafından gerektiğinde
 indirilip önbelleğe alınır; ilk derlemede internet bağlantısı gerekebilir.
+ELECO sürümü ayrıca gerçek Times New Roman dosyalarını gerektirir;
+kurulum ve şablon ayrıntıları [biçim notlarında](eleco/FORMAT.md) açıklanmıştır.
 
 Bu klasörden:
 
@@ -44,7 +46,9 @@ dosyasındaki grafikler doğrudan TikZ/PGFPlots ile çizilir.
 
 Overleaf için ilgili bildiri klasörünü (`main.tex`, `references.bib`,
 varsa `figures/` ve ELECO için `data/` CSV dosyaları) yükleyebilirsiniz. Diğer `.tex` dosyaları önceki taslaklardır;
-derleme betiği giriş dosyası olarak `main.tex` kullanır.
+derleme betiği giriş dosyası olarak `main.tex` kullanır. ELECO için Overleaf
+derleyicisini **XeLaTeX** seçin; Times New Roman bulunmuyorsa biçim notlarında
+belirtilen `fonts/` klasörünü de yükleyin.
 
 ELECO hakem revizyonunun kod sürümü, testleri ve grafik verileri için
 [yeniden üretim kılavuzuna](eleco/REPRODUCIBILITY.md) bakın. İngilizce taslak

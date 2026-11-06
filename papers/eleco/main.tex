@@ -1,14 +1,25 @@
 \documentclass[9pt,twocolumn,a4paper]{extarticle}
 
 % ELECO 2026 yazım düzeni: A4, iki sütun, 9 punto ana metin.
-\usepackage[utf8]{inputenc}
-\usepackage[T1]{fontenc}
 \usepackage[english,turkish]{babel}
-\usepackage{newtxtext,newtxmath}
+\usepackage{amsmath}
+\usepackage{newtxmath}
+\usepackage{fontspec}
+% Tectonic's Snap package may not see user-installed fonts. Local copies
+% also allow the same files to be used in an uploaded XeLaTeX project.
+\IfFileExists{fonts/Times.TTF}{%
+  \defaultfontfeatures{Path=fonts/,Extension=.TTF,
+    UprightFont=Times,BoldFont=Timesbd,
+    ItalicFont=Timesi,BoldItalicFont=Timesbi}%
+}{}
+\setmainfont{Times New Roman}
+\setsansfont{Times New Roman}
+\setmonofont{Times New Roman}
+\setmathrm{Times New Roman}
+\usepackage{indentfirst}
 \usepackage{geometry}
 \usepackage{titlesec}
 \usepackage{caption}
-\usepackage{amsmath}
 \usepackage{booktabs}
 \usepackage{siunitx}
 \usepackage{graphicx}
@@ -18,7 +29,10 @@
 \usepackage{url}
 \usepackage[hidelinks]{hyperref}
 \usepackage{enumitem}
-\usepackage{balance}
+\usepackage{multicol}
+\setlength{\multicolsep}{0pt}
+\DeclareMathSizes{9}{9}{7}{7}
+\newcommand{\affilmark}{\textsuperscript{\fontsize{7}{7}\selectfont 1}}
 
 \pgfplotsset{compat=1.18}
 \sisetup{detect-all}
@@ -48,8 +62,8 @@
 \titleformat{\subsection}
   {\bfseries\fontsize{10}{10.8}\selectfont}
   {\thesubsection.}{0.5em}{}
-\titlespacing*{\section}{0pt}{9pt}{9pt}
-\titlespacing*{\subsection}{0pt}{9pt}{9pt}
+\titlespacing{\section}{0pt}{9pt}{9pt}
+\titlespacing{\subsection}{0pt}{9pt}{9pt}
 
 % Şekil/çizelge başlıkları: 9 pt, iki yana yaslı.
 \captionsetup{
@@ -63,6 +77,12 @@
 \setlength{\textfloatsep}{9pt}
 \setlength{\floatsep}{9pt}
 \setlength{\intextsep}{9pt}
+\AtBeginDocument{%
+  \setlength{\abovedisplayskip}{9pt}%
+  \setlength{\belowdisplayskip}{9pt}%
+  \setlength{\abovedisplayshortskip}{9pt}%
+  \setlength{\belowdisplayshortskip}{9pt}%
+}
 
 % thebibliography'nin kendi başlığını kaldır; başlık ELECO biçiminde
 % numaralı \section{Kaynaklar} olarak ayrıca verilir.
@@ -97,18 +117,18 @@
   {\fontsize{14}{14}\selectfont\bfseries
   Erişimi Kısıtlı Hassas Zamanlama Donanımı için Yüksek Doğruluklu Davranışsal Simülatör:\\
   Rubidyum Osilatörü Üzerinde Bir Vaka Çalışması\par}
-  \vspace{2pt}
+  \vspace{2mm}
   {\fontsize{14}{14}\selectfont\bfseries
   A High-Fidelity Behavioral Simulator for Limited-Access Precision Timing Hardware:\\
   A Case Study on a Rubidium Oscillator\par}
 
   \vspace{9pt}
   {\fontsize{11}{11}\selectfont
-  Ömer Faruk Karagöz$^{1}$, Ömer Yıldız$^{1}$, Batuhan Canlı$^{1}$\par}
+  Ömer Faruk Karagöz\affilmark, Ömer Yıldız\affilmark, Batuhan Canlı\affilmark\par}
 
   \vspace{9pt}
   {\fontsize{10}{10.8}\selectfont
-  $^{1}$TÜBİTAK BİLGEM MA3, Türkiye\\
+  \affilmark TÜBİTAK BİLGEM MA3, Türkiye\\
   ofkaragoz05@gmail.com, omer.yildiz@tubitak.gov.tr, ahmet.canli@tubitak.gov.tr\par}
   \vspace{18pt}
 \end{center}
@@ -119,7 +139,7 @@
 \end{center}
 \vspace{-6pt}
 {\fontsize{9}{10.8}\selectfont\itshape
-\noindent Hassas zamanlama donanımına bağımlı istemci yazılımlarının geliştirilmesi, cihazın pahalı, sınırlı sayıda veya belirli çalışma durumlarına ulaşmak için uzun süre gerektiren bir donanım olması nedeniyle güçleşebilir. Bu çalışmada, ticari bir düşük gürültülü rubidyum Küresel Navigasyon Sistemi Disiplinli Osilatörü (\emph{Global Navigation System Disciplined Oscillator}, GNSDO) için yüksek doğruluklu davranışsal bir simülatör sunulmaktadır. Simülatör, cihazın seri arayüzünü, Programlanabilir Cihazlar için Standart Komutlar (\emph{Standard Commands for Programmable Instruments}, SCPI) protokolünü, durum geçişlerini ve istemci tarafından gözlenebilen zamana bağlı davranışlarını yeniden üretmektedir. Model, üretici kılavuzu, sınırlı cihaz kayıtları ve doğrudan gözlemler kullanılarak oluşturulmuştur. Holdover sırasında zaman aralığı hatası, ısınma ve kilitlenme geçişleri, sağlık bayrakları ve ölçüm değişimleri modellenmiştir. Doğrulama, ağırlıkla kilitli duruma ait sınırlı kayıtlarla arayüz ve ilişki karşılaştırmasına dayanır. Holdover ve ısınma eğrileri model çıktılarıdır; bu geçişler zaman hizalı donanım ölçümleriyle doğrulanmamıştır. Otomatik model testleri ve seri port üzerinden ayrı bir izleme istemcisiyle uçtan uca test, yazılımın çalışmasını sınar. Sonuçlar, simülatörün gerçek donanıma sürekli erişim gerektirmeden tekrarlanabilir bir test ortamı sağlayabildiğini göstermektedir.\par}
+\noindent Hassas zamanlama donanımına bağımlı istemci yazılımlarının geliştirilmesi, cihazın maliyeti, sınırlı erişilebilirliği ve uzun durum geçiş süreleri nedeniyle güçleşebilir. Bu çalışmada, ticari bir düşük gürültülü rubidyum Küresel Navigasyon Sistemi Disiplinli Osilatörü (Global Navigation System Disciplined Oscillator, GNSDO) için yüksek doğruluklu davranışsal bir simülatör sunulmaktadır. Simülatör, cihazın seri arayüzünü, Programlanabilir Cihazlar için Standart Komutlar (Standard Commands for Programmable Instruments, SCPI) protokolünü, durum geçişlerini ve istemci tarafından gözlenebilen zamana bağlı davranışlarını yeniden üretmektedir. Model, üretici kılavuzuna, sınırlı cihaz kayıtlarına ve doğrudan gözlemlere dayanmaktadır. Holdover sırasında zaman aralığı hatası, ısınma ve kilitlenme geçişleri, sağlık bayrakları ve ölçüm değişimleri modellenmiştir. Doğrulama, ağırlıkla kilitli duruma ait sınırlı kayıtlarla arayüz ve ilişki karşılaştırmasına dayanır. Holdover ve ısınma eğrileri model çıktılarıdır; bu geçişler zaman hizalı donanım ölçümleriyle doğrulanmamıştır. Otomatik model testleri ve seri port üzerinden ayrı bir izleme istemcisiyle uçtan uca test, yazılımın çalışmasını sınar. Sonuçlar, simülatörün gerçek donanıma sürekli erişim gerektirmeden tekrarlanabilir bir test ortamı sağlayabildiğini göstermektedir.\par}
 
 \vspace{9pt}
 \begin{center}
@@ -127,7 +147,7 @@
 \end{center}
 \vspace{-6pt}
 {\selectlanguage{english}\fontsize{9}{10.8}\selectfont\itshape
-\noindent Developing client software that depends on precision timing hardware can be difficult when the device is expensive, available only in limited numbers, or requires long periods to reach specific operating states. This paper presents a high-fidelity behavioral simulator for a commercial low-noise rubidium Global Navigation System Disciplined Oscillator (GNSDO). The simulator reproduces the device's serial interface, Standard Commands for Programmable Instruments (SCPI) protocol, state transitions, and time-dependent behavior observable by client software. The model was constructed from the vendor manual, a limited set of device recordings, and direct observations. Time-interval error during holdover, warm-up and lock transitions, health flags, and measurement variations are modeled. Hardware comparison is limited to recorded responses and relationships, mainly in the locked state. Holdover and warm-up curves are model outputs, not time-aligned hardware validation. Automated model tests and an end-to-end test with a separate serial monitoring client verify software behavior. The results show that the simulator can provide a repeatable test environment without requiring continuous access to the physical device.\par}
+\noindent Developing client software for precision timing hardware is difficult because of device costs, limited availability, and long state transition times. This paper presents a high-fidelity behavioral simulator for a commercial low-noise rubidium Global Navigation System Disciplined Oscillator (GNSDO). The simulator reproduces the device's serial interface, Standard Commands for Programmable Instruments (SCPI) protocol, state transitions, and time-dependent behavior observable by client software. The model uses the vendor manual, limited device recordings, and direct observations. Time-interval error during holdover, warm-up and lock transitions, health flags, and measurement variations are modeled. Hardware comparison is limited to recorded responses and relationships, mainly in the locked state. Holdover and warm-up curves are model outputs, not time-aligned hardware validation. Automated model tests and an end-to-end test with a separate serial monitoring client verify software behavior. The results show that the simulator can provide a repeatable test environment without requiring continuous access to the physical device.\par}
 \selectlanguage{turkish}
 
 \section{Giriş}
@@ -216,10 +236,10 @@ Bu çalışmanın sabitlenmiş kod sürümünde ikinci dereceden yaşlanma terim
 \subsection{Deterministik Ölçüm Değişimi}
 Gerçek cihazda sıcaklık, TINT ve benzeri büyüklükler tamamen sabit değildir. Ancak her sorguda bağımsız rastgele sayı üretmek hem sorgu sıklığına bağlı yapay değişim oluşturur hem de regresyon testlerinin tekrar üretilebilirliğini bozar. Bu nedenle gözlenebilir küçük değişimler zamanın deterministik bir fonksiyonu olarak modellenmiştir:
 \begin{equation}
- v(t_u)=v_0+A\frac{\sum_{k=0}^{2}w_k\sin\!\left(2\pi r_k t_u/P+\upvarphi_k\right)}{\sum_{k=0}^{2}w_k},
+ v(t_u)=v_0+A\frac{\sum_{k=0}^{2}w_k\sin\!\left(2\uppi r_k t_u/P+\upvarphi_k\right)}{\sum_{k=0}^{2}w_k},
  \label{eq:variation}
 \end{equation}
-Burada $t_u$ simülatör başlangıcından geçen süre (s), $v(t_u)$ çıktı, $v_0$ nominal değer ve $A$ sapma sınırıdır; son üç büyüklük aynı kanal birimindedir (TINT için s, sıcaklık için $^{\circ}$C). $P$ temel periyot (s), $k=0,1,2$ bileşen indisi, $w_k=(1,1/2,1/4)$ boyutsuz ağırlıklar ve $r_k=(1,\upphi,\upphi^2)$ boyutsuz frekans oranlarıdır. $\upphi=(1+\sqrt{5})/2$ altın oran, $\upvarphi_k=r_k\theta_c$ radyan cinsinden sabit fazdır; $\theta_c$ kanal adından deterministik üretilir. Normalizasyon sayesinde değişim $\pm A$ aralığıyla sınırlı kalır. Bu yapı fiziksel gürültünün spektral modeli olarak değil, istemci testleri için zaman-tutarlı ve tekrarlanabilir küçük değişim üretmek amacıyla kullanılmaktadır.
+Burada $t_u$ simülatör başlangıcından geçen süre (s), $v(t_u)$ çıktı, $v_0$ nominal değer ve $A$ sapma sınırıdır; son üç büyüklük aynı kanal birimindedir (TINT için s, sıcaklık için $^{\circ}$C). $P$ temel periyot (s), $k=0,1,2$ bileşen indisi, $w_k=(1,1/2,1/4)$ boyutsuz ağırlıklar ve $r_k=(1,\upphi,\upphi^2)$ boyutsuz frekans oranlarıdır. $\upphi=(1+\sqrt{5})/2$ altın oran, $\upvarphi_k=r_k\uptheta_c$ radyan cinsinden sabit fazdır; $\uptheta_c$ kanal adından deterministik üretilir. Normalizasyon sayesinde değişim $\pm A$ aralığıyla sınırlı kalır. Bu yapı fiziksel gürültünün spektral modeli olarak değil, istemci testleri için zaman-tutarlı ve tekrarlanabilir küçük değişim üretmek amacıyla kullanılmaktadır.
 
 \subsection{Isınma ve Kilitlenme}
 Baskılı devre kartı (\emph{printed circuit board}, PCB) sıcaklığı için birinci dereceden termal yaklaşım kullanılmıştır:
@@ -318,7 +338,7 @@ CSAC--PCB & $+1.32\,^{\circ}$C ofset & En çok 0.0681~$^{\circ}$C fark \\
  width=\columnwidth,
  height=0.62\columnwidth,
  xlabel={Holdover süresi (saat)},
- ylabel={TINT (ns)},
+ ylabel={Zaman aralığı hatası (ns)},
  xmin=0,xmax=12,
  ymin=0,ymax=800,
  grid=both,
@@ -338,20 +358,25 @@ CSAC--PCB & $+1.32\,^{\circ}$C ofset & En çok 0.0681~$^{\circ}$C fark \\
 
 Bu hesap bir metrolojik holdover performans garantisi değildir; yalnızca simülatörde kullanılan etkin frekans hata parametresinin istemci tarafından gözlenen TINT değerine nasıl yansıtıldığını gösterir.
 
+% The final page uses multicol's balanced columns. Its figure is placed
+% inline so that its height participates in the column balancing.
+\onecolumn
+\begin{multicols}{2}
 \subsection{Sağlık Durumu Geçişleri}
 Holdover 60~s'yi aştığında \texttt{0x10} bayrağı etkinleşir. Faz farkı 210~ns'yi aştığında \texttt{0x4} eklenir ve birleşik durum \texttt{0x14} olur. Güç verildikten sonraki ilk 200~s için \texttt{0x8} bayrağı ayrıca modellenmektedir. Bu kurallar üretici kılavuzundaki sağlık bitleriyle doğrudan uyumludur \cite{jlt2015}.
 
 \subsection{Isınma ve Kilitlenme}
 Denklem~\ref{eq:thermal}'deki varsayılan parametrelerle PCB sıcaklığı yaklaşık birkaç dakika içinde kararlı değere yaklaşırken, GNSS kilit durumu daha yavaş ilerlemekte ve modelde yaklaşık 20 dakikalık zaman ölçeğinde etkinleşmektedir. Şekil~\ref{fig:warmup} saf \texttt{thermal\_ramp} fonksiyonundan üretilmiştir; ölçüm değişimi eklenmemiştir. Yatay eksendeki dakika değeri hesapta $t_w=60m$ ile saniyeye çevrilir; kesikli çizgi ölçülmüş kilitlenme anı değildir.
 
-\begin{figure}[t]
+\begin{center}
+\begin{minipage}{\columnwidth}
 \centering
 \begin{tikzpicture}
 \begin{axis}[
  width=\columnwidth,
  height=0.62\columnwidth,
  xlabel={Açılıştan itibaren süre (dk)},
- ylabel={PCB sıcaklığı ($^{\circ}$C)},
+ ylabel={Kart sıcaklığı ($^{\circ}$C)},
  xmin=0,xmax=25,
  ymin=24,ymax=55,
  grid=both,
@@ -362,9 +387,10 @@ Denklem~\ref{eq:thermal}'deki varsayılan parametrelerle PCB sıcaklığı yakla
 \addplot[dashed] coordinates {(20,24) (20,55)};
 \end{axis}
 \end{tikzpicture}
-\caption{Model çıktısı: PCB ısınması ve 20~dk senaryo kilit eşiği; donanım zaman serisi değildir}
+\captionof{figure}{Model çıktısı: PCB ısınması ve 20~dk senaryo kilit eşiği; donanım zaman serisi değildir}
 \label{fig:warmup}
-\end{figure}
+\end{minipage}
+\end{center}
 
 Saf model fonksiyonları aynı geçen süre ve parametrelerle aynı sonucu verir. Gerçek zamanlı seri sorguların örnekleme anları değişebileceğinden bu özellik, farklı canlı koşuların bayt düzeyinde eşitliği anlamına gelmez.
 
@@ -376,7 +402,6 @@ Yüksek doğruluk hedefinin kanıtı, incelenen arayüz alanları ve kayıtlı i
 
 Doğrulama tek bir fiziksel cihaz örneği ve sınırlı kayıt kümesiyle yapılmıştır. Bazı kayıtlarda zaman damgası bulunmadığından tüm davranışlar zaman hizalı gerçek/simülatör eğrileriyle karşılaştırılamamıştır. Ayrıca FEE değerinden etkin holdover eğimine yapılan eşleme üretici kılavuzunun doğrudan tanımladığı bir fiziksel ilişki değildir ve model parametresi olarak açıkça tutulmaktadır. Termal zaman sabiti de üretici spesifikasyonu değil, gözleme dayalı bir parametredir.
 
-\balance
 \section{Sonuç ve Gelecek Çalışmalar}
 Bu çalışmada seri/SCPI arayüzünün desteklenen bölümünü, ortak cihaz durumunu ve açık varsayımlara dayalı zamansal senaryoları üreten bir simülatör geliştirilmiştir. Simülatör, gerçek donanımın sürekli olarak test ortamında bulunmasına gerek kalmadan istemci yazılımının aynı komut arayüzü üzerinden çalıştırılmasına ve uzun süreli durumların tekrarlanabilir biçimde sınanmasına olanak vermektedir.
 
@@ -384,7 +409,7 @@ Sınırlı kayıtlar arayüz ve ilişki kontrollerini destekler; zamansal donan�
 
 \section{Erişilebilirlik ve Kod Sürümü}
 \label{sec:availability}
-Bu revizyonun kodu, bildirisi ve kanıt dosyaları \url{https://github.com/Pangea567/gnsdo-scpi-simulator} deposu için \texttt{eleco-2026-review-v1} etiketiyle sabitlenmiştir; hareketli \texttt{develop} dalı sonuçların sürüm tanımı değildir. \texttt{papers/eleco/generate\_evidence.py}, Şekil~\ref{fig:holdover}--\ref{fig:warmup} verilerini doğrudan model kodundan üretir. \texttt{data/manifest.json} kaynak commit kimliğini, dosya SHA-256 özetlerini ve parametreleri içerir. Eski \texttt{experiments/data} çıktıları bu iki şeklin kaynağı değildir. Yeniden üretim komutları ve 66 sorgunun tekil listesi \texttt{papers/eleco/REPRODUCIBILITY.md} üzerinden izlenebilir.
+Çalışmada değerlendirilen simülatör kodu ve deney kayıtları \url{https://github.com/Pangea567/gnsdo-scpi-simulator} deposunda \nolinkurl{eleco-2026-review-v1} etiketiyle sabitlenmiştir; hareketli \texttt{develop} dalı sonuçların sürüm tanımı değildir. \path{papers/eleco/generate_evidence.py}, Şekil~\ref{fig:holdover}--\ref{fig:warmup} verilerini doğrudan model kodundan üretir. \path{data/manifest.json} kaynak commit kimliğini, dosya SHA-256 özetlerini ve parametreleri içerir. Eski \path{experiments/data} çıktıları bu iki şeklin kaynağı değildir. Yeniden üretim komutları ve 66 sorgunun tekil listesi \path{papers/eleco/REPRODUCIBILITY.md} üzerinden izlenebilir.
 
 \section{Kaynaklar}
 \begin{thebibliography}{99}
@@ -412,4 +437,5 @@ C. Zucca and P. Tavella, ``The Clock Model and Its Relationship with the Allan a
 
 \end{thebibliography}
 
+\end{multicols}
 \end{document}

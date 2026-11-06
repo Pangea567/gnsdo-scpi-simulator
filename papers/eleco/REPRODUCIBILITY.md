@@ -2,7 +2,10 @@
 
 Sürüm etiketi: `eleco-2026-review-v1`.
 Dal: `paper/eleco-2026-review-revision`.
-Bu adlar yerel Git kayıtlarını tanımlar; GitHub'a yayımlanması ayrı bir işlemdir.
+Bu sürüm [GitHub'da yayımlanmıştır](https://github.com/Pangea567/gnsdo-scpi-simulator/releases/tag/eleco-2026-review-v1).
+Sonraki şablon düzenlemesi model ve deney verilerini değiştirmez. Etiketteki
+PDF ilk hakem revizyonudur; güncel `main.tex` dosyasının biçim değişiklikleri
+[biçim notlarında](FORMAT.md) açıklanmıştır.
 
 Bu revizyonun giriş dosyası `main.tex` dosyasıdır. Aynı klasördeki diğer
 `.tex` dosyaları ve `draft-en/` eski taslaklardır; revize sonuçların kaynağı
@@ -58,7 +61,11 @@ gerektiğinde indirir. Üretilmiş CSV'ler sürüme dahil olduğundan yalnızca
 PDF derlemek için Python gerekmemektedir.
 
 Overleaf'e yüklerken `main.tex` ile birlikte `data/holdover.csv` ve
-`data/warmup.csv` dosyalarını da koruyun.
+`data/warmup.csv` dosyalarını da koruyun. Güncel şablon düzenlemesi için
+**XeLaTeX** kullanın ve Times New Roman yazı tipini sağlayın; yerel font
+dosyalarıyla derleme ayrıntıları [biçim notlarında](FORMAT.md) verilmiştir.
+Yukarıdaki `git checkout` komutu, sonraki biçim düzenlemesini değil,
+yayımlanan ilk sürümü yeniden üretir.
 
 ## Yeni istemci testinin kapsamı
 
