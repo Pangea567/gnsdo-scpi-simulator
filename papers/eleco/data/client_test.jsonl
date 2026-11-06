@@ -1,0 +1,4 @@
+{"stage": "initial", "elapsed_seconds": 0.0, "identity": "Jackson Labs, LN Rb GPSDO (PRE), Firmware Rev 1.17", "locked": 1, "holdover": 0, "tint_seconds": 9.361e-09, "health": 8, "holdover_alarm": false, "duration_alarm": false}
+{"stage": "holdover_entered", "elapsed_seconds": 0.005, "identity": "Jackson Labs, LN Rb GPSDO (PRE), Firmware Rev 1.17", "locked": 0, "holdover": 1, "tint_seconds": 9.341e-09, "health": 8, "holdover_alarm": true, "duration_alarm": false}
+{"stage": "holdover_waited", "elapsed_seconds": 62.008, "identity": "Jackson Labs, LN Rb GPSDO (PRE), Firmware Rev 1.17", "locked": 0, "holdover": 1, "tint_seconds": -9.053e-10, "health": 24, "holdover_alarm": true, "duration_alarm": true}
+{"stage": "recovered", "elapsed_seconds": 62.013, "identity": "Jackson Labs, LN Rb GPSDO (PRE), Firmware Rev 1.17", "locked": 1, "holdover": 0, "tint_seconds": -2.001e-09, "health": 8, "holdover_alarm": false, "duration_alarm": false}
