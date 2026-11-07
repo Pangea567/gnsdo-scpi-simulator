@@ -29,7 +29,7 @@ measure:
   current: 0.42
   power_supply: 11.7
 # --- OLCUM GURULTUSU ---
-# (model ve gerekceler: models/noise.py, docs/tasarim-kararlari.md)
+# (model ve gerekceler: models/noise.py)
 #
 # Gercek cihazda MEAS:TEMP? her sorguda tipatip ayni sayiyi dondurmez;
 # sensor okumasi son hanede surekli oynar. Gurultu bu yuzden

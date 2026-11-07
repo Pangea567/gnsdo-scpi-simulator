@@ -12,7 +12,7 @@ import numpy as np
 from harness import Measurement
 from gnsdo_simulator.models.holdover import holdover_tint_seconds
 
-FEE = 1.8e-11  # effective y_h assumption, based on recorded FEE magnitudes
+FEE = 1.8e-11  # etkin y_h varsayimi; buyuklugu kayitli FEE degerlerinden
 HEALTH_THR_NS = 210.0
 
 def main():

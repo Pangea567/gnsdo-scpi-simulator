@@ -3,8 +3,16 @@
 Bu belge, bildiri icin yapilan literatur taramasini ve en onemlisi
 **projeyi hangi kavramla adlandiracagimiz** sorusunun cevabini kaydeder.
 
-> **Durum:** Devam ediyor. Semantic Scholar anonim erisimde hiz sinirina
-> takiliyor; derinlestirmek icin API anahtari ya da daha yavas tempo gerekli.
+> **Durum:** ELECO 2026 bildirisi icin yapilan tarama tamamlandi. Bildirinin
+> kaynakcasi 5 sayfa siniri nedeniyle burada listelenenlerin bir alt kumesidir
+> (7 kaynak). Buradaki atiflarin tamami arXiv uzerinde dogrulandi (6 Kasim
+> 2026). Asagidaki iki kaynak bildiriye girmedi ama dergi uzantisinda ilgili
+> calismalar bolumunu guclendirir:
+>
+> - Peil vd., *100-ns-level timing holdover after 12 years for rubidium
+>   atomic fountains*, arXiv:2508.13140 -- dogrudan rubidyum holdover
+> - Engelhardt vd., *A Road-Mobile GNSS-Disciplined Oscillator...*,
+>   arXiv:2604.24060 -- GNSDO, Nisan 2026
 
 ---
 

@@ -40,6 +40,17 @@ PTIME:LEAP:ACC? PTIME:LEAP:DATE? PTIME:LEAP:DUR?
 SYST:STAT? SYST:ID? SYST:ID:SN? SYST:ID:HWREV?""".split()
 
 
+def _sha256_lf(path):
+    """SHA-256 over LF-normalised bytes, so the digest does not depend on
+    the checkout's line endings. A Windows checkout with core.autocrlf=true
+    stores CRLF in the working tree; hashing those bytes directly made every
+    digest differ from a Linux checkout and the manifest unverifiable there.
+    Normalising is a no-op on LF checkouts, so published digests are unchanged.
+    """
+    return hashlib.sha256(
+        path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+
+
 def write_csv(name, header, rows):
     with (HERE / "data" / name).open("w", newline="") as f:
         writer = csv.writer(f)
@@ -73,8 +84,7 @@ def generate():
     metadata = {
         "source_commit": subprocess.check_output(
             ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
-        "source_sha256": {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest()
-                          for p in paths},
+        "source_sha256": {str(p.relative_to(ROOT)): _sha256_lf(p) for p in paths},
         "holdover": {"x0_seconds": 0, "y_h": 1.8e-11,
                      "threshold_seconds": 210e-9, "crossing_hours": 210e-9 / 1.8e-11 / 3600},
         "warmup": {"start_c": 25, "final_c": 52.8, "tau_seconds": 90},
