@@ -50,3 +50,4 @@ Tectonic bu Microsoft fontlarını kendiliğinden indirmez.
 Bu biçim düzenlemesi model kodunu veya deney verilerini değiştirmez.
 `eleco-2026-review-v1` etiketi ve yayımlanmış sürüm korunmuştur; güncel
 biçimlendirilmiş PDF bu eski sürümün eki olarak değiştirilmemiştir.
+Kamera hazır sürüm `eleco-2026-camera-ready` etiketindedir.

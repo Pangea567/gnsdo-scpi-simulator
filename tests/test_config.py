@@ -333,7 +333,7 @@ def test_tracking_cannot_exceed_visible():
     GPS:SAT:TRAC:COUN? -> 20 iken GPS:SAT:VIS:COUN? -> 19 gorulmus.
     Iki sayac muhtemelen farkli seyleri sayiyor ve farkli anlarda
     ornekleniyor. Biz bu tuhafligi taklit etmiyoruz: simulatorun
-    tutarli olmasi daha degerli (bkz. docs/tasarim-kararlari.md).
+    tutarli olmasi daha degerli.
     """
     from gnsdo_simulator.config_loader import apply_config_to_state
     from gnsdo_simulator.device_state import DeviceState

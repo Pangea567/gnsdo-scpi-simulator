@@ -132,7 +132,7 @@ class DeviceState:
     holdover_started_at: Optional[datetime] = None
 
     # --- HOLDOVER HATA BIRIKIMI MODELI ICIN ALANLAR ---
-    # (bkz. models/holdover.py ve docs/tasarim-kararlari.md)
+    # (bkz. models/holdover.py)
     #
     # locked_tint_seconds: cihaz GPS'e KILITLIYKEN TINT'in ORTALAMA
     #   degeri. Kapali kontrol dongusu TINT'i SIFIRA cektigi icin bu
@@ -153,16 +153,22 @@ class DeviceState:
     #   sifira atlamaz, o an neyse o kalir ve buyumeye ORADAN baslar.
     #   Bu yuzden giris aninda dondurup sakliyoruz.
     #
-    # holdover_frequency_error: signed, dimensionless effective y_h.
-    # None maps the entry FEE to a positive slope as an explicit assumption.
+    # holdover_frequency_error: holdover boyunca gecerli, ISARETLI ve
+    #   boyutsuz etkin frekans hatasi (modeldeki y_h). None ise
+    #   giristeki FEE pozitif egim olarak eslenir -- bu, olculmus bir
+    #   fiziksel iliski DEGIL, acik bir model varsayimidir.
     #
     # last_holdover_duration_seconds: BITMIS en son holdover'in
     #   suresi. Kilavuz §3.6.1 SYNC:HOLD:DUR?'un holdover disindayken
     #   "onceki holdover"i dondurmesini istiyor.
     locked_tint_seconds: float = 0.0
     holdover_entry_tint_seconds: float = 0.0
-    # Historical field name: stores frozen effective y_h, not a measured
-    # signed frequency error. Changing live FEE cannot alter past drift.
+    # holdover_entry_fee: TARIHSEL bir alan adi. Icinde tuttugu sey
+    #   dondurulmus etkin y_h degeridir, olculmus isaretli bir frekans
+    #   hatasi degil. Dondurmanin sebebi: birikim hizi KAYIP ANINDAKI
+    #   degere baglidir. Anlik degeri kullansaydik, FEE zamanla
+    #   oynadigi icin GECMISTE biriken hata sonradan degisirdi -- ki bu
+    #   fiziksel olarak sacma.
     holdover_entry_fee: float = 1.8e-11
     holdover_frequency_error: Optional[float] = None
     last_holdover_duration_seconds: Optional[float] = None
@@ -454,8 +460,9 @@ def enter_holdover(state: DeviceState, now: Optional[datetime] = None) -> None:
     # yapilmali, yoksa current_tint_seconds() holdover dalina girer
     # ve heniz baslamamis bir birikimi hesaplamaya calisir.
     state.holdover_entry_tint_seconds = current_tint_seconds(state, now)
-    # FEE is not a measured signed offset. Preserve the historical field
-    # name, but freeze the explicit effective offset when configured.
+    # Etkin egimi de donduruyoruz (yukarida holdover_entry_fee
+    # aciklamasina bak). Yapilandirmada acik bir y_h verilmisse onu,
+    # verilmemisse o andaki FEE'yi kullaniyoruz.
     state.holdover_entry_fee = (
         state.holdover_frequency_error
         if state.holdover_frequency_error is not None
@@ -511,8 +518,10 @@ def current_tint_seconds(state: DeviceState, now: Optional[datetime] = None) -> 
             entry_tint_seconds=state.holdover_entry_tint_seconds,
             freq_error_estimate=state.holdover_entry_fee,
         )
-        # x0 already contains the entry reading's variation. Add only its
-        # subsequent change, otherwise entering holdover counts it twice.
+        # x0 ANLIK okuma oldugu icin giristeki jitter'i ZATEN iceriyor.
+        # Asagida tabanin uzerine yine jitter eklenecek; giris anindaki
+        # degeri burada cikarmazsak ayni jitter IKI KEZ sayilir ve faz
+        # holdover'a girer girmez ziplar.
         base -= apply_noise(state, 0.0, "tint", state.holdover_started_at)
     else:
         base = state.locked_tint_seconds

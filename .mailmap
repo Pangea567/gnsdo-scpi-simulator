@@ -1,0 +1,13 @@
+# Aynı kişinin farklı makine/hesap ayarlarıyla attığı commit'leri tek
+# kimlik altında toplar. Geçmişi değiştirmez, yalnızca görüntüler:
+#   git shortlog -sne
+#   git log --format='%aN <%aE>'
+#
+# Biçim:  Doğru Ad <doğru@eposta>  Eski Ad <eski@eposta>
+
+Ömer Faruk Karagöz <ofkaragoz05@gmail.com> <omer.karagoz@staj.tubitak.gov.tr>
+Ömer Faruk Karagöz <ofkaragoz05@gmail.com> Pangea67 <omer.karagoz@staj.tubitak.gov.tr>
+Ömer Faruk Karagöz <ofkaragoz05@gmail.com> user <user@debian.tbtk.gov.tr>
+
+Ömer Yıldız <omer.yildiz@tubitak.gov.tr> Omer YILDIZ <nomeryildiz@gmail.com>
+Ömer Yıldız <omer.yildiz@tubitak.gov.tr> Ömer YILDIZ <omer.yildiz@tubitak.gov.tr>

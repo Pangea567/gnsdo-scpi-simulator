@@ -90,7 +90,7 @@ def apply_config_to_state(state: DeviceState, config: dict) -> None:
     #
     # Biz bu tuhafligi TAKLIT ETMIYORUZ: simulatorun anlasilir ve
     # tutarli olmasi, gercek cihazin bir olcum artifaktini yeniden
-    # uretmesinden daha degerli. Karar docs/tasarim-kararlari.md'de.
+    # uretmesinden daha degerli.
     if state.gnss_satellites_tracking > state.gnss_satellites_visible:
         logger.warning(
             "Config tutarsiz: tracking=%d > visible=%d. tracking, visible'a "
@@ -110,17 +110,26 @@ def apply_config_to_state(state: DeviceState, config: dict) -> None:
     # holdover varsayilan degerle baslar, config'teki deger yok
     # sayilirdi.
     if "freq_error_estimate" in sync:
-        # Reported FEE magnitude; its mapping to holdover slope is an
-        # assumption, overridable with holdover_frequency_error.
+        # Cihazin SYNC:FEE? ile raporladigi BUYUKLUK. Holdover egimine
+        # eslenmesi bir varsayimdir; acikca vermek icin asagidaki
+        # holdover_frequency_error kullanilir.
         state.freq_error_estimate = float(sync["freq_error_estimate"])
     if "locked_tint" in sync:
         # Kilitliyken TINT. Kapali dongu bunu sifira cektigi icin
         # kucuk ve sabittir; ayrica holdover'a girerken x0 olur.
         state.locked_tint_seconds = float(sync["locked_tint"])
     if "drift_per_day" in sync:
-        raise ValueError("sync.drift_per_day was removed: use the linear "
-                         "model with sync.holdover_frequency_error")
+        # Bilincli olarak SESSIZ KALMIYORUZ. Bu ayar, kilavuz §2.9'daki
+        # 8E-14 Allan sapmasi rakamini yaslanma katsayisi sanan eski
+        # modele aitti. Sessizce yok saysaydik, eski bir senaryo
+        # dosyasi calisir gorunur ama ayari etkisiz kalirdi.
+        raise ValueError(
+            "sync.drift_per_day kaldirildi: model artik dogrusal "
+            "(x = x0 + y_h*t). Egimi sync.holdover_frequency_error "
+            "ile verin."
+        )
     if "holdover_frequency_error" in sync:
+        # y_h -- holdover boyunca gecerli, ISARETLI etkin frekans hatasi.
         state.holdover_frequency_error = float(sync["holdover_frequency_error"])
 
     if "holdover" in sync:

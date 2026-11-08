@@ -76,7 +76,9 @@ SERVO_STATE_LOCKING = 2
 SERVO_STATE_HOLDOVER_PHASE_LOCKED = 5
 SERVO_STATE_LOCKED = 6
 
-# Scenario assumption, not a measured lock time for this Rb variant.
+# Senaryo varsayimi. Kilavuz §1.1'deki "less than 2 minutes warmup time
+# to atomic lock" ifadesi CSAC varyantina aittir; incelenen rubidyum
+# cihazi icin OLCULMUS bir kilit suresi degildir.
 ATOMIC_LOCK_SECONDS = 120.0
 
 # Kilavuz §2.5: kilit gostergesi "typically ... in less than 20
@@ -87,9 +89,18 @@ GNSS_LOCK_SECONDS = 1200.0
 # 100s after GNSS lock is lost".
 HOLDOVER_PHASE_LOCKED_SECONDS = 100.0
 
-# Thermal time constant in seconds. Selected using qualitative operator
-# observations (warming over minutes), not fitted to a timestamped series.
-# The CSAC-specific atomic-lock specification does not validate this value.
+# Isil zaman sabiti (saniye). Cihazin kararli sicakliga yaklasma hizi.
+#
+# Deger, cihazi calistiran kisinin NITEL gozleminden secildi: sicaklik
+# birkac dakikada 40-50 C'ye ulasiyor. Zaman damgali bir seriye
+# OTURTULMUS degildir, uretici spesifikasyonu da degildir.
+#
+# DUZELTILDI: eski deger 600 s idi ve kilavuzun 20 DAKIKALIK
+# kilit suresinden secilmisti -- ama o GNSS'e kilitlenme suresidir,
+# SICAKLIK degil. Isinma (hizli, ~dakikalar) ile GNSS kilidi (yavas,
+# ~20 dk) AYRI sureclerdir; ikincisi servo durum makinesinde tutulur.
+#
+# 90 s ile: 1 dk'da ~38 C, 2 dk'da ~46 C, 3 dk'da ~49 C, 5 dk'da ~52 C.
 THERMAL_TIME_CONSTANT_SECONDS = 90.0
 
 # Cihazin acilis anindaki ortam sicakligi varsayimi (C).

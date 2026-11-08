@@ -1,13 +1,13 @@
-> ELECO review revision: holdover now uses x(t) = x0 + y_h*t.
-> The previous interpretation of 8e-14 as ageing is withdrawn. Older
-> derivations/results below are historical, not evidence for this revision.
-> Reproduction and scope: papers/eleco/REPRODUCIBILITY.md.
+# experiments/ — Ölçüm script'leri
 
-# experiments/ — Bildiri sekillerini ureten script'ler
+> **Not.** Holdover modeli doğrusaldır: `x(t) = x₀ + y_h·t`. Bildirideki iki
+> şeklin kaynağı bu klasör **değil**, `papers/eleco/generate_evidence.py` ve
+> onun ürettiği `papers/eleco/data/*.csv` dosyalarıdır. Kapsam ve yeniden
+> üretim: [`papers/eleco/REPRODUCIBILITY.md`](../papers/eleco/REPRODUCIBILITY.md).
 
-Her sekil, TEK BASINA calisan ve sekli YENIDEN URETEN bir script'ten
-gelir. Grafikleri elle cizmiyoruz; boylece bildiri tamamen yeniden
-uretilebilir.
+Buradaki her script TEK BASINA calisir, modeli dogrudan cagirir ve
+olctugu seyi yeniden uretir. Grafikleri elle cizmiyoruz; fiziksel
+degismezler de ayni script icinde dogrulanir.
 
 ## Kurulum
 ```bash

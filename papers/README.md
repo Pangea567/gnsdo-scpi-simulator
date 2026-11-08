@@ -10,14 +10,30 @@ papers/
 │   ├── main.tex
 │   ├── references.bib
 │   └── figures/      # experiments/figures'tan kopyalanan PDF'ler
-├── eleco/            # Türkçe ELECO sürümü; giriş dosyası main.tex
+├── eleco/            # ELECO 2026 sürümü (Türkçe); giriş dosyası main.tex
+│   ├── main.tex
+│   ├── references.bib
+│   ├── data/         # şekillerin okuduğu CSV'ler + manifest + kapsam
+│   ├── generate_evidence.py   # data/ dosyalarını modelden üretir
+│   ├── monitor_client.py      # bağımsız pySerial izleme istemcisi
+│   ├── run_client_test.py     # uçtan uca istemci testi (socat gerekir)
+│   ├── REVISION_NOTES.md      # hakem maddesi -> yapılan değişiklik
+│   ├── REPRODUCIBILITY.md     # sürüm kimliği, komutlar, kanıt sınırları
+│   └── FORMAT.md              # şablon uyumu, font ve derleme notları
 └── sync_figures.sh   # experiments/figures/*.pdf -> her bildirinin figures/
 ```
 
+Her klasörde tek bir giriş dosyası vardır: `main.tex`. Aşılmış taslaklar
+klasörde tutulmaz; git geçmişinden erişilebilir.
+
 ## Grafikler
-Grafikler `experiments/` altında üretilir (tek kaynak). `sync_figures.sh`
-üretilen PDF'leri bildiri klasörlerine kopyalar; böylece Overleaf'e
-yüklenebilir hale gelirler.
+`draft-en/` için grafikler `experiments/` altında üretilir; `sync_figures.sh`
+üretilen PDF'leri bildiri klasörlerine kopyalar.
+
+**ELECO sürümü farklı çalışır:** şekiller `main.tex` içinde PGFPlots ile
+çizilir ve verilerini `eleco/data/*.csv` dosyalarından okur. O CSV'leri
+`eleco/generate_evidence.py` doğrudan model fonksiyonlarından üretir, yani
+şekilde görünen eğri ile koddaki model aynı kaynaktan gelir.
 
 ```bash
 ./papers/sync_figures.sh
@@ -45,14 +61,14 @@ oluşturup `experiments/figures/*.pdf` dosyalarını kopyalar ve ardından
 dosyasındaki grafikler doğrudan TikZ/PGFPlots ile çizilir.
 
 Overleaf için ilgili bildiri klasörünü (`main.tex`, `references.bib`,
-varsa `figures/` ve ELECO için `data/` CSV dosyaları) yükleyebilirsiniz. Diğer `.tex` dosyaları önceki taslaklardır;
-derleme betiği giriş dosyası olarak `main.tex` kullanır. ELECO için Overleaf
+varsa `figures/` ve ELECO için `data/` CSV dosyaları) yükleyebilirsiniz.
+Derleme betiği giriş dosyası olarak `main.tex` kullanır. ELECO için Overleaf
 derleyicisini **XeLaTeX** seçin; Times New Roman bulunmuyorsa biçim notlarında
 belirtilen `fonts/` klasörünü de yükleyin.
 
 ELECO hakem revizyonunun kod sürümü, testleri ve grafik verileri için
-[yeniden üretim kılavuzuna](eleco/REPRODUCIBILITY.md) bakın. İngilizce taslak
-ve diğer ELECO `.tex` dosyaları bu revizyonun bilimsel güncellemelerini içermez.
+[yeniden üretim kılavuzuna](eleco/REPRODUCIBILITY.md) bakın. `draft-en/`
+altındaki İngilizce taslak bu revizyonun bilimsel güncellemelerini içermez.
 
 ## Dil
 Ana taslak İngilizce (ilerleyiş kolaylığı). ELECO sürümünde dil/şablon
