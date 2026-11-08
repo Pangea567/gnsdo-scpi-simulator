@@ -1,11 +1,15 @@
-# ELECO hakem revizyonunun yeniden üretilmesi
+# ELECO bildirisinin yeniden üretilmesi
 
-Sürüm etiketi: `eleco-2026-review-v1`.
-Dal: `paper/eleco-2026-review-revision`.
-Bu sürüm [GitHub'da yayımlanmıştır](https://github.com/Pangea567/gnsdo-scpi-simulator/releases/tag/eleco-2026-review-v1).
-Sonraki şablon düzenlemesi model ve deney verilerini değiştirmez. Etiketteki
-PDF ilk hakem revizyonudur; güncel `main.tex` dosyasının biçim değişiklikleri
-[biçim notlarında](FORMAT.md) açıklanmıştır.
+Sürüm etiketi: `eleco-2026-camera-ready` (bildirinin kamera hazır sürümü).
+Dal: `paper/eleco-review-fixups`.
+Bu sürüm [GitHub'da yayımlanmıştır](https://github.com/Pangea567/gnsdo-scpi-simulator/releases/tag/eleco-2026-camera-ready).
+
+İlk hakem revizyonu ayrıca `eleco-2026-review-v1` etiketiyle
+[yayımlanmıştır](https://github.com/Pangea567/gnsdo-scpi-simulator/releases/tag/eleco-2026-review-v1).
+İki sürüm arasında model davranışı ve deney verileri aynıdır: grafik CSV'leri
+ve sorgu kapsamı bayt düzeyinde aynıdır. Değişiklikler bildiri metni, biçim
+([biçim notları](FORMAT.md)), kod açıklamaları ve bir hata mesajının
+Türkçeleştirilmesiyle sınırlıdır.
 
 Bu revizyonun giriş dosyası `main.tex` dosyasıdır. `draft-en/` altındaki
 İngilizce taslak eskidir; revize sonuçların kaynağı olarak kullanılmamalıdır.
@@ -44,7 +48,7 @@ verir; sessizce yok sayılmaz.
 Depo kökünden, Python 3.10+ ile:
 
 ```bash
-git checkout eleco-2026-review-v1
+git checkout eleco-2026-camera-ready
 python3 -m venv .venv
 .venv/bin/python -m pip install -e '.[dev,experiments]'
 .venv/bin/python -m pytest -q
@@ -64,8 +68,9 @@ Overleaf'e yüklerken `main.tex` ile birlikte `data/holdover.csv` ve
 `data/warmup.csv` dosyalarını da koruyun. Güncel şablon düzenlemesi için
 **XeLaTeX** kullanın ve Times New Roman yazı tipini sağlayın; yerel font
 dosyalarıyla derleme ayrıntıları [biçim notlarında](FORMAT.md) verilmiştir.
-Yukarıdaki `git checkout` komutu, sonraki biçim düzenlemesini değil,
-yayımlanan ilk sürümü yeniden üretir.
+Yukarıdaki `git checkout` komutu kamera hazır sürümü yeniden üretir.
+Kamera hazır PDF, MiKTeX XeLaTeX ile üç geçişte derlenmiştir. İlk hakem
+revizyonunu üretmek için `eleco-2026-review-v1` etiketini kullanın.
 
 ## Yeni istemci testinin kapsamı
 
